@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EffinDom FUI AssemblyScript Demo</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color-scheme: dark;
+      --page-background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 32%),
+        linear-gradient(180deg, #020611, #060d18 55%, #0a1422);
+      --page-text: #e2e8f0;
+      --canvas-border: #263449;
+      --canvas-background: #0d1424;
+      --canvas-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+      --sidebar-border: #18324b;
+      --sidebar-background: rgba(6, 12, 21, 0.94);
+      --sidebar-label: #cbd5e1;
+      --button-background: linear-gradient(180deg, #0f3c66, #0f5e8a);
+      --button-text: #f8fbff;
+      --code-color: #93c5fd;
+    }
+
+    :root[data-demo-theme="light"] {
+      color-scheme: light;
+      --page-background:
+        radial-gradient(circle at top left, rgba(14, 165, 233, 0.10), transparent 30%),
+        linear-gradient(180deg, #f8fbff, #eef4fb 55%, #e5eef8);
+      --page-text: #102033;
+      --canvas-border: #c5d2e2;
+      --canvas-background: #f8fbff;
+      --canvas-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+      --sidebar-border: #c5d2e2;
+      --sidebar-background: rgba(255, 255, 255, 0.92);
+      --sidebar-label: #334155;
+      --button-background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      --button-text: #f8fbff;
+      --code-color: #1d4ed8;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) 340px;
+      gap: 24px;
+      padding: 24px;
+      box-sizing: border-box;
+      background: var(--page-background);
+      color: var(--page-text);
+    }
+
+    .viewport {
+      display: grid;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .canvas-shell {
+      position: relative;
+      min-width: 0;
+      height: calc(100vh - 48px);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    canvas {
+      box-sizing: border-box;
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--canvas-border);
+      border-radius: 16px;
+      background: var(--canvas-background);
+      box-shadow: var(--canvas-shadow);
+      outline: none;
+    }
+
+    canvas:focus,
+    canvas:focus-visible {
+      outline: none;
+    }
+
+    .effindom-loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background: linear-gradient(180deg, rgba(2, 6, 23, 0.72), rgba(10, 20, 34, 0.82));
+      backdrop-filter: blur(10px);
+      z-index: 2;
+    }
+
+    .effindom-loading-overlay[hidden] {
+      display: none;
+    }
+
+    .effindom-loading-card {
+      max-width: 420px;
+      padding: 22px 24px;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      border-radius: 18px;
+      background: rgba(6, 12, 21, 0.80);
+      text-align: center;
+      box-shadow: 0 18px 48px rgba(2, 6, 23, 0.30);
+    }
+
+    .effindom-loading-overlay[data-state="error"] .effindom-loading-card {
+      border-color: rgba(248, 113, 113, 0.50);
+      background: rgba(69, 10, 10, 0.78);
+    }
+
+    .effindom-loading-kicker {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #7dd3fc;
+    }
+
+    .effindom-loading-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+
+    .effindom-loading-detail {
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+      padding: 20px;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 16px;
+      background: var(--sidebar-background);
+    }
+
+    .control-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-size: 14px;
+      color: var(--sidebar-label);
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--button-background);
+      color: var(--button-text);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    code {
+      color: var(--code-color);
+    }
+
+    @media (max-width: 1120px) {
+      body {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-shell {
+        height: clamp(360px, 60vh, 620px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="viewport">
+    <div class="canvas-shell" data-effindom-canvas-size-source>
+      <canvas id="fui-canvas"></canvas>
+      <div
+        class="effindom-loading-overlay"
+        id="effindom-loading-overlay"
+        data-state="loading"
+        aria-live="polite"
+        aria-hidden="false">
+        <div class="effindom-loading-card">
+          <p class="effindom-loading-kicker">EffinDom backstage</p>
+          <h2 class="effindom-loading-title" id="effindom-loading-title">Teaching the pixels their lines...</h2>
+          <p class="effindom-loading-detail" id="effindom-loading-detail">The runtime orchestra is tuning up behind the canvas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="sidebar">
+    <div>
+      <h1>FUI-AS demo</h1>
+      <p>Use this routed demo shell to tweak the dashboard route and jump to the advanced-controls playground without leaving the shared runtime.</p>
+      <p><code>Dashboard route</code></p>
+    </div>
+
+    <div class="control-group">
+      <label for="hue">Accent hue <span id="hue-value">210 deg</span></label>
+      <input id="hue" type="range" min="0" max="359" step="1" value="210" />
+    </div>
+
+    <div class="control-group">
+      <label>Theme mode <span id="theme-mode-value">Dark</span></label>
+      <button id="toggle-theme-mode" type="button">Switch to light mode</button>
+    </div>
+
+    <div class="control-group">
+      <label>Clock tick <span id="tick-value">0 s</span></label>
+      <button id="pulse-hue" type="button">Jump hue</button>
+    </div>
+  </aside>
+
+  <script src="./effindom-runtime-config.js"></script>
+  <script src="./bridge.js"></script>
+  <script type="module" src="./harness.js"></script>
+</body>
+</html>

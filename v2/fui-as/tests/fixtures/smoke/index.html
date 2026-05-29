@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EffinDom FUI AssemblyScript Smoke Harness</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      gap: 12px;
+    }
+
+    .canvas-shell {
+      position: relative;
+      width: 320px;
+      height: 220px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      image-rendering: pixelated;
+      background: transparent;
+      outline: none;
+    }
+
+    canvas:focus,
+    canvas:focus-visible {
+      outline: none;
+    }
+
+    .effindom-loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      box-sizing: border-box;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.80), rgba(15, 23, 42, 0.92));
+      backdrop-filter: blur(8px);
+    }
+
+    .effindom-loading-overlay[hidden] {
+      display: none;
+    }
+
+    .effindom-loading-card {
+      max-width: 240px;
+      padding: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.78);
+      text-align: center;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+    }
+
+    .effindom-loading-overlay[data-state="error"] .effindom-loading-card {
+      border-color: rgba(248, 113, 113, 0.55);
+      background: rgba(69, 10, 10, 0.78);
+    }
+
+    .effindom-loading-kicker {
+      margin: 0 0 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+
+    .effindom-loading-title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .effindom-loading-detail {
+      margin: 10px 0 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="canvas-shell">
+    <canvas id="fui-canvas"></canvas>
+    <div
+      class="effindom-loading-overlay"
+      id="effindom-loading-overlay"
+      data-state="loading"
+      aria-live="polite"
+      aria-hidden="false">
+      <div class="effindom-loading-card">
+        <p class="effindom-loading-kicker">EffinDom backstage</p>
+        <h1 class="effindom-loading-title" id="effindom-loading-title">Teaching the pixels their lines...</h1>
+        <p class="effindom-loading-detail" id="effindom-loading-detail">The runtime orchestra is tuning up behind the canvas.</p>
+      </div>
+    </div>
+  </div>
+  <script src="./effindom-runtime-config.js"></script>
+  <script src="./bridge.js"></script>
+  <script type="module" src="./harness.js"></script>
+</body>
+</html>

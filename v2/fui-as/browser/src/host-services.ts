@@ -1,0 +1,322 @@
+export type HostServiceTypeName =
+  | "string"
+  | "bool"
+  | "i32"
+  | "f64"
+  | "bytes"
+  | "i32_array"
+  | "f64_array"
+  | "void";
+
+type HostServiceTypeValue<T extends HostServiceTypeName> =
+  T extends "string" ? string :
+  T extends "bool" ? boolean :
+  T extends "bytes" ? Uint8Array :
+  T extends "i32_array" ? Int32Array :
+  T extends "f64_array" ? Float64Array :
+  T extends "void" ? void :
+  number;
+
+type HostServiceArgsValues<TArgs extends readonly HostServiceTypeName[]> = {
+  readonly [K in keyof TArgs]: HostServiceTypeValue<TArgs[K] & HostServiceTypeName>;
+};
+
+export interface HostServiceMethodDefinition<
+  TArgs extends readonly HostServiceTypeName[] = readonly HostServiceTypeName[],
+  TResult extends HostServiceTypeName = HostServiceTypeName,
+> {
+  readonly args: TArgs;
+  readonly returns: TResult;
+  readonly implementation: (...args: HostServiceArgsValues<TArgs>) => HostServiceTypeValue<TResult>;
+}
+
+export type HostServicesDefinition = Record<string, Record<string, HostServiceMethodDefinition>>;
+
+export interface NormalizedHostServiceMethod {
+  readonly serviceName: string;
+  readonly methodName: string;
+  readonly importName: string;
+  readonly args: readonly HostServiceTypeName[];
+  readonly returns: HostServiceTypeName;
+  readonly implementation: (...args: readonly unknown[]) => unknown;
+}
+
+export interface HostServiceImportIo {
+  readString(ptr: number, len: number): string;
+  writeString(ptr: number, capacity: number, text: string, context: string): number;
+  readBytes(ptr: number, len: number): Uint8Array;
+  writeBytes(ptr: number, capacity: number, bytes: Uint8Array, context: string): number;
+}
+
+const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export function hostService<
+  TArgs extends readonly HostServiceTypeName[],
+  TResult extends HostServiceTypeName,
+>(definition: HostServiceMethodDefinition<TArgs, TResult>): HostServiceMethodDefinition<TArgs, TResult> {
+  return definition;
+}
+
+export function defineHostServices<TServices extends HostServicesDefinition>(services: TServices): TServices {
+  return services;
+}
+
+function assertIdentifier(value: string, context: string): void {
+  if (!IDENTIFIER_RE.test(value)) {
+    throw new Error(`${context} "${value}" must be a valid identifier.`);
+  }
+}
+
+function capitalize(value: string): string {
+  return value.length == 0 ? value : `${value[0].toUpperCase()}${value.slice(1)}`;
+}
+
+function buildImportName(serviceName: string, methodName: string): string {
+  return `${serviceName}${capitalize(methodName)}`;
+}
+
+function validateServiceType(type: string, context: string): asserts type is HostServiceTypeName {
+  if (
+    type === "string" ||
+    type === "bool" ||
+    type === "i32" ||
+    type === "f64" ||
+    type === "bytes" ||
+    type === "i32_array" ||
+    type === "f64_array" ||
+    type === "void"
+  ) {
+    return;
+  }
+  throw new Error(`${context} uses unsupported host-service type "${type}".`);
+}
+
+export function listHostServiceMethods(services: HostServicesDefinition | undefined): ReadonlyArray<NormalizedHostServiceMethod> {
+  if (services === undefined) {
+    return [];
+  }
+  const methods: Array<NormalizedHostServiceMethod> = [];
+  const seenImports = new Set<string>();
+  for (const [serviceName, serviceMethods] of Object.entries(services)) {
+    assertIdentifier(serviceName, "Host service");
+    for (const [methodName, definition] of Object.entries(serviceMethods)) {
+      assertIdentifier(methodName, `Host service ${serviceName} method`);
+      const importName = buildImportName(serviceName, methodName);
+      if (seenImports.has(importName)) {
+        throw new Error(`Duplicate host-service import name "${importName}".`);
+      }
+      seenImports.add(importName);
+      const args = [...definition.args];
+      args.forEach((type, index) => validateServiceType(type, `Host service ${serviceName}.${methodName} arg ${String(index)}`));
+      validateServiceType(definition.returns, `Host service ${serviceName}.${methodName} return`);
+      methods.push({
+        serviceName,
+        methodName,
+        importName,
+        args,
+        returns: definition.returns,
+        implementation: definition.implementation as (...args: readonly unknown[]) => unknown,
+      });
+    }
+  }
+  methods.sort((left, right) => left.importName.localeCompare(right.importName));
+  return methods;
+}
+
+export function getHostServiceImportNames(services: HostServicesDefinition | undefined): ReadonlySet<string> {
+  return new Set(listHostServiceMethods(services).map((method) => method.importName));
+}
+
+function expectNumber(value: unknown, context: string): number {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    throw new Error(`${context} must be a number.`);
+  }
+  return value;
+}
+
+function expectBoolean(value: unknown, context: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${context} must be a boolean.`);
+  }
+  return value;
+}
+
+function expectString(value: unknown, context: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`${context} must be a string.`);
+  }
+  return value;
+}
+
+function expectBytes(value: unknown, context: string): Uint8Array {
+  if (!(value instanceof Uint8Array)) {
+    throw new Error(`${context} must be a Uint8Array.`);
+  }
+  return value;
+}
+
+function expectInt32Array(value: unknown, context: string): Int32Array {
+  if (!(value instanceof Int32Array)) {
+    throw new Error(`${context} must be an Int32Array.`);
+  }
+  return value;
+}
+
+function expectFloat64Array(value: unknown, context: string): Float64Array {
+  if (!(value instanceof Float64Array)) {
+    throw new Error(`${context} must be a Float64Array.`);
+  }
+  return value;
+}
+
+function expectI32(value: unknown, context: string): number {
+  const numberValue = expectNumber(value, context);
+  if (!Number.isInteger(numberValue) || numberValue < -2147483648 || numberValue > 2147483647) {
+    throw new Error(`${context} must be a signed 32-bit integer.`);
+  }
+  return numberValue;
+}
+
+function expectLength(value: unknown, context: string): number {
+  const length = expectNumber(value, context);
+  if (!Number.isInteger(length) || length < 0) {
+    throw new Error(`${context} must be a non-negative integer.`);
+  }
+  return length;
+}
+
+function bytesToI32Array(bytes: Uint8Array, context: string): Int32Array {
+  if ((bytes.byteLength & 3) !== 0) {
+    throw new Error(`${context} payload length must be divisible by 4.`);
+  }
+  const values = new Int32Array(bytes.byteLength >>> 2);
+  new Uint8Array(values.buffer).set(bytes);
+  return values;
+}
+
+function bytesToF64Array(bytes: Uint8Array, context: string): Float64Array {
+  if ((bytes.byteLength & 7) !== 0) {
+    throw new Error(`${context} payload length must be divisible by 8.`);
+  }
+  const values = new Float64Array(bytes.byteLength >>> 3);
+  new Uint8Array(values.buffer).set(bytes);
+  return values;
+}
+
+function typedArrayBytes(value: Uint8Array | Int32Array | Float64Array): Uint8Array {
+  return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+}
+
+function consumedRawArgCount(method: NormalizedHostServiceMethod): number {
+  let count = 0;
+  method.args.forEach((type) => {
+    count += type === "string" || type === "bytes" || type === "i32_array" || type === "f64_array" ? 2 : 1;
+  });
+  return count;
+}
+
+function decodeHostServiceArgs(
+  method: NormalizedHostServiceMethod,
+  rawArgs: readonly unknown[],
+  io: HostServiceImportIo,
+): ReadonlyArray<unknown> {
+  const decodedArgs: Array<unknown> = [];
+  let index = 0;
+  method.args.forEach((type, argIndex) => {
+    const context = `Host service ${method.serviceName}.${method.methodName} arg ${String(argIndex)}`;
+    if (type === "string") {
+      const ptr = expectNumber(rawArgs[index], `${context} ptr`);
+      const len = expectNumber(rawArgs[index + 1], `${context} len`);
+      decodedArgs.push(len <= 0 ? "" : io.readString(ptr, len));
+      index += 2;
+      return;
+    }
+    if (type === "bytes") {
+      const ptr = expectNumber(rawArgs[index], `${context} ptr`);
+      const len = expectLength(rawArgs[index + 1], `${context} len`);
+      decodedArgs.push(len <= 0 ? new Uint8Array(0) : io.readBytes(ptr, len));
+      index += 2;
+      return;
+    }
+    if (type === "i32_array") {
+      const ptr = expectNumber(rawArgs[index], `${context} ptr`);
+      const len = expectLength(rawArgs[index + 1], `${context} len`);
+      const payload = len <= 0 ? new Uint8Array(0) : io.readBytes(ptr, len << 2);
+      decodedArgs.push(bytesToI32Array(payload, context));
+      index += 2;
+      return;
+    }
+    if (type === "f64_array") {
+      const ptr = expectNumber(rawArgs[index], `${context} ptr`);
+      const len = expectLength(rawArgs[index + 1], `${context} len`);
+      const payload = len <= 0 ? new Uint8Array(0) : io.readBytes(ptr, len << 3);
+      decodedArgs.push(bytesToF64Array(payload, context));
+      index += 2;
+      return;
+    }
+    const rawValue = rawArgs[index];
+    if (type === "bool") {
+      decodedArgs.push(expectNumber(rawValue, context) !== 0);
+    } else if (type === "i32") {
+      decodedArgs.push(expectI32(rawValue, context));
+    } else if (type === "f64") {
+      decodedArgs.push(expectNumber(rawValue, context));
+    } else {
+      throw new Error(`${context} uses unsupported type ${type}.`);
+    }
+    index += 1;
+  });
+  return decodedArgs;
+}
+
+export function createHostServiceImportModule(
+  services: HostServicesDefinition | undefined,
+  io: HostServiceImportIo,
+): Record<string, (...rawArgs: Array<unknown>) => number | void> {
+  const module: Record<string, (...rawArgs: Array<unknown>) => number | void> = {};
+  for (const method of listHostServiceMethods(services)) {
+    module[method.importName] = (...rawArgs: Array<unknown>): number | void => {
+      const decodedArgs = decodeHostServiceArgs(method, rawArgs, io);
+      const result = method.implementation(...decodedArgs);
+      const resultContext = `Host service ${method.serviceName}.${method.methodName} result`;
+      if (method.returns === "void") {
+        return;
+      }
+      if (method.returns === "string") {
+        const outputIndex = consumedRawArgCount(method);
+        const ptr = expectNumber(rawArgs[outputIndex], `${resultContext} ptr`);
+        const capacity = expectNumber(rawArgs[outputIndex + 1], `${resultContext} capacity`);
+        return io.writeString(ptr, capacity, expectString(result, resultContext), resultContext);
+      }
+      if (method.returns === "bytes") {
+        const outputIndex = consumedRawArgCount(method);
+        const ptr = expectNumber(rawArgs[outputIndex], `${resultContext} ptr`);
+        const capacity = expectNumber(rawArgs[outputIndex + 1], `${resultContext} capacity`);
+        return io.writeBytes(ptr, capacity, expectBytes(result, resultContext), resultContext);
+      }
+      if (method.returns === "i32_array") {
+        const outputIndex = consumedRawArgCount(method);
+        const ptr = expectNumber(rawArgs[outputIndex], `${resultContext} ptr`);
+        const capacity = expectNumber(rawArgs[outputIndex + 1], `${resultContext} capacity`);
+        return io.writeBytes(ptr, capacity, typedArrayBytes(expectInt32Array(result, resultContext)), resultContext);
+      }
+      if (method.returns === "f64_array") {
+        const outputIndex = consumedRawArgCount(method);
+        const ptr = expectNumber(rawArgs[outputIndex], `${resultContext} ptr`);
+        const capacity = expectNumber(rawArgs[outputIndex + 1], `${resultContext} capacity`);
+        return io.writeBytes(ptr, capacity, typedArrayBytes(expectFloat64Array(result, resultContext)), resultContext);
+      }
+      if (method.returns === "bool") {
+        return expectBoolean(result, resultContext) ? 1 : 0;
+      }
+      if (method.returns === "i32") {
+        return expectI32(result, resultContext);
+      }
+      if (method.returns === "f64") {
+        return expectNumber(result, resultContext);
+      }
+      throw new Error(`${resultContext} uses unsupported type ${method.returns}.`);
+    };
+  }
+  return module;
+}

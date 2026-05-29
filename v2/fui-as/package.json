@@ -1,0 +1,92 @@
+{
+  "name": "@effindomv2/fui-as",
+  "version": "0.1.2",
+  "private": false,
+  "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
+  "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "types": "./src/Fui.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/Fui.ts",
+      "default": "./src/Fui.ts"
+    },
+    "./primitives": {
+      "types": "./src/FuiPrimitives.ts",
+      "default": "./src/FuiPrimitives.ts"
+    },
+    "./worker": {
+      "types": "./src/FuiWorker.ts",
+      "default": "./src/FuiWorker.ts"
+    },
+    "./worker-exports": {
+      "types": "./src/FuiWorkerExports.ts",
+      "default": "./src/FuiWorkerExports.ts"
+    },
+    "./exports": {
+      "types": "./src/FuiExports.ts",
+      "default": "./src/FuiExports.ts"
+    },
+    "./browser": {
+      "types": "./browser/src/index.ts",
+      "default": "./browser/src/index.ts"
+    },
+    "./browser/common-harness": {
+      "types": "./browser/src/common-harness.ts",
+      "default": "./browser/src/common-harness.ts"
+    },
+    "./browser/routed-harness": {
+      "types": "./browser/src/routed-harness.ts",
+      "default": "./browser/src/routed-harness.ts"
+    },
+    "./browser/host-events": {
+      "types": "./browser/src/host-events.ts",
+      "default": "./browser/src/host-events.ts"
+    },
+    "./browser/host-services": {
+      "types": "./browser/src/host-services.ts",
+      "default": "./browser/src/host-services.ts"
+    },
+    "./browser/worker-types": {
+      "types": "./browser/src/worker-types.ts",
+      "default": "./browser/src/worker-types.ts"
+    }
+  },
+  "files": [
+    "src",
+    "browser/src",
+    "scripts",
+    "LICENSE.md",
+    "COMMERCIAL.md",
+    "LICENSES"
+  ],
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "build:only": "bash scripts/build.sh",
+    "build:full": "bash scripts/build.sh",
+    "build:demo:as": "bash scripts/build-demo-as.sh",
+    "test:unit": "asp --verbose -c as-pect.config.mjs -a as-pect.asconfig.json",
+    "test:integration": "npm run build:full && playwright test -c playwright.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@assemblyscript/loader": "^0.28.17",
+    "@effindomv2/runtime": "0.1.0"
+  },
+  "devDependencies": {
+    "@as-pect/assembly": "8.1.0",
+    "@as-pect/cli": "8.1.0",
+    "@as-pect/core": "8.1.0",
+    "@playwright/test": "1.59.1",
+    "@types/node": "^24.10.1",
+    "assemblyscript": "0.28.17",
+    "esbuild": "^0.27.7",
+    "typescript": "^5.9.3"
+  }
+}

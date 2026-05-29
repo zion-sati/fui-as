@@ -1,0 +1,41 @@
+{
+  "name": "@effindomv2/create-fui-as-app",
+  "version": "0.1.5",
+  "private": false,
+  "license": "MIT",
+  "description": "Scaffold a minimal EffinDom v2 FUI-AS app",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "create-fui-as-app": "./dist/src/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/scaffold.d.ts",
+      "default": "./dist/src/scaffold.js"
+    }
+  },
+  "main": "./dist/src/scaffold.js",
+  "types": "./dist/src/scaffold.d.ts",
+  "files": [
+    "dist",
+    "build/templates"
+  ],
+  "scripts": {
+    "sync:templates": "tsx scripts/sync-templates.ts",
+    "build": "npm run sync:templates && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/tests/**/*.test.js",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

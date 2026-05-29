@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>FUI-AS MVC Demo</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #020617;
+    }
+
+    main {
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #020617;
+    }
+
+    .effindom-loading-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #e2e8f0;
+      background: rgba(2, 6, 23, 0.75);
+      z-index: 2;
+      font-family: system-ui, sans-serif;
+    }
+
+    .effindom-loading-overlay[hidden] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <main data-effindom-canvas-size-source>
+    <canvas id="fui-canvas"></canvas>
+  </main>
+  <div class="effindom-loading-overlay" id="effindom-loading-overlay" data-state="loading">
+    <div>Loading MVC demo…</div>
+  </div>
+  <script src="./effindom-runtime-config.js"></script>
+  <script src="./bridge.js"></script>
+  <script type="module" src="./harness.js"></script>
+</body>
+</html>

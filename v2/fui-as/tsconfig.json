@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@effindomv2/runtime": [
+        "../browser-bridge/src/index.ts"
+      ],
+      "@effindomv2/runtime/*": [
+        "../browser-bridge/src/*"
+      ]
+    },
+    "skipLibCheck": true
+  },
+  "include": [
+    "browser/**/*.ts",
+    "playwright.config.ts",
+    "scripts/**/*.ts",
+    "tests/*.spec.ts",
+    "tests/static_server.ts",
+    "tests/fixtures/smoke/harness.ts"
+  ]
+}
