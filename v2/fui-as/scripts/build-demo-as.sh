@@ -4,6 +4,7 @@ set -euo pipefail
 
 PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${PACKAGE_DIR}/../.." && pwd)"
+SCAFFOLDER_TEMPLATES_ROOT="${REPO_ROOT}/v2/create-fui-as-app/templates"
 DEMO_OUT_DIR="${REPO_ROOT}/public/v2/fui-as/demo"
 MVC_OUT_DIR="${REPO_ROOT}/public/v2/fui-as/demo-mvc"
 HELLO_OUT_DIR="${REPO_ROOT}/public/v2/fui-as/demo-hello-world"
@@ -11,7 +12,7 @@ HOST_SERVICE_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-services.mjs"
 HOST_EVENT_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-events.mjs"
 BUILD_TARGET="${1:-all}"
 
-mkdir -p "${PACKAGE_DIR}/build" "${DEMO_OUT_DIR}" "${MVC_OUT_DIR}" "${HELLO_OUT_DIR}" "${PACKAGE_DIR}/templates/demo-mvc/src/host/generated" "${PACKAGE_DIR}/templates/demo-hello-world/src/host/generated"
+mkdir -p "${PACKAGE_DIR}/build" "${DEMO_OUT_DIR}" "${MVC_OUT_DIR}" "${HELLO_OUT_DIR}"
 cd "${PACKAGE_DIR}"
 
 build_demo_app() {
@@ -23,6 +24,20 @@ build_demo_app() {
   if [ -f "${PACKAGE_DIR}/build/app.wasm.map" ]; then
     cp "${PACKAGE_DIR}/build/app.wasm.map" "${wasm_out}.map"
   fi
+}
+
+prepare_template_for_local_build() {
+  local template_name="$1"
+  local source_dir="${SCAFFOLDER_TEMPLATES_ROOT}/${template_name}"
+  local local_dir="${PACKAGE_DIR}/build/local-template/${template_name}"
+
+  rm -rf "${local_dir}"
+  mkdir -p "${PACKAGE_DIR}/build/local-template"
+  cp -R "${source_dir}" "${local_dir}"
+
+  sed -i '' -e 's|"@effindomv2/fui-as/src/|"../../../../../src/|g' "${local_dir}"/src/fui/*.ts
+  sed -i '' -e 's|"@effindomv2/fui-as/browser/src/|"../../../../../browser/src/|g' "${local_dir}"/src/fui/*.ts
+  printf '%s\n' "${local_dir}"
 }
 
 generate_host_services() {
@@ -77,20 +92,19 @@ generate_host_services "demo/src/host-services.ts" "demoHostServices" "demo/src/
 generate_host_events "demo/src/host-events.ts" "demoHostEvents" "demo/src/generated/HostEvents.ts"
 generate_host_services "demo/src/worker-host-services.ts" "demoWorkerHostServices" "demo/src/generated/WorkerHostServices.ts"
 generate_host_services "scripts/framework-host-services.ts" "frameworkHostServices" "src/core/generated/FrameworkHostServices.ts" "" "fui_host"
-generate_host_services "templates/demo-hello-world/src/host/host-services.ts" "appHostServices" "templates/demo-hello-world/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
-generate_host_events "templates/demo-hello-world/src/host/host-events.ts" "appHostEvents" "templates/demo-hello-world/src/host/generated/HostEvents.ts" "../../fui/FuiPrimitives"
-generate_host_services "templates/demo-mvc/src/host/host-services.ts" "appHostServices" "templates/demo-mvc/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
-generate_host_events "templates/demo-mvc/src/host/host-events.ts" "appHostEvents" "templates/demo-mvc/src/host/generated/HostEvents.ts" "../../fui/FuiPrimitives"
 
 case "${BUILD_TARGET}" in
   all)
+    LOCAL_MVC_TEMPLATE_DIR="$(prepare_template_for_local_build mvc)"
+    LOCAL_HELLO_TEMPLATE_DIR="$(prepare_template_for_local_build hello)"
+
     build_demo_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
     build_demo_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
     build_demo_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
     build_demo_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
-    build_demo_app "templates/demo-mvc/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
-    build_demo_app "templates/demo-mvc/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
-    build_demo_app "templates/demo-hello-world/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
+    build_demo_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
+    build_demo_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
+    build_demo_app "${LOCAL_HELLO_TEMPLATE_DIR}/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
     ;;
   dashboard)
     build_demo_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
@@ -105,13 +119,16 @@ case "${BUILD_TARGET}" in
     build_demo_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
     ;;
   routed-home|route-home|home-route)
-    build_demo_app "templates/demo-mvc/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
+    LOCAL_MVC_TEMPLATE_DIR="$(prepare_template_for_local_build mvc)"
+    build_demo_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
     ;;
   routed-settings|route-settings|settings-route)
-    build_demo_app "templates/demo-mvc/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
+    LOCAL_MVC_TEMPLATE_DIR="$(prepare_template_for_local_build mvc)"
+    build_demo_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
     ;;
   hello-world|hello)
-    build_demo_app "templates/demo-hello-world/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
+    LOCAL_HELLO_TEMPLATE_DIR="$(prepare_template_for_local_build hello)"
+    build_demo_app "${LOCAL_HELLO_TEMPLATE_DIR}/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
     ;;
   *)
     echo "Unknown build target: ${BUILD_TARGET}" >&2

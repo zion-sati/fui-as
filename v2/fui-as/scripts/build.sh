@@ -4,6 +4,7 @@ set -euo pipefail
 
 PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${PACKAGE_DIR}/../.." && pwd)"
+SCAFFOLDER_TEMPLATES_ROOT="${REPO_ROOT}/v2/create-fui-as-app/templates"
 BROWSER_SRC_DIR="${PACKAGE_DIR}/browser/src"
 SMOKE_FIXTURE_DIR="${PACKAGE_DIR}/tests/fixtures/smoke"
 OUT_DIR="${REPO_ROOT}/public/v2/fui-as"
@@ -24,7 +25,7 @@ RUNTIME_CONFIG_FILE="effindom-runtime-config.js"
 DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
 
 rm -rf "${OUT_DIR}"
-mkdir -p "${PACKAGE_DIR}/build" "${OUT_DIR}" "${DEMO_OUT_DIR}" "${MVC_OUT_DIR}" "${HELLO_OUT_DIR}" "${WORKER_BUILD_DIR}" "${PACKAGE_DIR}/templates/demo-mvc/src/host/generated" "${PACKAGE_DIR}/templates/demo-hello-world/src/host/generated"
+mkdir -p "${PACKAGE_DIR}/build" "${OUT_DIR}" "${DEMO_OUT_DIR}" "${MVC_OUT_DIR}" "${HELLO_OUT_DIR}" "${WORKER_BUILD_DIR}"
 
 cd "${PACKAGE_DIR}"
 
@@ -48,6 +49,20 @@ build_app() {
   if [ -f "${PACKAGE_DIR}/build/app.wasm.map" ]; then
     cp "${PACKAGE_DIR}/build/app.wasm.map" "${wasm_out}.map"
   fi
+}
+
+prepare_template_for_local_build() {
+  local template_name="$1"
+  local source_dir="${SCAFFOLDER_TEMPLATES_ROOT}/${template_name}"
+  local local_dir="${PACKAGE_DIR}/build/local-template/${template_name}"
+
+  rm -rf "${local_dir}"
+  mkdir -p "${PACKAGE_DIR}/build/local-template"
+  cp -R "${source_dir}" "${local_dir}"
+
+  sed -i '' -e 's|"@effindomv2/fui-as/src/|"../../../../../src/|g' "${local_dir}"/src/fui/*.ts
+  sed -i '' -e 's|"@effindomv2/fui-as/browser/src/|"../../../../../browser/src/|g' "${local_dir}"/src/fui/*.ts
+  printf '%s\n' "${local_dir}"
 }
 
 build_worker() {
@@ -253,19 +268,18 @@ generate_host_services "demo/src/host-services.ts" "demoHostServices" "demo/src/
 generate_host_events "demo/src/host-events.ts" "demoHostEvents" "demo/src/generated/HostEvents.ts"
 generate_host_services "demo/src/worker-host-services.ts" "demoWorkerHostServices" "demo/src/generated/WorkerHostServices.ts"
 generate_host_services "scripts/framework-host-services.ts" "frameworkHostServices" "src/core/generated/FrameworkHostServices.ts" "" "fui_host"
-generate_host_services "templates/demo-hello-world/src/host/host-services.ts" "appHostServices" "templates/demo-hello-world/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
-generate_host_events "templates/demo-hello-world/src/host/host-events.ts" "appHostEvents" "templates/demo-hello-world/src/host/generated/HostEvents.ts" "../../fui/FuiPrimitives"
-generate_host_services "templates/demo-mvc/src/host/host-services.ts" "appHostServices" "templates/demo-mvc/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
-generate_host_events "templates/demo-mvc/src/host/host-events.ts" "appHostEvents" "templates/demo-mvc/src/host/generated/HostEvents.ts" "../../fui/FuiPrimitives"
 
 build_app "tests/fixtures/smoke/app.ts" "${OUT_DIR}/app.wasm"
 build_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
 build_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
 build_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
 build_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
-build_app "templates/demo-mvc/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
-build_app "templates/demo-mvc/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
-build_app "templates/demo-hello-world/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
+LOCAL_MVC_TEMPLATE_DIR="$(prepare_template_for_local_build mvc)"
+LOCAL_HELLO_TEMPLATE_DIR="$(prepare_template_for_local_build hello)"
+
+build_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
+build_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
+build_app "${LOCAL_HELLO_TEMPLATE_DIR}/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
 build_workers
 write_worker_manifest
 
@@ -287,7 +301,7 @@ npx esbuild "${PACKAGE_DIR}/demo/harness.ts" \
   --outfile="${DEMO_OUT_DIR}/harness.js" \
   --sourcemap
 
-npx esbuild "${PACKAGE_DIR}/templates/demo-mvc/harness.ts" \
+npx esbuild "${LOCAL_MVC_TEMPLATE_DIR}/harness.ts" \
   --bundle \
   --format=esm \
   --platform=browser \
@@ -296,7 +310,7 @@ npx esbuild "${PACKAGE_DIR}/templates/demo-mvc/harness.ts" \
   --outfile="${MVC_OUT_DIR}/harness.js" \
   --sourcemap
 
-npx esbuild "${PACKAGE_DIR}/templates/demo-hello-world/harness.ts" \
+npx esbuild "${LOCAL_HELLO_TEMPLATE_DIR}/harness.ts" \
   --bundle \
   --format=esm \
   --platform=browser \
@@ -343,7 +357,7 @@ npx esbuild "${PACKAGE_DIR}/demo/worker-host-services.ts" \
 
 cp "${SMOKE_FIXTURE_DIR}/index.html" "${OUT_DIR}/index.html"
 cp "${PACKAGE_DIR}/demo/index.html" "${DEMO_OUT_DIR}/index.html"
-cp "${PACKAGE_DIR}/templates/demo-hello-world/index.html" "${HELLO_OUT_DIR}/index.html"
+cp "${LOCAL_HELLO_TEMPLATE_DIR}/index.html" "${HELLO_OUT_DIR}/index.html"
 cp "${PACKAGE_DIR}/demo/demo-texture.png" "${DEMO_OUT_DIR}/demo-texture.png"
 cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-secondary-texture.png"
 
@@ -351,8 +365,8 @@ mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls
 cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
 cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
 mkdir -p "${MVC_OUT_DIR}/home" "${MVC_OUT_DIR}/settings"
-cp "${PACKAGE_DIR}/templates/demo-mvc/route-shell.html" "${MVC_OUT_DIR}/home/index.html"
-cp "${PACKAGE_DIR}/templates/demo-mvc/route-shell.html" "${MVC_OUT_DIR}/settings/index.html"
+cp "${LOCAL_MVC_TEMPLATE_DIR}/route-shell.html" "${MVC_OUT_DIR}/home/index.html"
+cp "${LOCAL_MVC_TEMPLATE_DIR}/route-shell.html" "${MVC_OUT_DIR}/settings/index.html"
 cat > "${MVC_OUT_DIR}/index.html" <<'EOF'
 <!doctype html>
 <html lang="en">

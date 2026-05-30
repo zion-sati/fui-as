@@ -48,8 +48,8 @@ built-in browser file bridge.
 
 The canonical scaffold template sources are:
 
-- `v2/fui-as/templates/demo-hello-world/**` (`--template hello`)
-- `v2/fui-as/templates/demo-mvc/**` (`--template mvc`)
+- `v2/create-fui-as-app/templates/hello/**` (`--template hello`)
+- `v2/create-fui-as-app/templates/mvc/**` (`--template mvc`)
 
 ## Scaffold a new app (Phase 4)
 
@@ -109,11 +109,11 @@ Application.register(app => app.page(buildPage));
 ```
 
 A runnable two-file starter version lives in
-`v2/fui-as/templates/demo-hello-world/src/App.ts` and
-`v2/fui-as/templates/demo-hello-world/src/HelloWorld.ts`. It intentionally avoids MVC
+`v2/create-fui-as-app/templates/hello/src/App.ts` and
+`v2/create-fui-as-app/templates/hello/src/HelloWorld.ts`. It intentionally avoids MVC
 for first-run DX; move to an explicit MVC shape once your app grows.
 Its harness is intentionally minimal while still wiring app-owned host registries:
-`v2/fui-as/templates/demo-hello-world/harness.ts` passes `wasmPath`, `hostEvents`, and `hostServices`, while `startHarness(...)` defaults run/ready/error/state/dispose behavior.
+`v2/create-fui-as-app/templates/hello/harness.ts` passes `wasmPath`, `hostEvents`, and `hostServices`, while `startHarness(...)` defaults run/ready/error/state/dispose behavior.
 
 ### Custom control templates
 
