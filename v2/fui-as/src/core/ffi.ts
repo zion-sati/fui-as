@@ -1,3 +1,11 @@
+export {
+  fui_get_accent_color,
+  fui_get_platform_family,
+  fui_is_coarse_pointer,
+  fui_is_dark_mode,
+  fui_now_ms,
+} from "./generated/FrameworkHostServices";
+
 export enum HandleValue {
   Invalid = 0,
 }
@@ -569,23 +577,8 @@ export declare function fui_start_timer(timerId: u32, delayMs: i32): void;
 @external("fui_host", "fui_cancel_timer")
 export declare function fui_cancel_timer(timerId: u32): void;
 
-@external("fui_host", "fui_now_ms")
-export declare function fui_now_ms(): f64;
-
 @external("fui_host", "fui_set_cursor")
 export declare function fui_set_cursor(style: u32): void;
-
-@external("fui_host", "fui_is_dark_mode")
-export declare function fui_is_dark_mode(): bool;
-
-@external("fui_host", "fui_get_accent_color")
-export declare function fui_get_accent_color(): u32;
-
-@external("fui_host", "fui_get_platform_family")
-export declare function fui_get_platform_family(): u32;
-
-@external("fui_host", "fui_is_coarse_pointer")
-export declare function fui_is_coarse_pointer(): bool;
 
 @external("fui_host", "fui_show_url_preview")
 export declare function fui_show_url_preview(ptr: usize, len: u32): void;

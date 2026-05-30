@@ -29,6 +29,7 @@ test("createProject writes hello-world scaffold including AssemblyScript tsconfi
     assert.equal(typeof packageJson.scripts.test, "string");
     assert.equal(typeof packageJson.scripts["generate:host"], "string");
     assert.equal(readFileSync(join(target, "src", "HelloWorld.ts"), "utf8").includes("Hello world"), true);
+    assert.equal(readFileSync(join(target, "README.md"), "utf8").includes("Hello World scaffold guide"), true);
     assert.equal(readFileSync(join(target, "src", "fui", "Fui.ts"), "utf8").includes("@effindomv2/fui-as/src/Fui"), true);
     assert.equal(readFileSync(join(target, "src", "host", "host-events.ts"), "utf8").includes("appHostEvents"), true);
     assert.equal(readFileSync(join(target, "src", "host", "host-services.ts"), "utf8").includes("appHostServices"), true);
@@ -59,11 +60,13 @@ test("createProject writes mvc scaffold when template is mvc", () => {
     assert.equal(typeof packageJson.scripts["build:wasm:settings"], "string");
     assert.equal(typeof packageJson.scripts["generate:host"], "string");
     assert.equal(
-      readFileSync(join(target, "src", "routes", "mvc", "pages", "home", "HomeController.ts"), "utf8").includes(
+      readFileSync(join(target, "src", "routes", "home", "HomeController.ts"), "utf8").includes(
         "HomeController",
       ),
       true,
     );
+    assert.equal(readFileSync(join(target, "src", "routes", "HomeApp.ts"), "utf8").includes("createManagedApplication"), true);
+    assert.equal(readFileSync(join(target, "README.md"), "utf8").includes("MVC scaffold guide"), true);
     assert.equal(readFileSync(join(target, "src", "host", "host-events.ts"), "utf8").includes("appHostEvents"), true);
     assert.equal(readFileSync(join(target, "src", "host", "host-services.ts"), "utf8").includes("appHostServices"), true);
     assert.equal(readFileSync(join(target, "src", "fui", "Fui.ts"), "utf8").includes("@effindomv2/fui-as/src/Fui"), true);
@@ -72,7 +75,7 @@ test("createProject writes mvc scaffold when template is mvc", () => {
       readFileSync(join(target, "src", "host", "generated", "HostServices.ts"), "utf8").includes("appClockNowUnixSeconds"),
       true,
     );
-    assert.equal(readFileSync(join(target, "route-shell.html"), "utf8").includes("FUI-AS MVC Demo"), true);
+    assert.equal(readFileSync(join(target, "route-shell.html"), "utf8").includes("FUI-AS Routed Demo"), true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -66,6 +66,7 @@ generate_host_services() {
   local export_name="$2"
   local output_file="$3"
   local primitives_import="${4:-}"
+  local host_import_module="${5:-}"
 
   npx esbuild "${PACKAGE_DIR}/scripts/generate-host-services.ts" \
     --bundle \
@@ -75,8 +76,13 @@ generate_host_services() {
     --packages=external \
     --outfile="${HOST_SERVICE_GENERATOR_BUILD}"
 
-  if [ -n "${primitives_import}" ]; then
+  if [ -n "${primitives_import}" ] && [ -n "${host_import_module}" ]; then
+    node "${HOST_SERVICE_GENERATOR_BUILD}" \
+      "${definition_file}" "${export_name}" "${output_file}" "${primitives_import}" "${host_import_module}"
+  elif [ -n "${primitives_import}" ]; then
     node "${HOST_SERVICE_GENERATOR_BUILD}" "${definition_file}" "${export_name}" "${output_file}" "${primitives_import}"
+  elif [ -n "${host_import_module}" ]; then
+    node "${HOST_SERVICE_GENERATOR_BUILD}" "${definition_file}" "${export_name}" "${output_file}" "" "${host_import_module}"
   else
     node "${HOST_SERVICE_GENERATOR_BUILD}" "${definition_file}" "${export_name}" "${output_file}"
   fi
@@ -246,6 +252,7 @@ copy_worker_assets() {
 generate_host_services "demo/src/host-services.ts" "demoHostServices" "demo/src/generated/HostServices.ts"
 generate_host_events "demo/src/host-events.ts" "demoHostEvents" "demo/src/generated/HostEvents.ts"
 generate_host_services "demo/src/worker-host-services.ts" "demoWorkerHostServices" "demo/src/generated/WorkerHostServices.ts"
+generate_host_services "scripts/framework-host-services.ts" "frameworkHostServices" "src/core/generated/FrameworkHostServices.ts" "" "fui_host"
 generate_host_services "templates/demo-hello-world/src/host/host-services.ts" "appHostServices" "templates/demo-hello-world/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
 generate_host_events "templates/demo-hello-world/src/host/host-events.ts" "appHostEvents" "templates/demo-hello-world/src/host/generated/HostEvents.ts" "../../fui/FuiPrimitives"
 generate_host_services "templates/demo-mvc/src/host/host-services.ts" "appHostServices" "templates/demo-mvc/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
@@ -256,8 +263,8 @@ build_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
 build_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
 build_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
 build_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
-build_app "templates/demo-mvc/src/routes/mvc_home.ts" "${MVC_OUT_DIR}/mvc-home.wasm"
-build_app "templates/demo-mvc/src/routes/mvc_settings.ts" "${MVC_OUT_DIR}/mvc-settings.wasm"
+build_app "templates/demo-mvc/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
+build_app "templates/demo-mvc/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
 build_app "templates/demo-hello-world/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
 build_workers
 write_worker_manifest
@@ -343,19 +350,19 @@ cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-second
 mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls"
 cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
 cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
-mkdir -p "${MVC_OUT_DIR}/mvc-home" "${MVC_OUT_DIR}/mvc-settings"
-cp "${PACKAGE_DIR}/templates/demo-mvc/route-shell.html" "${MVC_OUT_DIR}/mvc-home/index.html"
-cp "${PACKAGE_DIR}/templates/demo-mvc/route-shell.html" "${MVC_OUT_DIR}/mvc-settings/index.html"
+mkdir -p "${MVC_OUT_DIR}/home" "${MVC_OUT_DIR}/settings"
+cp "${PACKAGE_DIR}/templates/demo-mvc/route-shell.html" "${MVC_OUT_DIR}/home/index.html"
+cp "${PACKAGE_DIR}/templates/demo-mvc/route-shell.html" "${MVC_OUT_DIR}/settings/index.html"
 cat > "${MVC_OUT_DIR}/index.html" <<'EOF'
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="refresh" content="0; url=./mvc-home/" />
-  <title>FUI-AS MVC Demo</title>
+  <meta http-equiv="refresh" content="0; url=./home/" />
+  <title>FUI-AS Routed Demo</title>
 </head>
 <body>
-  <p>Redirecting to <a href="./mvc-home/">MVC Home</a>…</p>
+  <p>Redirecting to <a href="./home/">Home</a>…</p>
 </body>
 </html>
 EOF
@@ -374,5 +381,5 @@ write_runtime_config "${MVC_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${HELLO_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${DEMO_OUT_DIR}/advanced-controls" "../runtime/dist/effindom.v2.manifest.json"
 write_runtime_config "${DEMO_OUT_DIR}/templated-controls" "../runtime/dist/effindom.v2.manifest.json"
-write_runtime_config "${MVC_OUT_DIR}/mvc-home" "../runtime/dist/effindom.v2.manifest.json"
-write_runtime_config "${MVC_OUT_DIR}/mvc-settings" "../runtime/dist/effindom.v2.manifest.json"
+write_runtime_config "${MVC_OUT_DIR}/home" "../runtime/dist/effindom.v2.manifest.json"
+write_runtime_config "${MVC_OUT_DIR}/settings" "../runtime/dist/effindom.v2.manifest.json"

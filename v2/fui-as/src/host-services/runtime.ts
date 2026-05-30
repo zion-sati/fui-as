@@ -49,6 +49,42 @@ export function decodeHostServiceI32ArrayResult(resultPtr: usize, resultLen: u32
   return values;
 }
 
+export function decodeHostServiceU32ArrayResult(resultPtr: usize, resultLen: u32, importName: string): Uint32Array {
+  assertResultByteLength(resultLen, importName);
+  if ((resultLen & 3) != 0) {
+    throw new Error("Host service " + importName + " returned misaligned Uint32Array byte length.");
+  }
+  const values = new Uint32Array(<i32>(resultLen >> 2));
+  if (resultLen > 0) {
+    memory.copy(values.dataStart, resultPtr, <usize>resultLen);
+  }
+  return values;
+}
+
+export function decodeHostServiceI64ArrayResult(resultPtr: usize, resultLen: u32, importName: string): Int64Array {
+  assertResultByteLength(resultLen, importName);
+  if ((resultLen & 7) != 0) {
+    throw new Error("Host service " + importName + " returned misaligned Int64Array byte length.");
+  }
+  const values = new Int64Array(<i32>(resultLen >> 3));
+  if (resultLen > 0) {
+    memory.copy(values.dataStart, resultPtr, <usize>resultLen);
+  }
+  return values;
+}
+
+export function decodeHostServiceU64ArrayResult(resultPtr: usize, resultLen: u32, importName: string): Uint64Array {
+  assertResultByteLength(resultLen, importName);
+  if ((resultLen & 7) != 0) {
+    throw new Error("Host service " + importName + " returned misaligned Uint64Array byte length.");
+  }
+  const values = new Uint64Array(<i32>(resultLen >> 3));
+  if (resultLen > 0) {
+    memory.copy(values.dataStart, resultPtr, <usize>resultLen);
+  }
+  return values;
+}
+
 export function decodeHostServiceF64ArrayResult(resultPtr: usize, resultLen: u32, importName: string): Float64Array {
   assertResultByteLength(resultLen, importName);
   if ((resultLen & 7) != 0) {

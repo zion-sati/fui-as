@@ -233,11 +233,11 @@ function writeMvcSupportFiles(templateRoot: string): void {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=/mvc-home/" />
-    <title>FUI-AS MVC App</title>
+    <meta http-equiv="refresh" content="0; url=/home/" />
+    <title>FUI-AS Routed App</title>
   </head>
   <body>
-    <p>Redirecting to <a href="/mvc-home/">/mvc-home/</a>…</p>
+    <p>Redirecting to <a href="/home/">/home/</a>…</p>
   </body>
 </html>
 `,
@@ -250,8 +250,8 @@ function writeMvcSupportFiles(templateRoot: string): void {
 const outputDir = "public";
 rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(\`\${outputDir}/runtime\`, { recursive: true });
-mkdirSync(\`\${outputDir}/mvc-home\`, { recursive: true });
-mkdirSync(\`\${outputDir}/mvc-settings\`, { recursive: true });
+mkdirSync(\`\${outputDir}/home\`, { recursive: true });
+mkdirSync(\`\${outputDir}/settings\`, { recursive: true });
 
 cpSync("node_modules/@effindomv2/runtime/dist", \`\${outputDir}/runtime/dist\`, { recursive: true });
 cpSync("node_modules/@effindomv2/runtime/dist/fonts", \`\${outputDir}/runtime/fonts\`, { recursive: true });
@@ -265,8 +265,8 @@ writeFileSync(
   "utf8",
 );
 copyFileSync("index.html", \`\${outputDir}/index.html\`);
-copyFileSync("route-shell.html", \`\${outputDir}/mvc-home/index.html\`);
-copyFileSync("route-shell.html", \`\${outputDir}/mvc-settings/index.html\`);
+copyFileSync("route-shell.html", \`\${outputDir}/home/index.html\`);
+copyFileSync("route-shell.html", \`\${outputDir}/settings/index.html\`);
 `,
   );
 
@@ -277,10 +277,10 @@ copyFileSync("route-shell.html", \`\${outputDir}/mvc-settings/index.html\`);
 const expectedFiles = [
   "public/index.html",
   "public/harness.js",
-  "public/mvc-home/index.html",
-  "public/mvc-settings/index.html",
-  "public/mvc-home.wasm",
-  "public/mvc-settings.wasm",
+  "public/home/index.html",
+  "public/settings/index.html",
+  "public/home.wasm",
+  "public/settings.wasm",
   "public/bridge.js",
   "public/effindom-runtime-config.js",
   "public/runtime/dist/effindom.v2.manifest.json",
@@ -300,9 +300,9 @@ for (const filePath of expectedFiles) {
       "build:assets": "tsx scripts/prepare-runtime.ts",
       "build:wasm": "npm run build:wasm:home && npm run build:wasm:settings",
       "build:wasm:home":
-        "asc src/routes/mvc_home.ts --config asconfig.json --target release --outFile public/mvc-home.wasm",
+        "asc src/routes/HomeApp.ts --config asconfig.json --target release --outFile public/home.wasm",
       "build:wasm:settings":
-        "asc src/routes/mvc_settings.ts --config asconfig.json --target release --outFile public/mvc-settings.wasm",
+        "asc src/routes/SettingsApp.ts --config asconfig.json --target release --outFile public/settings.wasm",
       "build:harness": "esbuild harness.ts --bundle --format=esm --platform=browser --outfile=public/harness.js",
       "generate:host-services":
         "tsx ./node_modules/@effindomv2/fui-as/scripts/generate-host-services.ts src/host/host-services.ts appHostServices src/host/generated/HostServices.ts ../../fui/FuiPrimitives",
@@ -315,7 +315,7 @@ for (const filePath of expectedFiles) {
       dev: 'npm run build && concurrently -k -n watch,serve "npm run watch" "npm run serve"',
       test: "npm run build && tsx scripts/smoke.ts",
     },
-    "Scaffolded FUI-AS MVC app",
+    "Scaffolded FUI-AS routed app",
   );
 }
 
@@ -350,6 +350,7 @@ function syncHelloTemplate(): void {
   cpSync(join(sourceRoot, "src"), templateSrcRoot, { recursive: true });
   cpSync(join(sourceRoot, "harness.ts"), join(templateRoot, "harness.ts"));
   cpSync(join(sourceRoot, "index.html"), join(templateRoot, "index.html"));
+  cpSync(join(sourceRoot, "README.md"), join(templateRoot, "README.md"));
 
   writeSharedSdkShims(templateRoot);
   writeAsconfig(templateRoot);
@@ -375,6 +376,7 @@ function syncMvcTemplate(): void {
   cpSync(join(sourceRoot, "src"), templateSrcRoot, { recursive: true });
   cpSync(join(sourceRoot, "harness.ts"), join(templateRoot, "harness.ts"));
   cpSync(join(sourceRoot, "route-shell.html"), join(templateRoot, "route-shell.html"));
+  cpSync(join(sourceRoot, "README.md"), join(templateRoot, "README.md"));
 
   writeSharedSdkShims(templateRoot);
   writeAsconfig(templateRoot);

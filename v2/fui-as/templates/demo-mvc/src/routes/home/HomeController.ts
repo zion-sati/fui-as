@@ -1,7 +1,7 @@
-import { Application, Node } from "../../../../fui/Fui";
-import { Callback1 } from "../../../../fui/FuiPrimitives";
-import { onAppClockTick } from "../../../../host/generated/HostEvents";
-import { appClockNowUnixSeconds } from "../../../../host/generated/HostServices";
+import { ManagedApplicationController, Node } from "../../fui/Fui";
+import { Callback1 } from "../../fui/FuiPrimitives";
+import { onAppClockTick } from "../../host/generated/HostEvents";
+import { appClockNowUnixSeconds } from "../../host/generated/HostServices";
 import { HomeModel } from "./HomeModel";
 import { HomeView } from "./HomeView";
 
@@ -19,12 +19,13 @@ class ClockTickHandler extends Callback1<i32> {
   }
 }
 
-export class HomeController {
+export class HomeController extends ManagedApplicationController {
   readonly model: HomeModel = new HomeModel();
   readonly view: HomeView = new HomeView(this.model);
   private readonly clockTickHandler: ClockTickHandler = new ClockTickHandler(this);
 
   constructor() {
+    super();
     this.view.actionButton.onClickWith(this, (controller) => {
       controller.model.actionCount += 1;
       controller.view.setActionCount(controller.model.actionCount);
@@ -44,12 +45,8 @@ export class HomeController {
     return this.view.getRoot();
   }
 
-  mount(): void {
-    Application.mount(this.view.getRoot());
-  }
-
   dispose(): void {
     onAppClockTick(null);
-    Application.unmount();
+    super.dispose();
   }
 }

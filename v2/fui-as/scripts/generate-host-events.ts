@@ -35,12 +35,24 @@ function asTypeName(type: HostServiceTypeName): string {
       return "bool";
     case "i32":
       return "i32";
+    case "u32":
+      return "u32";
+    case "i64":
+      return "i64";
+    case "u64":
+      return "u64";
     case "f64":
       return "f64";
     case "bytes":
       return "Uint8Array";
     case "i32_array":
       return "Int32Array";
+    case "u32_array":
+      return "Uint32Array";
+    case "i64_array":
+      return "Int64Array";
+    case "u64_array":
+      return "Uint64Array";
     case "f64_array":
       return "Float64Array";
     case "void":
@@ -64,7 +76,15 @@ function callbackTypeFor(method: NormalizedHostEventMethod): string {
 function emitExportArgs(method: NormalizedHostEventMethod): string {
   const parts: Array<string> = [];
   method.args.forEach((type, index) => {
-    if (type === "string" || type === "bytes" || type === "i32_array" || type === "f64_array") {
+    if (
+      type === "string" ||
+      type === "bytes" ||
+      type === "i32_array" ||
+      type === "u32_array" ||
+      type === "i64_array" ||
+      type === "u64_array" ||
+      type === "f64_array"
+    ) {
       parts.push(`arg${String(index)}Ptr: usize`, `arg${String(index)}Len: u32`);
       return;
     }
@@ -93,6 +113,27 @@ function emitDecodedArgs(method: NormalizedHostEventMethod): Array<string> {
       }
       if (type === "f64_array") {
         lines.push(`  const arg${String(index)} = new Float64Array(<i32>arg${String(index)}Len);`);
+        lines.push(`  if (arg${String(index)}Len > 0) {`);
+        lines.push(`    memory.copy(arg${String(index)}.dataStart, arg${String(index)}Ptr, <usize>arg${String(index)}Len << 3);`);
+        lines.push("  }");
+        return;
+      }
+      if (type === "u32_array") {
+        lines.push(`  const arg${String(index)} = new Uint32Array(<i32>arg${String(index)}Len);`);
+        lines.push(`  if (arg${String(index)}Len > 0) {`);
+        lines.push(`    memory.copy(arg${String(index)}.dataStart, arg${String(index)}Ptr, <usize>arg${String(index)}Len << 2);`);
+        lines.push("  }");
+        return;
+      }
+      if (type === "i64_array") {
+        lines.push(`  const arg${String(index)} = new Int64Array(<i32>arg${String(index)}Len);`);
+        lines.push(`  if (arg${String(index)}Len > 0) {`);
+        lines.push(`    memory.copy(arg${String(index)}.dataStart, arg${String(index)}Ptr, <usize>arg${String(index)}Len << 3);`);
+        lines.push("  }");
+        return;
+      }
+      if (type === "u64_array") {
+        lines.push(`  const arg${String(index)} = new Uint64Array(<i32>arg${String(index)}Len);`);
         lines.push(`  if (arg${String(index)}Len > 0) {`);
         lines.push(`    memory.copy(arg${String(index)}.dataStart, arg${String(index)}Ptr, <usize>arg${String(index)}Len << 3);`);
         lines.push("  }");

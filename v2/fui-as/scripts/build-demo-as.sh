@@ -30,6 +30,7 @@ generate_host_services() {
   local export_name="$2"
   local output_file="$3"
   local primitives_import="${4:-}"
+  local host_import_module="${5:-}"
 
   npx esbuild "${PACKAGE_DIR}/scripts/generate-host-services.ts" \
     --bundle \
@@ -39,8 +40,13 @@ generate_host_services() {
     --packages=external \
     --outfile="${HOST_SERVICE_GENERATOR_BUILD}"
 
-  if [ -n "${primitives_import}" ]; then
+  if [ -n "${primitives_import}" ] && [ -n "${host_import_module}" ]; then
+    node "${HOST_SERVICE_GENERATOR_BUILD}" \
+      "${definition_file}" "${export_name}" "${output_file}" "${primitives_import}" "${host_import_module}"
+  elif [ -n "${primitives_import}" ]; then
     node "${HOST_SERVICE_GENERATOR_BUILD}" "${definition_file}" "${export_name}" "${output_file}" "${primitives_import}"
+  elif [ -n "${host_import_module}" ]; then
+    node "${HOST_SERVICE_GENERATOR_BUILD}" "${definition_file}" "${export_name}" "${output_file}" "" "${host_import_module}"
   else
     node "${HOST_SERVICE_GENERATOR_BUILD}" "${definition_file}" "${export_name}" "${output_file}"
   fi
@@ -70,6 +76,7 @@ generate_host_events() {
 generate_host_services "demo/src/host-services.ts" "demoHostServices" "demo/src/generated/HostServices.ts"
 generate_host_events "demo/src/host-events.ts" "demoHostEvents" "demo/src/generated/HostEvents.ts"
 generate_host_services "demo/src/worker-host-services.ts" "demoWorkerHostServices" "demo/src/generated/WorkerHostServices.ts"
+generate_host_services "scripts/framework-host-services.ts" "frameworkHostServices" "src/core/generated/FrameworkHostServices.ts" "" "fui_host"
 generate_host_services "templates/demo-hello-world/src/host/host-services.ts" "appHostServices" "templates/demo-hello-world/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
 generate_host_events "templates/demo-hello-world/src/host/host-events.ts" "appHostEvents" "templates/demo-hello-world/src/host/generated/HostEvents.ts" "../../fui/FuiPrimitives"
 generate_host_services "templates/demo-mvc/src/host/host-services.ts" "appHostServices" "templates/demo-mvc/src/host/generated/HostServices.ts" "../../fui/FuiPrimitives"
@@ -81,8 +88,8 @@ case "${BUILD_TARGET}" in
     build_demo_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
     build_demo_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
     build_demo_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
-    build_demo_app "templates/demo-mvc/src/routes/mvc_home.ts" "${MVC_OUT_DIR}/mvc-home.wasm"
-    build_demo_app "templates/demo-mvc/src/routes/mvc_settings.ts" "${MVC_OUT_DIR}/mvc-settings.wasm"
+    build_demo_app "templates/demo-mvc/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
+    build_demo_app "templates/demo-mvc/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
     build_demo_app "templates/demo-hello-world/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
     ;;
   dashboard)
@@ -97,18 +104,18 @@ case "${BUILD_TARGET}" in
   templated-controls|templated)
     build_demo_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
     ;;
-  mvc-home|mvc-home-page)
-    build_demo_app "templates/demo-mvc/src/routes/mvc_home.ts" "${MVC_OUT_DIR}/mvc-home.wasm"
+  routed-home|route-home|home-route)
+    build_demo_app "templates/demo-mvc/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
     ;;
-  mvc-settings|mvc-settings-page)
-    build_demo_app "templates/demo-mvc/src/routes/mvc_settings.ts" "${MVC_OUT_DIR}/mvc-settings.wasm"
+  routed-settings|route-settings|settings-route)
+    build_demo_app "templates/demo-mvc/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
     ;;
   hello-world|hello)
     build_demo_app "templates/demo-hello-world/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
     ;;
   *)
     echo "Unknown build target: ${BUILD_TARGET}" >&2
-    echo "Usage: bash scripts/build-demo-as.sh [all|dashboard|home|advanced-controls|templated-controls|mvc-home|mvc-settings|hello-world]" >&2
+    echo "Usage: bash scripts/build-demo-as.sh [all|dashboard|home|advanced-controls|templated-controls|routed-home|routed-settings|hello-world]" >&2
     exit 1
     ;;
 esac

@@ -271,6 +271,20 @@ export class Application<TPage> {
   }
 }
 
+export class ManagedApplicationController {
+  getRoot(): Node {
+    throw new Error("ManagedApplicationController.getRoot() must be overridden.");
+  }
+
+  mount(): void {
+    Application.mount(this.getRoot());
+  }
+
+  dispose(): void {
+    Application.unmount();
+  }
+}
+
 function getNodeRoot(page: Node): Node {
   return page;
 }
@@ -283,11 +297,21 @@ export function createApplication(buildPage: () => Node): Application<Node> {
 
 export function createManagedApplication<TPage>(
   buildPage: () => TPage,
-  getRoot: (page: TPage) => Node,
-  mountPage: ((page: TPage) => void) | null,
-  disposePage: ((page: TPage) => void) | null,
+  getRoot: ((page: TPage) => Node) | null = null,
+  mountPage: ((page: TPage) => void) | null = null,
+  disposePage: ((page: TPage) => void) | null = null,
 ): Application<TPage> {
-  const app = new Application<TPage>(buildPage, getRoot, mountPage, disposePage);
+  let managedGetRootFn: (page: TPage) => Node;
+  let managedMountPageFn = mountPage;
+  let managedDisposePageFn = disposePage;
+  if (getRoot === null) {
+    managedGetRootFn = (page: TPage): Node => changetype<ManagedApplicationController>(page).getRoot();
+    managedMountPageFn = (page: TPage): void => changetype<ManagedApplicationController>(page).mount();
+    managedDisposePageFn = (page: TPage): void => changetype<ManagedApplicationController>(page).dispose();
+  } else {
+    managedGetRootFn = getRoot;
+  }
+  const app = new Application<TPage>(buildPage, managedGetRootFn, managedMountPageFn, managedDisposePageFn);
   exportedApplication = changetype<Application<Node>>(app);
   return app;
 }

@@ -15,8 +15,11 @@ export { clearCurrentSelection, tryGetBounds } from "./bindings/ui";
 export {
   decodeHostServiceBytesResult,
   decodeHostServiceF64ArrayResult,
+  decodeHostServiceI64ArrayResult,
   decodeHostServiceI32ArrayResult,
   decodeHostServiceStringResult,
+  decodeHostServiceU64ArrayResult,
+  decodeHostServiceU32ArrayResult,
   hostServiceResultBufferPtr,
   hostServiceResultBufferSize,
 } from "./host-services/runtime";

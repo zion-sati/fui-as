@@ -1,33 +1,20 @@
-import { Column, FlexBox, JustifyContent, Row, SelectionArea, Text, Unit, rgb } from "../../../../fui/Fui";
-import { MvcNavPill } from "../../shared/design-system/MvcNavPill";
-import { MvcPrimaryButton } from "../../shared/design-system/MvcPrimaryButton";
-import { mvcHomeRoute, mvcSettingsRoute } from "../../shared/routes";
+import { Column, FlexBox, SelectionArea, Text, Unit, rgb } from "../../fui/Fui";
+import { createNavBar } from "../shared/design-system/NavBar";
+import { PrimaryButton } from "../shared/design-system/PrimaryButton";
 import { SettingsModel } from "./SettingsModel";
 
-function navSpacer(): FlexBox {
-  return new FlexBox().width(10.0, Unit.Pixel).height(1.0, Unit.Pixel);
-}
-
 export class SettingsView {
-  readonly actionButton: MvcPrimaryButton;
+  readonly actionButton: PrimaryButton;
   private readonly statusText: Text;
   private readonly root!: SelectionArea;
 
   constructor(model: SettingsModel) {
-    const homePill = new MvcNavPill(mvcHomeRoute(), "Home").active(false);
-    const settingsPill = new MvcNavPill(mvcSettingsRoute(), "Settings").active(true);
-
-    const navBar = Row()
-      .width(100.0, Unit.Percent)
-      .justifyContent(JustifyContent.End)
-      .child(homePill)
-      .child(navSpacer())
-      .child(settingsPill);
+    const navBar = createNavBar(false);
 
     const title = new Text(model.title).fontSize(34.0).textColor(rgb(241, 245, 249)) as Text;
     const subtitle = new Text(model.subtitle).fontSize(16.0).textColor(rgb(148, 163, 184)) as Text;
     this.statusText = new Text("Settings saved: 0").fontSize(18.0).textColor(rgb(134, 239, 172)) as Text;
-    this.actionButton = new MvcPrimaryButton(model.actionLabel);
+    this.actionButton = new PrimaryButton(model.actionLabel);
 
     const content = Column(
       navBar,

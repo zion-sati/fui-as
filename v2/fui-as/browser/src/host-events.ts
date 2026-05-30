@@ -5,7 +5,11 @@ type HostEventTypeValue<T extends HostServiceTypeName> =
   T extends "bool" ? boolean :
   T extends "bytes" ? Uint8Array :
   T extends "i32_array" ? Int32Array :
+  T extends "u32_array" ? Uint32Array :
+  T extends "i64_array" ? BigInt64Array :
+  T extends "u64_array" ? BigUint64Array :
   T extends "f64_array" ? Float64Array :
+  T extends "i64" | "u64" ? bigint :
   T extends "void" ? void :
   number;
 
@@ -66,9 +70,15 @@ function validateEventType(type: string, context: string): asserts type is HostS
     type === "string" ||
     type === "bool" ||
     type === "i32" ||
+    type === "u32" ||
+    type === "i64" ||
+    type === "u64" ||
     type === "f64" ||
     type === "bytes" ||
     type === "i32_array" ||
+    type === "u32_array" ||
+    type === "i64_array" ||
+    type === "u64_array" ||
     type === "f64_array"
   ) {
     return;

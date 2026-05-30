@@ -66,11 +66,17 @@ To scaffold the two-page MVC starter:
 npm create @effindomv2/fui-as-app@latest my-mvc-app -- --template mvc
 ```
 
+The MVC scaffold emits route entrypoints under `src/routes/HomeApp.ts` and
+`src/routes/SettingsApp.ts`, page MVC slices under `src/routes/home/**` and
+`src/routes/settings/**`, and shared route UI helpers under `src/routes/shared/**`.
+Those controllers use `createManagedApplication(() => new Controller())` via the
+shared `ManagedApplicationController` base.
+
 The generated project includes:
 
 1. `src/App.ts` + `src/HelloWorld.ts` hello-world baseline.
 2. minimal `harness.ts` + fullscreen `index.html` with `#fui-canvas`.
-3. `src/host/host-events.ts` + `src/host/host-services.ts` app-owned bridge definitions with generated bindings under `src/generated/*`.
+3. `src/host/host-events.ts` + `src/host/host-services.ts` app-owned bridge definitions with generated bindings under `src/host/generated/*`.
 4. `generate:host*`, `dev`, `build`, and `test` scripts with runtime staging and watch rebuilds (`build`/`test` regenerate host bindings automatically).
 5. `tsconfig.json` that extends `assemblyscript/std/assembly.json` so `src/**/*.ts` is treated as AssemblyScript in editor/type tooling.
 
@@ -434,6 +440,10 @@ The release path is:
    `@external(...)` declarations yourself. Generated wrappers use public
    primitives from `./FuiPrimitives` and should not be rewritten to internal
    imports.
+
+Supported host value types include scalar primitives (`bool`, `i32`, `u32`,
+`i64`, `u64`, `f64`, `string`, `void`) plus binary/array payloads (`bytes`,
+`i32_array`, `u32_array`, `i64_array`, `u64_array`, `f64_array`).
 
 In this repo, the demo sample lives in:
 

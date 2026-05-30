@@ -34,12 +34,24 @@ function asTypeName(type: HostServiceTypeName): string {
       return "bool";
     case "i32":
       return "i32";
+    case "u32":
+      return "u32";
+    case "i64":
+      return "i64";
+    case "u64":
+      return "u64";
     case "f64":
       return "f64";
     case "bytes":
       return "Uint8Array";
     case "i32_array":
       return "Int32Array";
+    case "u32_array":
+      return "Uint32Array";
+    case "i64_array":
+      return "Int64Array";
+    case "u64_array":
+      return "Uint64Array";
     case "f64_array":
       return "Float64Array";
     case "void":
@@ -48,14 +60,31 @@ function asTypeName(type: HostServiceTypeName): string {
 }
 
 function isPointerLengthType(type: HostServiceTypeName): boolean {
-  return type === "string" || type === "bytes" || type === "i32_array" || type === "f64_array";
+  return type === "string" ||
+    type === "bytes" ||
+    type === "i32_array" ||
+    type === "u32_array" ||
+    type === "i64_array" ||
+    type === "u64_array" ||
+    type === "f64_array";
 }
 
 function returnsBufferType(type: HostServiceTypeName): boolean {
-  return type === "string" || type === "bytes" || type === "i32_array" || type === "f64_array";
+  return type === "string" ||
+    type === "bytes" ||
+    type === "i32_array" ||
+    type === "u32_array" ||
+    type === "i64_array" ||
+    type === "u64_array" ||
+    type === "f64_array";
 }
 
-function emitExternalSignature(importName: string, args: readonly HostServiceTypeName[], returns: HostServiceTypeName): string {
+function emitExternalSignature(
+  importName: string,
+  args: readonly HostServiceTypeName[],
+  returns: HostServiceTypeName,
+  moduleName: string,
+): string {
   const signatureParts: Array<string> = [];
   args.forEach((type, index) => {
     if (isPointerLengthType(type)) {
@@ -69,7 +98,7 @@ function emitExternalSignature(importName: string, args: readonly HostServiceTyp
   }
   const returnType = returnsBufferType(returns) ? "u32" : asTypeName(returns);
   return [
-    `@external("fui_host_service", "${importName}")`,
+    `@external("${moduleName}", "${importName}")`,
     `declare function __host_${importName}(${signatureParts.join(", ")}): ${returnType};`,
   ].join("\n");
 }
@@ -82,7 +111,7 @@ function emitWrapper(importName: string, args: readonly HostServiceTypeName[], r
       lines.push(`  const arg${String(index)}Bytes = Uint8Array.wrap(String.UTF8.encode(arg${String(index)}, false));`);
       return;
     }
-    if (type === "bytes" || type === "i32_array" || type === "f64_array") {
+    if (type === "bytes" || type === "i32_array" || type === "u32_array" || type === "i64_array" || type === "u64_array" || type === "f64_array") {
       lines.push(`  const arg${String(index)}Bytes = arg${String(index)};`);
     }
   });
@@ -98,7 +127,7 @@ function emitWrapper(importName: string, args: readonly HostServiceTypeName[], r
       callArgs.push(`<u32>arg${String(index)}Bytes.length`);
       return;
     }
-    if (type === "i32_array" || type === "f64_array") {
+    if (type === "i32_array" || type === "u32_array" || type === "i64_array" || type === "u64_array" || type === "f64_array") {
       callArgs.push(`arg${String(index)}Bytes.length > 0 ? arg${String(index)}Bytes.dataStart : 0`);
       callArgs.push(`<u32>arg${String(index)}Bytes.length`);
       return;
@@ -116,6 +145,12 @@ function emitWrapper(importName: string, args: readonly HostServiceTypeName[], r
       lines.push(`  return decodeHostServiceBytesResult(resultPtr, resultLen, "${importName}");`);
     } else if (returns === "i32_array") {
       lines.push(`  return decodeHostServiceI32ArrayResult(resultPtr, resultLen, "${importName}");`);
+    } else if (returns === "u32_array") {
+      lines.push(`  return decodeHostServiceU32ArrayResult(resultPtr, resultLen, "${importName}");`);
+    } else if (returns === "i64_array") {
+      lines.push(`  return decodeHostServiceI64ArrayResult(resultPtr, resultLen, "${importName}");`);
+    } else if (returns === "u64_array") {
+      lines.push(`  return decodeHostServiceU64ArrayResult(resultPtr, resultLen, "${importName}");`);
     } else {
       lines.push(`  return decodeHostServiceF64ArrayResult(resultPtr, resultLen, "${importName}");`);
     }
@@ -160,6 +195,7 @@ function emitBindingsFile(
   outputPath: string,
   methods: ReturnType<typeof listHostServiceMethods>,
   primitivesImportOverride: string | undefined,
+  moduleName: string,
 ): string {
   const runtimeImport = primitivesImportOverride ?? relativeImport(outputPath, path.resolve(PACKAGE_DIR, "src/FuiPrimitives.ts"));
   const blocks: Array<string> = [
@@ -183,6 +219,15 @@ function emitBindingsFile(
             if (type === "i32_array") {
               return "decodeHostServiceI32ArrayResult";
             }
+            if (type === "u32_array") {
+              return "decodeHostServiceU32ArrayResult";
+            }
+            if (type === "i64_array") {
+              return "decodeHostServiceI64ArrayResult";
+            }
+            if (type === "u64_array") {
+              return "decodeHostServiceU64ArrayResult";
+            }
             return "decodeHostServiceF64ArrayResult";
           }),
       ),
@@ -193,7 +238,7 @@ function emitBindingsFile(
     blocks.push("");
   }
   methods.forEach((method, index) => {
-    blocks.push(emitExternalSignature(method.importName, method.args, method.returns));
+    blocks.push(emitExternalSignature(method.importName, method.args, method.returns, moduleName));
     blocks.push("");
     blocks.push(emitWrapper(method.importName, method.args, method.returns));
     if (index + 1 < methods.length) {
@@ -204,15 +249,24 @@ function emitBindingsFile(
 }
 
 async function main(): Promise<void> {
-  const [moduleArg, exportName, outputArg, primitivesImportArg] = process.argv.slice(2);
+  const [moduleArg, exportName, outputArg, primitivesImportArg, hostModuleArg] = process.argv.slice(2);
   if (moduleArg === undefined || exportName === undefined || outputArg === undefined) {
-    throw new Error("Usage: generate-host-services <module-path> <export-name> <output-path> [primitives-import]");
+    throw new Error(
+      "Usage: generate-host-services <module-path> <export-name> <output-path> [primitives-import] [host-import-module]",
+    );
   }
   const modulePath = path.resolve(process.cwd(), moduleArg);
   const outputPath = path.resolve(process.cwd(), outputArg);
   const registry = await loadHostServices(modulePath, exportName);
   const methods = listHostServiceMethods(registry as never);
-  const content = emitBindingsFile(modulePath, exportName, outputPath, methods, primitivesImportArg);
+  const content = emitBindingsFile(
+    modulePath,
+    exportName,
+    outputPath,
+    methods,
+    primitivesImportArg,
+    hostModuleArg ?? "fui_host_service",
+  );
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, content, "utf8");
 }

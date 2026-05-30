@@ -1,4 +1,10 @@
-export { Application, ApplicationRegistration, createApplication, createManagedApplication } from "./core/Application";
+export {
+  Application,
+  ApplicationRegistration,
+  ManagedApplicationController,
+  createApplication,
+  createManagedApplication,
+} from "./core/Application";
 export { Action, CallbackAction, HandlerAction, NodeAction, SignalHandler } from "./core/Action";
 export { ObjectDisposedError } from "./core/Errors";
 export {

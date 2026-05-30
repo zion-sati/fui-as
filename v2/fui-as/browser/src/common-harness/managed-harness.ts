@@ -498,7 +498,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       }
 
       function encodeTypedArrayArg(
-        type: "bytes" | "i32_array" | "f64_array",
+        type: "bytes" | "i32_array" | "u32_array" | "i64_array" | "u64_array" | "f64_array",
         arg: unknown,
         context: string,
       ): { bytes: Uint8Array; elementCount: number; alignment: number } {
@@ -516,6 +516,36 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
             bytes: new Uint8Array(arg.buffer, arg.byteOffset, arg.byteLength),
             elementCount: arg.length,
             alignment: 4,
+          };
+        }
+        if (type === "u32_array") {
+          if (!(arg instanceof Uint32Array)) {
+            throw new Error(`${context} must be a Uint32Array.`);
+          }
+          return {
+            bytes: new Uint8Array(arg.buffer, arg.byteOffset, arg.byteLength),
+            elementCount: arg.length,
+            alignment: 4,
+          };
+        }
+        if (type === "i64_array") {
+          if (!(arg instanceof BigInt64Array)) {
+            throw new Error(`${context} must be a BigInt64Array.`);
+          }
+          return {
+            bytes: new Uint8Array(arg.buffer, arg.byteOffset, arg.byteLength),
+            elementCount: arg.length,
+            alignment: 8,
+          };
+        }
+        if (type === "u64_array") {
+          if (!(arg instanceof BigUint64Array)) {
+            throw new Error(`${context} must be a BigUint64Array.`);
+          }
+          return {
+            bytes: new Uint8Array(arg.buffer, arg.byteOffset, arg.byteLength),
+            elementCount: arg.length,
+            alignment: 8,
           };
         }
         if (!(arg instanceof Float64Array)) {
@@ -555,7 +585,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
           }
           continue;
         }
-        if (type === "bytes" || type === "i32_array" || type === "f64_array") {
+        if (type === "bytes" || type === "i32_array" || type === "u32_array" || type === "i64_array" || type === "u64_array" || type === "f64_array") {
           const payload = encodeTypedArrayArg(type, arg, context);
           if (payload.bytes.length > 0) {
             const alignedOffset = alignOffset(byteOffset, payload.alignment);
@@ -578,12 +608,29 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
           callArgs.push(arg ? 1 : 0);
           continue;
         }
+        if (type === "i64" || type === "u64") {
+          if (typeof arg !== "bigint") {
+            throw new Error(`${context} must be a bigint.`);
+          }
+          if (type === "i64" && (arg < -9223372036854775808n || arg > 9223372036854775807n)) {
+            throw new Error(`${context} must be a signed 64-bit integer.`);
+          }
+          if (type === "u64" && (arg < 0n || arg > 18446744073709551615n)) {
+            throw new Error(`${context} must be an unsigned 64-bit integer.`);
+          }
+          callArgs.push(arg);
+          continue;
+        }
         if (typeof arg !== 'number' || Number.isNaN(arg)) {
           throw new Error(`${context} must be a number.`);
         }
         if (type === 'i32') {
           if (!Number.isInteger(arg) || arg < -2147483648 || arg > 2147483647) {
             throw new Error(`${context} must be a signed 32-bit integer.`);
+          }
+        } else if (type === "u32") {
+          if (!Number.isInteger(arg) || arg < 0 || arg > 4294967295) {
+            throw new Error(`${context} must be an unsigned 32-bit integer.`);
           }
         }
         callArgs.push(arg);

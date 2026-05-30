@@ -1,4 +1,4 @@
-import { NavLink, Text, rgb } from "../../../../fui/Fui";
+import { NavLink, Text, rgb } from "../../../fui/Fui";
 
 const PILL_RADIUS: f32 = 999.0;
 const PILL_PADDING_X: f32 = 16.0;
@@ -8,7 +8,7 @@ const PILL_ACTIVE_BG: u32 = rgb(34, 197, 94);
 const PILL_INACTIVE_TEXT: u32 = rgb(226, 232, 240);
 const PILL_ACTIVE_TEXT: u32 = rgb(12, 16, 24);
 
-export class MvcNavPill extends NavLink {
+export class NavPill extends NavLink {
   private readonly labelNode: Text;
   private activeValue: bool = false;
 
