@@ -60,7 +60,7 @@ export class ScrollView extends Node {
   private pendingProgrammaticOffsetY: f32 = 0.0;
   private hasFriction: bool = false;
   private _scrollState: ScrollState = new ScrollState();
-  private persistScrollValue: bool = false;
+  private persistScrollValue: bool = true;
   private persistedScrollRestorePending: bool = false;
   private transitionsValue: NodeTransitions | null = null;
   private scrollOffsetTransitionAnimation: Animation | null = null;

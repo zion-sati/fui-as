@@ -61,6 +61,92 @@ test('demo renders the texture-backed media sample', async ({ page }) => {
   }).toBe(true);
 });
 
+test('demo still boots when a dashboard texture 404s', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const isExpectedMissingTextureError = (message: string): boolean => {
+    if (
+      message.includes('[fui_host] texture') &&
+      message.includes('demo-secondary-texture.png') &&
+      message.includes('404')
+    ) {
+      return true;
+    }
+    return message.includes('Failed to load resource') && message.includes('404');
+  };
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      consoleErrors.push(message.text());
+    }
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.message);
+  });
+
+  await page.route('**/demo-secondary-texture.png', async (route) => {
+    await route.fulfill({ status: 404, body: 'missing test texture' });
+  });
+
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?media-assets=1`);
+  await demo.waitForDemoReady(page, 20000);
+  await demo.scrollSemanticLabelIntoView(page, 'Media assets');
+
+  await expect.poll(() => {
+    return consoleErrors.some((message) => (
+      message.includes('[fui_host] texture') &&
+      message.includes('demo-secondary-texture.png') &&
+      message.includes('404')
+    ));
+  }).toBe(true);
+
+  const unexpectedConsoleErrors = consoleErrors.filter((message) => !isExpectedMissingTextureError(message));
+  expect(unexpectedConsoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
+test('demo still boots when a lazy custom font 404s', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  let interceptedFontRequests = 0;
+  const isExpectedMissingFontError = (message: string): boolean => {
+    if (message.includes('Failed to load resource') && message.includes('404')) {
+      return true;
+    }
+    return message.includes('NotoSansMono-Regular.ttf') && message.includes('404');
+  };
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      consoleErrors.push(message.text());
+    }
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.message);
+  });
+
+  await page.route('**/v2/fonts/NotoSansMono-Regular.ttf', async (route) => {
+    interceptedFontRequests += 1;
+    await route.fulfill({ status: 404, body: 'missing test font' });
+  });
+
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page, 20000);
+  await page.evaluate(() => {
+    const withCallbacks = window as Window & {
+      __effindomCallbacks?: { onRequestFontLoad?: (fontId: number, url: string) => void };
+    };
+    withCallbacks.__effindomCallbacks?.onRequestFontLoad?.(990_001, '/v2/fonts/NotoSansMono-Regular.ttf');
+  });
+
+  await expect.poll(() => {
+    return interceptedFontRequests;
+  }).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.__fuiAsReady)).toBe(true);
+
+  const unexpectedConsoleErrors = consoleErrors.filter((message) => !isExpectedMissingFontError(message));
+  expect(unexpectedConsoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
 test('advanced controls rich text proof renders the mono override and emoji stack', async ({ page }) => {
   await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
   await demo.waitForDemoReady(page);

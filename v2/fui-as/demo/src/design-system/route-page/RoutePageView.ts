@@ -111,8 +111,7 @@ export class RoutePageView {
       .width(180.0, Unit.Pixel) as DemoButton;
 
     this.contentScrollBox
-      .nodeId("route-page-scroll:" + model.title.toLowerCase())
-      .persistScroll();
+      .nodeId("route-page-scroll:" + model.title.toLowerCase());
 
     const highlightColumn = Column();
     for (let i = 0; i < model.highlights.length; i += 1) {

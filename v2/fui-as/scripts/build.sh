@@ -4,13 +4,10 @@ set -euo pipefail
 
 PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${PACKAGE_DIR}/../.." && pwd)"
-SCAFFOLDER_TEMPLATES_ROOT="${REPO_ROOT}/v2/create-fui-as-app/templates"
 BROWSER_SRC_DIR="${PACKAGE_DIR}/browser/src"
 SMOKE_FIXTURE_DIR="${PACKAGE_DIR}/tests/fixtures/smoke"
 OUT_DIR="${REPO_ROOT}/public/v2/fui-as"
 DEMO_OUT_DIR="${OUT_DIR}/demo"
-MVC_OUT_DIR="${OUT_DIR}/demo-mvc"
-HELLO_OUT_DIR="${OUT_DIR}/demo-hello-world"
 WORKER_BUILD_DIR="${PACKAGE_DIR}/build/workers"
 WORKER_BOOTSTRAP_BUILD="${PACKAGE_DIR}/build/worker-bootstrap.js"
 WORKER_BOOTSTRAP_MAP_BUILD="${PACKAGE_DIR}/build/worker-bootstrap.js.map"
@@ -25,7 +22,7 @@ RUNTIME_CONFIG_FILE="effindom-runtime-config.js"
 DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
 
 rm -rf "${OUT_DIR}"
-mkdir -p "${PACKAGE_DIR}/build" "${OUT_DIR}" "${DEMO_OUT_DIR}" "${MVC_OUT_DIR}" "${HELLO_OUT_DIR}" "${WORKER_BUILD_DIR}"
+mkdir -p "${PACKAGE_DIR}/build" "${OUT_DIR}" "${DEMO_OUT_DIR}" "${WORKER_BUILD_DIR}"
 
 cd "${PACKAGE_DIR}"
 
@@ -49,20 +46,6 @@ build_app() {
   if [ -f "${PACKAGE_DIR}/build/app.wasm.map" ]; then
     cp "${PACKAGE_DIR}/build/app.wasm.map" "${wasm_out}.map"
   fi
-}
-
-prepare_template_for_local_build() {
-  local template_name="$1"
-  local source_dir="${SCAFFOLDER_TEMPLATES_ROOT}/${template_name}"
-  local local_dir="${PACKAGE_DIR}/build/local-template/${template_name}"
-
-  rm -rf "${local_dir}"
-  mkdir -p "${PACKAGE_DIR}/build/local-template"
-  cp -R "${source_dir}" "${local_dir}"
-
-  sed -i '' -e 's|"@effindomv2/fui-as/src/|"../../../../../src/|g' "${local_dir}"/src/fui/*.ts
-  sed -i '' -e 's|"@effindomv2/fui-as/browser/src/|"../../../../../browser/src/|g' "${local_dir}"/src/fui/*.ts
-  printf '%s\n' "${local_dir}"
 }
 
 build_worker() {
@@ -274,12 +257,6 @@ build_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
 build_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
 build_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
 build_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
-LOCAL_MVC_TEMPLATE_DIR="$(prepare_template_for_local_build mvc)"
-LOCAL_HELLO_TEMPLATE_DIR="$(prepare_template_for_local_build hello)"
-
-build_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/HomeApp.ts" "${MVC_OUT_DIR}/home.wasm"
-build_app "${LOCAL_MVC_TEMPLATE_DIR}/src/routes/SettingsApp.ts" "${MVC_OUT_DIR}/settings.wasm"
-build_app "${LOCAL_HELLO_TEMPLATE_DIR}/src/App.ts" "${HELLO_OUT_DIR}/app.wasm"
 build_workers
 write_worker_manifest
 
@@ -301,24 +278,6 @@ npx esbuild "${PACKAGE_DIR}/demo/harness.ts" \
   --outfile="${DEMO_OUT_DIR}/harness.js" \
   --sourcemap
 
-npx esbuild "${LOCAL_MVC_TEMPLATE_DIR}/harness.ts" \
-  --bundle \
-  --format=esm \
-  --platform=browser \
-  --target=es2020 \
-  --minify \
-  --outfile="${MVC_OUT_DIR}/harness.js" \
-  --sourcemap
-
-npx esbuild "${LOCAL_HELLO_TEMPLATE_DIR}/harness.ts" \
-  --bundle \
-  --format=esm \
-  --platform=browser \
-  --target=es2020 \
-  --minify \
-  --outfile="${HELLO_OUT_DIR}/harness.js" \
-  --sourcemap
-
 npx esbuild "${BROWSER_SRC_DIR}/file-processing-worker.ts" \
   --bundle \
   --format=iife \
@@ -332,10 +291,6 @@ cp "${FILE_PROCESSING_WORKER_BUILD}" "${OUT_DIR}/file-processing-worker.js"
 cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${OUT_DIR}/file-processing-worker.js.map"
 cp "${FILE_PROCESSING_WORKER_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js"
 cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js.map"
-cp "${FILE_PROCESSING_WORKER_BUILD}" "${MVC_OUT_DIR}/file-processing-worker.js"
-cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${MVC_OUT_DIR}/file-processing-worker.js.map"
-cp "${FILE_PROCESSING_WORKER_BUILD}" "${HELLO_OUT_DIR}/file-processing-worker.js"
-cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${HELLO_OUT_DIR}/file-processing-worker.js.map"
 
 npx esbuild "${BROWSER_SRC_DIR}/worker-bootstrap.ts" \
   --bundle \
@@ -357,43 +312,18 @@ npx esbuild "${PACKAGE_DIR}/demo/worker-host-services.ts" \
 
 cp "${SMOKE_FIXTURE_DIR}/index.html" "${OUT_DIR}/index.html"
 cp "${PACKAGE_DIR}/demo/index.html" "${DEMO_OUT_DIR}/index.html"
-cp "${LOCAL_HELLO_TEMPLATE_DIR}/index.html" "${HELLO_OUT_DIR}/index.html"
 cp "${PACKAGE_DIR}/demo/demo-texture.png" "${DEMO_OUT_DIR}/demo-texture.png"
 cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-secondary-texture.png"
 
 mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls"
 cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
 cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
-mkdir -p "${MVC_OUT_DIR}/home" "${MVC_OUT_DIR}/settings"
-cp "${LOCAL_MVC_TEMPLATE_DIR}/route-shell.html" "${MVC_OUT_DIR}/home/index.html"
-cp "${LOCAL_MVC_TEMPLATE_DIR}/route-shell.html" "${MVC_OUT_DIR}/settings/index.html"
-cat > "${MVC_OUT_DIR}/index.html" <<'EOF'
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="refresh" content="0; url=./home/" />
-  <title>FUI-AS Routed Demo</title>
-</head>
-<body>
-  <p>Redirecting to <a href="./home/">Home</a>…</p>
-</body>
-</html>
-EOF
 
 copy_runtime_assets "${OUT_DIR}"
 copy_runtime_assets "${DEMO_OUT_DIR}"
-copy_runtime_assets "${MVC_OUT_DIR}"
-copy_runtime_assets "${HELLO_OUT_DIR}"
 copy_worker_assets "${OUT_DIR}"
 copy_worker_assets "${DEMO_OUT_DIR}"
-copy_worker_assets "${MVC_OUT_DIR}"
-copy_worker_assets "${HELLO_OUT_DIR}"
 write_runtime_config "${OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${DEMO_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
-write_runtime_config "${MVC_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
-write_runtime_config "${HELLO_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${DEMO_OUT_DIR}/advanced-controls" "../runtime/dist/effindom.v2.manifest.json"
 write_runtime_config "${DEMO_OUT_DIR}/templated-controls" "../runtime/dist/effindom.v2.manifest.json"
-write_runtime_config "${MVC_OUT_DIR}/home" "../runtime/dist/effindom.v2.manifest.json"
-write_runtime_config "${MVC_OUT_DIR}/settings" "../runtime/dist/effindom.v2.manifest.json"

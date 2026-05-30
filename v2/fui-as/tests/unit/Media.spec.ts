@@ -1,5 +1,5 @@
 import { AssetLoadState, Image, ObjectFit, Svg, Unit, getTextureAssetError, getTextureAssetState, loadSvg, loadTexture } from "../../src/Fui";
-import { __fui_on_svg_loaded, __fui_on_texture_failed, __fui_on_texture_loaded } from "../../src/core/Assets";
+import { __fui_on_svg_failed, __fui_on_svg_loaded, __fui_on_texture_failed, __fui_on_texture_loaded } from "../../src/core/Assets";
 import {
   CALL_CREATE_NODE,
   CALL_LOAD_SVG,
@@ -332,5 +332,32 @@ describe("Media nodes", () => {
     expect<AssetLoadState>(svg.assetState()).toBe(AssetLoadState.Ready);
     expect<f32>(svg.assetWidth()).toBe(128.0);
     expect<f32>(svg.assetHeight()).toBe(112.0);
+  });
+
+  it("asset failure callbacks remain non-fatal even with empty host errors", () => {
+    resetCalls();
+    setLogsEnabled(true);
+
+    const image = Image.load("/images/missing.png", ObjectFit.Cover);
+    image.build();
+    const imageIndex = findLastCall(CALL_SET_IMAGE);
+    expect<i32>(imageIndex).toBeGreaterThan(-1);
+    const textureId = <u32>getCallArg(imageIndex, 1);
+    expect<u32>(textureId).toBeGreaterThan(0);
+    __fui_on_texture_failed(textureId, 0, 0);
+    expect<AssetLoadState>(image.assetState()).toBe(AssetLoadState.Failed);
+    expect<bool>(lastLogCategoryEquals("Warning/Assets")).toBe(true);
+    expect<bool>(lastLogMessageEquals('Texture load failed for "/images/missing.png": unknown error')).toBe(true);
+
+    const svg = Svg.load("/icons/missing.svg");
+    svg.build();
+    const svgIndex = findLastCall(CALL_SET_SVG);
+    expect<i32>(svgIndex).toBeGreaterThan(-1);
+    const svgId = <u32>getCallArg(svgIndex, 1);
+    expect<u32>(svgId).toBeGreaterThan(0);
+    __fui_on_svg_failed(svgId, 0, 0);
+    expect<AssetLoadState>(svg.assetState()).toBe(AssetLoadState.Failed);
+    expect<bool>(lastLogCategoryEquals("Warning/Assets")).toBe(true);
+    expect<bool>(lastLogMessageEquals('SVG load failed for "/icons/missing.svg": unknown error')).toBe(true);
   });
 });

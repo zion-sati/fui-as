@@ -211,7 +211,6 @@ export class DashboardView {
     bindDemoListItem,
   )
     .nodeId("demo-dashboard:sidebar-list")
-    .persistScroll()
     .width(FULL_SIZE, Unit.Percent)
     .height(computeSidebarListViewportHeight(), Unit.Pixel) as VirtualList;
   readonly counterButton: DemoButton = new DemoButton("Click me", DemoButtonTone.Primary)
@@ -657,7 +656,6 @@ export class DashboardView {
     .scrollEnabledX(true)
     .scrollEnabledY(false)
     .nodeId("demo-dashboard-shell-scroll")
-    .persistScroll()
     .width(FULL_SIZE, Unit.Percent)
     .height(FULL_SIZE, Unit.Percent)
     .child(this.dashboardContentRow) as ScrollBox;
@@ -667,7 +665,6 @@ export class DashboardView {
     .scrollEnabledY(true)
     .verticalScrollbarVisibility(ScrollBarVisibility.Always)
     .nodeId("demo-dashboard-main-scroll")
-    .persistScroll()
     .scrollbarGutter(MAIN_CONTENT_SCROLLBAR_GUTTER) as ScrollBox;
   mainContentViewport: ScrollView | null = null;
   mainContentColumn: FlexBox | null = null;

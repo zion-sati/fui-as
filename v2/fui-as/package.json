@@ -1,6 +1,6 @@
 {
   "name": "@effindomv2/fui-as",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": false,
   "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
   "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
@@ -67,17 +67,18 @@
     "LICENSES"
   ],
   "scripts": {
-    "build": "bash scripts/build.sh",
-    "build:only": "bash scripts/build.sh",
-    "build:full": "bash scripts/build.sh",
+    "guard:runtime-dependency": "bash scripts/check-runtime-dependency.sh",
+    "build": "npm run guard:runtime-dependency && bash scripts/build.sh",
+    "build:only": "npm run guard:runtime-dependency && bash scripts/build.sh",
+    "build:full": "npm run guard:runtime-dependency && bash scripts/build.sh",
     "build:demo:as": "bash scripts/build-demo-as.sh",
-    "test:unit": "asp --verbose -c as-pect.config.mjs -a as-pect.asconfig.json",
+    "test:unit": "npm run guard:runtime-dependency && asp --verbose -c as-pect.config.mjs -a as-pect.asconfig.json",
     "test:integration": "npm run build:full && playwright test -c playwright.config.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "npm run guard:runtime-dependency && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.28.17",
-    "@effindomv2/runtime": "0.1.0"
+    "@effindomv2/runtime": "0.1.1"
   },
   "devDependencies": {
     "@as-pect/assembly": "8.1.0",

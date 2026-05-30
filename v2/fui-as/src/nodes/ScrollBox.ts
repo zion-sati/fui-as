@@ -39,7 +39,7 @@ export class ScrollBox extends FlexBox {
   private scrollbarGutterValue: f32 = DEFAULT_SCROLLBAR_GUTTER;
   private verticalChromeVisibleValue: bool = false;
   private horizontalChromeVisibleValue: bool = false;
-  private persistScrollValue: bool = false;
+  private persistScrollValue: bool = true;
   private persistedScrollRestorePending: bool = false;
 
   constructor(scrollState: ScrollState = new ScrollState(), viewportOverride: ScrollView | null = null) {

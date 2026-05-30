@@ -29,8 +29,6 @@ Open:
 ```text
 http://127.0.0.1:8080/v2/fui-as/index.html
 http://127.0.0.1:8080/v2/fui-as/demo/index.html
-http://127.0.0.1:8080/v2/fui-as/demo-hello-world/index.html
-http://127.0.0.1:8080/v2/fui-as/demo-mvc/index.html
 http://127.0.0.1:8080/v2/fui-as/demo/advanced-controls/
 http://127.0.0.1:8080/v2/fui-as/demo/templated-controls/
 ```

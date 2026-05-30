@@ -1,7 +1,7 @@
 {
   "name": "effindom-fui-as-repo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "Standalone FUI-AS repository for @effindomv2/fui-as",
   "engines": {
     "node": ">=18"
@@ -10,12 +10,10 @@
     "v2/fui-as"
   ],
   "scripts": {
-    "typecheck": "bash -lc 'if [ -x v2/fui-as/node_modules/.bin/tsc ]; then v2/fui-as/node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; elif [ -x node_modules/.bin/tsc ]; then node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; else echo \"Could not locate tsc in node_modules/.bin.\" >&2; exit 1; fi'",
-    "test": "bash -lc 'if [ -x v2/fui-as/node_modules/.bin/asp ]; then v2/fui-as/node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; elif [ -x node_modules/.bin/asp ]; then node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; else echo \"Could not locate asp in node_modules/.bin.\" >&2; exit 1; fi'",
-    "build": "bash v2/fui-as/scripts/build.sh",
+    "typecheck": "bash -lc 'bash v2/fui-as/scripts/check-runtime-dependency.sh && if [ -x v2/fui-as/node_modules/.bin/tsc ]; then v2/fui-as/node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; elif [ -x node_modules/.bin/tsc ]; then node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; else echo \"Could not locate tsc in node_modules/.bin.\" >&2; exit 1; fi'",
+    "test": "bash -lc 'bash v2/fui-as/scripts/check-runtime-dependency.sh && if [ -x v2/fui-as/node_modules/.bin/asp ]; then v2/fui-as/node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; elif [ -x node_modules/.bin/asp ]; then node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; else echo \"Could not locate asp in node_modules/.bin.\" >&2; exit 1; fi'",
+    "build": "bash v2/fui-as/scripts/check-runtime-dependency.sh && bash v2/fui-as/scripts/build.sh",
     "publish:local": "bash scripts/publish/local/fui-as.sh",
-    "publish:npm": "bash scripts/publish/npm/fui-as.sh",
-    "publish:local:create-fui-as-app": "bash scripts/publish/local/create-fui-as-app.sh",
-    "publish:npm:create-fui-as-app": "bash scripts/publish/npm/create-fui-as-app.sh"
+    "publish:npm": "bash scripts/publish/npm/fui-as.sh"
   }
 }

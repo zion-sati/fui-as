@@ -45,6 +45,15 @@ export interface HostImportDeps {
 }
 
 export function createHostImportModule(deps: HostImportDeps) {
+  function safeNotify(label: string, notify: () => void): void {
+    try {
+      notify();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[fui_host] ${label}: ${message}`);
+    }
+  }
+
   return {
     request_render(): void {
       const runtime = deps.getRuntime();
@@ -229,14 +238,18 @@ export function createHostImportModule(deps: HostImportDeps) {
         if (deps.getCurrentSessionOrNull() !== session) {
           return;
         }
-        deps.notifySvgLoaded(session, svgId, result.width, result.height);
+        safeNotify(`failed to deliver SVG ${String(svgId)} success callback`, () => {
+          deps.notifySvgLoaded(session, svgId, result.width, result.height);
+        });
       }).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`[fui_host] SVG ${String(svgId)} failed to load from ${url}: ${message}`);
         if (deps.getCurrentSessionOrNull() !== session) {
           return;
         }
-        deps.notifySvgFailed(session, svgId, message);
+        safeNotify(`failed to deliver SVG ${String(svgId)} failure callback`, () => {
+          deps.notifySvgFailed(session, svgId, message);
+        });
       });
     },
     fui_load_texture(textureId: number, ptr: number, len: number): void {
@@ -247,14 +260,18 @@ export function createHostImportModule(deps: HostImportDeps) {
         if (deps.getCurrentSessionOrNull() !== session) {
           return;
         }
-        deps.notifyTextureLoaded(session, textureId, result.width, result.height);
+        safeNotify(`failed to deliver texture ${String(textureId)} success callback`, () => {
+          deps.notifyTextureLoaded(session, textureId, result.width, result.height);
+        });
       }).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`[fui_host] texture ${String(textureId)} failed to load from ${url}: ${message}`);
         if (deps.getCurrentSessionOrNull() !== session) {
           return;
         }
-        deps.notifyTextureFailed(session, textureId, message);
+        safeNotify(`failed to deliver texture ${String(textureId)} failure callback`, () => {
+          deps.notifyTextureFailed(session, textureId, message);
+        });
       });
     },
     fui_release_svg(svgId: number): void {
