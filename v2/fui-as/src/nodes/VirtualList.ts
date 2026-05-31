@@ -18,10 +18,48 @@ const POOL_OVERSCAN_ITEMS: i32 = 2;
 
 export type VirtualListBinder = (container: FlexBox, index: i32) => void;
 
+abstract class VirtualListBinderCallback {
+  abstract invoke(container: FlexBox, index: i32): void;
+}
+
+class FunctionVirtualListBinderCallback extends VirtualListBinderCallback {
+  private readonly handler: VirtualListBinder;
+
+  constructor(handler: VirtualListBinder) {
+    super();
+    this.handler = handler;
+  }
+
+  invoke(container: FlexBox, index: i32): void {
+    this.handler(container, index);
+  }
+}
+
+class BoundVirtualListBinderCallback<Owner> extends VirtualListBinderCallback {
+  private readonly owner: Owner;
+  private readonly handler: (owner: Owner, container: FlexBox, index: i32) => void;
+
+  constructor(owner: Owner, handler: (owner: Owner, container: FlexBox, index: i32) => void) {
+    super();
+    this.owner = owner;
+    this.handler = handler;
+  }
+
+  invoke(container: FlexBox, index: i32): void {
+    this.handler(this.owner, container, index);
+  }
+}
+
+class MissingVirtualListBinderCallback extends VirtualListBinderCallback {
+  invoke(_container: FlexBox, _index: i32): void {
+    throw new VirtualListItemBindingError();
+  }
+}
+
 export class VirtualList extends FlexBox {
   private totalItemsValue: i32;
   private readonly itemHeightValue: f32;
-  private bindItemValue: VirtualListBinder;
+  private bindItemValue: VirtualListBinderCallback;
   private readonly scrollStateValue: ScrollState;
   private readonly scrollBoxValue: ScrollBox;
   private readonly contentValue: FlexBox;
@@ -45,9 +83,7 @@ export class VirtualList extends FlexBox {
     const poolSizeValue = maxVisible > 0 ? maxVisible + POOL_OVERSCAN_ITEMS : POOL_OVERSCAN_ITEMS;
     this.totalItemsValue = totalItemsValue;
     this.itemHeightValue = itemHeightValue;
-    this.bindItemValue = (): void => {
-      throw new VirtualListItemBindingError();
-    };
+    this.bindItemValue = new MissingVirtualListBinderCallback();
     this.scrollStateValue = scrollStateValue;
     this.poolSizeValue = poolSizeValue;
 
@@ -179,7 +215,7 @@ export class VirtualList extends FlexBox {
   }
 
   onBindItem(renderer: VirtualListBinder): this {
-    this.bindItemValue = renderer;
+    this.bindItemValue = new FunctionVirtualListBinderCallback(renderer);
     this.currentFirstVisibleIndex = -1;
     this.currentLastVisibleIndex = -1;
     this.rebuildVisibleRange(true);
@@ -187,9 +223,7 @@ export class VirtualList extends FlexBox {
   }
 
   onBindItemWith<Owner>(owner: Owner, renderer: (owner: Owner, container: FlexBox, index: i32) => void): this {
-    this.bindItemValue = (container: FlexBox, index: i32): void => {
-      renderer(owner, container, index);
-    };
+    this.bindItemValue = new BoundVirtualListBinderCallback<Owner>(owner, renderer);
     this.currentFirstVisibleIndex = -1;
     this.currentLastVisibleIndex = -1;
     this.rebuildVisibleRange(true);
@@ -444,7 +478,7 @@ export class VirtualList extends FlexBox {
   }
 
   private renderItem(container: FlexBox, index: i32): void {
-    this.bindItemValue(container, index);
+    this.bindItemValue.invoke(container, index);
   }
 
   private maxOffsetForCurrentViewport(): f32 {

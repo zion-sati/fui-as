@@ -33,6 +33,27 @@ function staticBindVirtualListItem(container: FlexBox, index: i32): void {
   (textNode! as Text).text("row " + index.toString());
 }
 
+class OwnerBoundVirtualListItem {
+  renderedIndices: Array<i32> = new Array<i32>();
+
+  bind(container: FlexBox, index: i32): void {
+    this.renderedIndices.push(index);
+    if (container.childCount == 0) {
+      container.child(new Text(""));
+    }
+    const textNode = container.getChildAt(0);
+    (textNode! as Text).text("owner row " + index.toString());
+  }
+}
+
+function bindOwnerBoundVirtualListItem(
+  owner: OwnerBoundVirtualListItem,
+  container: FlexBox,
+  index: i32,
+): void {
+  owner.bind(container, index);
+}
+
 describe("VirtualList", () => {
   it("binds only the visible window for a fixed-height list", () => {
     renderedIndices.length = 0;
@@ -85,6 +106,20 @@ describe("VirtualList", () => {
 
     expect<f32>(list.scrollState.contentHeight.value).toBe(120.0);
     expect<i32>(list.renderedItemCount).toBe(5);
+    list.dispose();
+  });
+
+  it("binds owner-backed renderers with onBindItemWith", () => {
+    const owner = new OwnerBoundVirtualListItem();
+    const list = new VirtualList(10000, 20.0).onBindItemWith(owner, bindOwnerBoundVirtualListItem);
+    list.width(180.0, Unit.Pixel);
+    list.height(100.0, Unit.Pixel);
+
+    list.build();
+
+    expect<i32>(owner.renderedIndices.length).toBeGreaterThanOrEqual(6);
+    expect<i32>(unchecked(owner.renderedIndices[0])).toBe(0);
+    expect<i32>(unchecked(owner.renderedIndices[owner.renderedIndices.length - 1])).toBe(5);
     list.dispose();
   });
 });
