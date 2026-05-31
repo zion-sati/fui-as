@@ -1,6 +1,6 @@
 import * as ui from "../../src/bindings/ui";
 import { Application } from "../../src/core/Application";
-import { Unit } from "../../src/core/ffi";
+import { Unit, FlexDirection } from "../../src/core/ffi";
 import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
 import { CALL_SET_SCROLL_CONTENT_SIZE, findCall, getCallArg, resetCalls } from "./FfiTestImports";
 
@@ -188,6 +188,82 @@ describe("ScrollBox", () => {
     if (horizontalBounds !== null) {
       expect<f32>(horizontalBounds[2]).toBeGreaterThan(0.0);
       expect<f32>(horizontalBounds[3]).toBeGreaterThan(0.0);
+    }
+  });
+
+  it("lays out column children properly with auto width in scrollbox", () => {
+    ui.resizeWindow(480.0, 360.0);
+
+    const textItem1 = new Text("Item 1").fontSize(16.0) as Text;
+    const textItem2 = new Text("Item 2").fontSize(16.0) as Text;
+    const spacer = new FlexBox().height(20.0, Unit.Pixel);
+
+    const columnContent = new FlexBox()
+      .flexDirection(FlexDirection.Column)
+      .width(0.0, Unit.Auto)
+      .children([textItem1, spacer, textItem2]);
+
+    const scrollBox = new ScrollBox()
+      .scrollEnabledX(false)
+      .scrollEnabledY(true)
+      .verticalScrollbarVisibility(ScrollBarVisibility.Auto)
+      .horizontalScrollbarVisibility(ScrollBarVisibility.Never)
+      .width(220.0, Unit.Pixel)
+      .height(200.0, Unit.Pixel)
+      .child(columnContent) as ScrollBox;
+
+    const root = new FlexBox()
+      .width(480.0, Unit.Pixel)
+      .height(360.0, Unit.Pixel)
+      .child(scrollBox);
+
+    Application.mount(root);
+    ui.commitFrame();
+
+    const item1Bounds = ui.tryGetBounds(textItem1.builtHandle);
+    const item2Bounds = ui.tryGetBounds(textItem2.builtHandle);
+
+    if (item1Bounds !== null && item2Bounds !== null) {
+      const item1Y = unchecked(item1Bounds[1]);
+      const item1Height = unchecked(item1Bounds[3]);
+      const item2Y = unchecked(item2Bounds[1]);
+
+      const expectedSpacing = item1Y + item1Height + 20.0;
+      expect<f32>(<f32>Math.abs(item2Y - expectedSpacing)).toBeLessThan(2.0);
+    }
+  });
+
+  it("lays out auto-sized column with padding and border in regular flexbox", () => {
+    ui.resizeWindow(480.0, 360.0);
+
+    const textItem1 = new Text("Item 1").fontSize(16.0) as Text;
+    const textItem2 = new Text("Item 2").fontSize(16.0) as Text;
+    const spacer = new FlexBox().height(12.0, Unit.Pixel);
+
+    const columnContent = new FlexBox()
+      .flexDirection(FlexDirection.Column)
+      .width(0.0, Unit.Auto)
+      .padding(16.0, 12.0, 16.0, 12.0)
+      .children([textItem1, spacer, textItem2]);
+
+    const root = new FlexBox()
+      .width(480.0, Unit.Pixel)
+      .height(360.0, Unit.Pixel)
+      .child(columnContent);
+
+    Application.mount(root);
+    ui.commitFrame();
+
+    const item1Bounds = ui.tryGetBounds(textItem1.builtHandle);
+    const item2Bounds = ui.tryGetBounds(textItem2.builtHandle);
+
+    if (item1Bounds !== null && item2Bounds !== null) {
+      const item1Y = unchecked(item1Bounds[1]);
+      const item1Height = unchecked(item1Bounds[3]);
+      const item2Y = unchecked(item2Bounds[1]);
+
+      const expectedSpacing = item1Y + item1Height + 12.0;
+      expect<f32>(<f32>Math.abs(item2Y - expectedSpacing)).toBeLessThan(2.0);
     }
   });
 

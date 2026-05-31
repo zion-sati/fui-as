@@ -58,6 +58,10 @@ function verticalSpacer(height: f32): FlexBox {
   return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
 }
 
+function horizontalSpacer(width: f32): FlexBox {
+  return new FlexBox().width(width, Unit.Pixel).height(100.0, Unit.Percent);
+}
+
 function createFullWidthCheckbox(label: string, checked: bool = false): DemoCheckbox {
   return (checked
     ? new DemoCheckbox(label, true).check(true)
@@ -355,6 +359,7 @@ export class AdvancedControlsView {
       this.buildWorkerSection(),
       this.buildRichTextSection(),
       this.buildCustomFontSection(),
+      this.buildAutoSizingSection(),
     ];
   }
 
@@ -576,6 +581,49 @@ export class AdvancedControlsView {
     return createRoutePageSection(
       "Static rich text",
       "Use helper spans to compose inline static styling, and use RichText container defaults when you want the same font family, weight, size, or color across the whole object.",
+      sectionBody,
+    );
+  }
+
+  private buildAutoSizingSection(): RoutePageSection {
+    const demoBox1 = Column(
+      new Text("Auto-sized box").fontSize(16.0) as Text,
+      verticalSpacer(8.0),
+      new Text("This box is width: auto, height: auto with padding and a border. It sizes to fit its content exactly.").fontSize(14.0) as Text,
+    )
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto)
+      .padding(12.0, 10.0, 12.0, 10.0)
+      .border(1.0, demoDividerColor(activeTheme.value), BorderStyle.Solid)
+      .bgColor(demoCardBackground(activeTheme.value)) as FlexBox;
+
+    const demoBox2 = Column(
+      new Text("Another auto box").fontSize(16.0) as Text,
+      verticalSpacer(10.0),
+      new Text("Item 1").fontSize(13.0) as Text,
+      verticalSpacer(6.0),
+      new Text("Item 2").fontSize(13.0) as Text,
+      verticalSpacer(6.0),
+      new Text("Item 3").fontSize(13.0) as Text,
+    )
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto)
+      .padding(16.0, 14.0, 16.0, 14.0)
+      .border(2.0, demoPrimaryText(activeTheme.value), BorderStyle.Solid)
+      .bgColor(rgb(220, 38, 38)) as FlexBox;
+
+    const sectionBody = Column(
+      Row(demoBox1, horizontalSpacer(20.0), demoBox2),
+      verticalSpacer(14.0),
+      new DemoText(
+        "Auto-sized containers shrink to their content, ignoring flex growth. Perfect for cards, panels, and labels that need custom borders and padding without hardcoded dimensions.",
+        DemoTextRecipe.Hint,
+      ).font(FONT_REGULAR, 14.0),
+    ).width(100.0, Unit.Percent);
+
+    return createRoutePageSection(
+      "Auto sizing",
+      "Use Unit.Auto for width and height to create containers that size exactly to their children, with full support for padding, borders, and margins.",
       sectionBody,
     );
   }
