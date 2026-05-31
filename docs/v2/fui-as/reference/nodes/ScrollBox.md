@@ -13,6 +13,10 @@ import { ScrollBox, ScrollState } from "./Fui";
 
 `ScrollBox` wraps a `ScrollView` and owns both scrollbar directions.
 
+When a scroll child uses `Unit.Auto` sizing, intrinsic child size now drives
+overflow on both axes. To stretch to viewport width/height instead, use
+`fillWidth()` / `fillHeight()` on the scroll content root.
+
 
 ## See also
 

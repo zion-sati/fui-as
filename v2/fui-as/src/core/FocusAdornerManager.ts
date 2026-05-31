@@ -2,7 +2,7 @@ import * as ui from "../bindings/ui";
 import { BorderStyle, Unit } from "./ffi";
 import { Node } from "./Node";
 import { activeTheme } from "./Theme";
-import { Portal, ScrollView, FlexBox } from "../nodes";
+import { Portal, FlexBox } from "../nodes";
 
 const STANDARD_FOCUS_RING_WIDTH: f32 = 2.0;
 const STANDARD_FOCUS_RING_OUTSET: f32 = 2.0;
@@ -59,7 +59,7 @@ export class FocusAdornerManager {
       .position(0.0, 0.0)
       .width(0.0, Unit.Pixel)
       .height(0.0, Unit.Pixel)
-      .clipToBounds(true) as Portal;
+      .clipToBounds(false) as Portal;
     this.hostRoot = hostRoot;
     this.ringNode = ringNode;
     return hostRoot;
@@ -238,20 +238,6 @@ export class FocusAdornerManager {
     minY = <f32>Math.max(minY, 0.0);
     maxX = <f32>Math.min(maxX, ui.getViewportWidth());
     maxY = <f32>Math.min(maxY, ui.getViewportHeight());
-
-    let ancestor = owner.parentNode;
-    while (ancestor !== null) {
-      if (ancestor instanceof ScrollView && ancestor.builtHandle != 0) {
-        const viewportBounds = ui.tryGetBounds(ancestor.builtHandle);
-        if (viewportBounds !== null) {
-          minX = <f32>Math.max(minX, unchecked(viewportBounds[0]));
-          minY = <f32>Math.max(minY, unchecked(viewportBounds[1]));
-          maxX = <f32>Math.min(maxX, unchecked(viewportBounds[0]) + unchecked(viewportBounds[2]));
-          maxY = <f32>Math.min(maxY, unchecked(viewportBounds[1]) + unchecked(viewportBounds[3]));
-        }
-      }
-      ancestor = ancestor.parentNode;
-    }
 
     const width = maxX - minX;
     const height = maxY - minY;

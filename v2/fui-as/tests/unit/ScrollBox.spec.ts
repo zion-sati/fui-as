@@ -151,6 +151,46 @@ describe("ScrollBox", () => {
     }
   });
 
+  it("shows auto rails for both axes when scroll content uses intrinsic auto size", () => {
+    ui.resizeWindow(480.0, 360.0);
+
+    const intrinsicContent = new FlexBox()
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto)
+      .child(
+        new FlexBox()
+          .width(420.0, Unit.Pixel)
+          .height(280.0, Unit.Pixel)
+          .child(new Text("oversized content")),
+      );
+    const scrollBox = new ScrollBox()
+      .scrollEnabledX(true)
+      .scrollEnabledY(true)
+      .verticalScrollbarVisibility(ScrollBarVisibility.Auto)
+      .horizontalScrollbarVisibility(ScrollBarVisibility.Auto)
+      .width(220.0, Unit.Pixel)
+      .height(120.0, Unit.Pixel)
+      .child(intrinsicContent) as ScrollBox;
+    const root = new FlexBox()
+      .width(480.0, Unit.Pixel)
+      .height(360.0, Unit.Pixel)
+      .child(scrollBox);
+
+    Application.mount(root);
+    ui.commitFrame();
+
+    const verticalBounds = ui.tryGetBounds(scrollBox.verticalScrollBar.render().builtHandle);
+    const horizontalBounds = ui.tryGetBounds(scrollBox.horizontalScrollBar.render().builtHandle);
+    if (verticalBounds !== null) {
+      expect<f32>(verticalBounds[2]).toBeGreaterThan(0.0);
+      expect<f32>(verticalBounds[3]).toBeGreaterThan(0.0);
+    }
+    if (horizontalBounds !== null) {
+      expect<f32>(horizontalBounds[2]).toBeGreaterThan(0.0);
+      expect<f32>(horizontalBounds[3]).toBeGreaterThan(0.0);
+    }
+  });
+
   it("updates the shared scroll state immediately for runtime scroll restores", () => {
     const scrollBox = new ScrollBox();
 

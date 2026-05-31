@@ -14,6 +14,7 @@ import { Dropdown, DropdownItem } from "./Fui";
 - **Templates:** `fieldTemplate(template)`, `chevronTemplate(template)`, `optionRowTemplate(template)`
 
 While open, `Dropdown` handles `ArrowUp/Down`, `Home/End`, `Enter`, and `Escape`.
+If the trigger scrolls fully out of the viewport while open, the popup dismisses automatically and updates its semantic expanded state.
 
 
 ## See also

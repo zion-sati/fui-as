@@ -13,12 +13,16 @@ import {
   DropdownOptionRowPresenter,
   DropdownOptionRowTemplate,
   DropdownOptionRowVisualState,
+  FlexDirection,
   FlexBox,
   KeyEventType,
+  ScrollBarVisibility,
+  ScrollBox,
   Text,
   Theme,
   Unit,
 } from "../../src/Fui";
+import { EventRouter } from "../../src/core/EventRouter";
 import {
   CALL_SET_BOX_STYLE,
   CALL_SET_HEIGHT,
@@ -304,5 +308,46 @@ describe("Dropdown templating", () => {
 
     expect<i32>(lastCallIndex(CALL_SET_SVG)).toBeGreaterThan(-1);
     dropdown.dispose();
+  });
+
+  it("keeps the open popup active while scroll events occur and the trigger remains visible", () => {
+    resetCalls();
+
+    const dropdown = new Dropdown()
+      .items([
+        new DropdownItem("one", "One"),
+        new DropdownItem("two", "Two"),
+      ]) as Dropdown;
+    const content = new FlexBox()
+      .flexDirection(FlexDirection.Column)
+      .width(260.0, Unit.Pixel)
+      .height(840.0, Unit.Pixel)
+      .child(new FlexBox().width(100.0, Unit.Percent).height(20.0, Unit.Pixel))
+      .child(dropdown)
+      .child(new FlexBox().width(100.0, Unit.Percent).height(780.0, Unit.Pixel));
+    const scrollBox = new ScrollBox()
+      .scrollEnabledX(false)
+      .scrollEnabledY(true)
+      .horizontalScrollbarVisibility(ScrollBarVisibility.Never)
+      .verticalScrollbarVisibility(ScrollBarVisibility.Auto)
+      .width(260.0, Unit.Pixel)
+      .height(140.0, Unit.Pixel)
+      .child(content) as ScrollBox;
+    const root = new FlexBox()
+      .width(300.0, Unit.Pixel)
+      .height(200.0, Unit.Pixel)
+      .child(scrollBox);
+    Application.mount(root);
+    Application.flushRenders();
+
+    dropdown._handleKeyEvent(KeyEventType.Down, "ArrowDown", 0);
+    Application.flushRenders();
+    expect<bool>(dropdown.handleGlobalKeyEvent(KeyEventType.Down, "ArrowDown", 0)).toBe(true);
+
+    resetCalls();
+    EventRouter.dispatchScroll(scrollBox.builtHandle, 0.0, 24.0, 260.0, 840.0, 260.0, 140.0);
+    Application.flushRenders();
+    expect<bool>(dropdown.handleGlobalKeyEvent(KeyEventType.Down, "ArrowDown", 0)).toBe(true);
+
   });
 });

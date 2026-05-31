@@ -19,7 +19,8 @@ import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
 import { Node } from "../core/Node";
 import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState";
-import { FlexBox, Portal, ScrollBarVisibility, ScrollBox } from "../nodes";
+import { registerScrollHook } from "../core/ScrollHooks";
+import { FlexBox, Portal, ScrollBarVisibility, ScrollBox, ScrollView } from "../nodes";
 import { bind2 } from "../core/bind";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
@@ -179,6 +180,7 @@ class DropdownOptionNode extends FlexBox {
 
 export class Dropdown extends FlexBox implements GlobalKeyHandler {
   private static activeInstance: Dropdown | null = null;
+  private static scrollHookRegistered: bool = false;
 
   private fieldTemplateValue: DropdownFieldTemplate | null = null;
   private chevronTemplateValue: DropdownChevronTemplate | null = null;
@@ -212,6 +214,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
 
   constructor() {
     super();
+    Dropdown.ensureScrollHook();
     const fieldPresenter = createFieldPresenter(null);
     const chevronPresenter = createChevronPresenter(null);
     const popupRoot = new Portal()
@@ -392,6 +395,24 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     if (dropdown !== null) {
       dropdown.close();
     }
+  }
+
+  static dismissActiveDropdownIfTriggerOutOfViewport(): void {
+    const dropdown = Dropdown.activeInstance;
+    if (dropdown === null) {
+      return;
+    }
+    if (!dropdown.isTriggerVisibleInViewport()) {
+      dropdown.close();
+    }
+  }
+
+  private static ensureScrollHook(): void {
+    if (Dropdown.scrollHookRegistered) {
+      return;
+    }
+    registerScrollHook((): void => Dropdown.dismissActiveDropdownIfTriggerOutOfViewport());
+    Dropdown.scrollHookRegistered = true;
   }
 
   highlightIndex(index: i32): void {
@@ -601,6 +622,56 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       return null;
     }
     return ui.tryGetBounds(this.builtHandle);
+  }
+
+  private findContainingScrollView(): ScrollView | null {
+    let current: Node | null = this.parentNode;
+    while (current !== null) {
+      if (current instanceof ScrollView) {
+        return current as ScrollView;
+      }
+      current = current.parentNode;
+    }
+    return null;
+  }
+
+  private isTriggerVisibleInViewport(): bool {
+    const bounds = this.tryGetViewportBounds();
+    if (bounds === null) {
+      return true;
+    }
+    const x = unchecked(bounds[0]);
+    const y = unchecked(bounds[1]);
+    const width = unchecked(bounds[2]);
+    const height = unchecked(bounds[3]);
+    if (width <= 0.0 || height <= 0.0) {
+      return true;
+    }
+    const right = x + width;
+    const bottom = y + height;
+    
+    const scrollView = this.findContainingScrollView();
+    if (scrollView === null) {
+      const viewportWidth = ui.getViewportWidth();
+      const viewportHeight = ui.getViewportHeight();
+      return right > 0.0 && bottom > 0.0 && x < viewportWidth && y < viewportHeight;
+    }
+    
+    const scrollViewBounds = ui.tryGetBounds(scrollView.builtHandle);
+    if (scrollViewBounds === null) {
+      const viewportWidth = ui.getViewportWidth();
+      const viewportHeight = ui.getViewportHeight();
+      return right > 0.0 && bottom > 0.0 && x < viewportWidth && y < viewportHeight;
+    }
+    
+    const svX = unchecked(scrollViewBounds[0]);
+    const svY = unchecked(scrollViewBounds[1]);
+    const svWidth = unchecked(scrollViewBounds[2]);
+    const svHeight = unchecked(scrollViewBounds[3]);
+    const svRight = svX + svWidth;
+    const svBottom = svY + svHeight;
+    
+    return right > svX && bottom > svY && x < svRight && y < svBottom;
   }
 
   private positionPanel(triggerX: f32, triggerY: f32, triggerWidth: f32, triggerHeight: f32): void {

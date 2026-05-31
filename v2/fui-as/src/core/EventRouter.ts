@@ -15,6 +15,7 @@ import { DragDropEffects, DragSession, ExternalDropItemInfo, Node } from "./Node
 import { DragDropManager } from "./DragDropManager";
 import { ExternalDragEventType, ExternalDropManager } from "./ExternalDropManager";
 import { isCoarsePointer } from "./Platform";
+import { runScrollHooks } from "./ScrollHooks";
 
 export interface GlobalKeyHandler {
   handleGlobalKeyEvent(eventType: KeyEventType, key: string, modifiers: u32): bool;
@@ -161,6 +162,7 @@ export class EventRouter {
     viewportHeight: f32,
   ): void {
     ToolTipManager.handleScroll();
+    runScrollHooks();
     const node = this.resolveNode(handle);
     if (node === null) {
       return;
