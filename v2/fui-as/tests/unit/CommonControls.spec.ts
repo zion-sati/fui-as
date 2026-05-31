@@ -3,7 +3,7 @@ import { Checkbox, Dropdown, DropdownItem, RadioButton, RadioGroup, Slider, Swit
 import { Application } from "../../src/core/Application";
 import { Node } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
-import { CursorStyle, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, Unit } from "../../src/core/ffi";
+import { CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
 import { __fui_on_selection_changed, __fui_on_text_changed, __fui_on_text_replaced, __fui_text_buffer } from "../../src/core/event_exports";
 import { FlexBox, ScrollBarVisibility, ScrollBox } from "../../src/nodes";
@@ -256,6 +256,55 @@ describe("Common controls", () => {
     checkbox.dispose();
   });
 
+  it("keeps checkbox intrinsic height in auto-width containers", () => {
+    ui.resizeWindow(800.0, 600.0);
+
+    const checkbox = new Checkbox("Tri-state checkbox label that should stay on one line");
+    const autoColumn = new FlexBox()
+      .flexDirection(FlexDirection.Column)
+      .width(0.0, Unit.Auto)
+      .child(checkbox);
+    const root = new FlexBox()
+      .width(800.0, Unit.Pixel)
+      .height(600.0, Unit.Pixel)
+      .child(autoColumn);
+
+    Application.mount(root);
+    ui.commitFrame();
+
+    const checkboxBounds = ui.tryGetBounds(checkbox.builtHandle);
+    if (checkboxBounds !== null) {
+      expect<f32>(unchecked(checkboxBounds[2])).toBeGreaterThan(200.0);
+      expect<f32>(unchecked(checkboxBounds[3])).toBeLessThan(60.0);
+    }
+  });
+
+  it("keeps radio group option height stable in auto-width containers", () => {
+    ui.resizeWindow(800.0, 600.0);
+
+    const group = new RadioGroup();
+    group.addOption("balanced", "Balanced profile option label");
+    group.addOption("quality", "Quality first option label");
+    const autoColumn = new FlexBox()
+      .flexDirection(FlexDirection.Column)
+      .width(0.0, Unit.Auto)
+      .child(group);
+    const root = new FlexBox()
+      .width(800.0, Unit.Pixel)
+      .height(600.0, Unit.Pixel)
+      .child(autoColumn);
+
+    Application.mount(root);
+    ui.commitFrame();
+
+    const firstRadio = group.getChildAt(0) as RadioButton;
+    const radioBounds = ui.tryGetBounds(firstRadio.builtHandle);
+    if (radioBounds !== null) {
+      expect<f32>(unchecked(radioBounds[2])).toBeGreaterThan(200.0);
+      expect<f32>(unchecked(radioBounds[3])).toBeLessThan(60.0);
+    }
+  });
+
   it("switch toggles on space and exposes switch semantics through checked state", () => {
     EventRouter.reset();
     resetTheme();
@@ -328,7 +377,7 @@ describe("Common controls", () => {
     control.dispose();
   });
 
-  it("checkbox and radio labels reserve remaining row width through a flexible label host", () => {
+  it("checkbox and radio labels keep intrinsic sizing without forcing percent width", () => {
     EventRouter.reset();
     resetTheme();
     resetCalls();
@@ -338,13 +387,10 @@ describe("Common controls", () => {
     const checkboxLabelHostHandle = requireChildHandle(checkbox, 2);
     const checkboxLabelWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, checkboxLabelHostHandle);
     expect<i32>(checkboxLabelWidthIndex).toBe(-1);
-    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, checkboxLabelHostHandle)).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, checkboxLabelHostHandle), 1)).toBe(1.0);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, checkboxLabelHostHandle)).toBe(-1);
     const checkboxLabelHandle = requireChildHandle(requireChild<Node>(checkbox, 2), 0);
     const checkboxLabelTextWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, checkboxLabelHandle);
-    expect<i32>(checkboxLabelTextWidthIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(checkboxLabelTextWidthIndex, 1)).toBe(100.0);
-    expect<f64>(getCallArg(checkboxLabelTextWidthIndex, 2)).toBe(<f64>Unit.Percent);
+    expect<i32>(checkboxLabelTextWidthIndex).toBe(-1);
 
     const radioGroup = new RadioGroup();
     radioGroup.addOption("auto", "Vertical scrollbar: Auto");
@@ -353,13 +399,10 @@ describe("Common controls", () => {
     const radioLabelHostHandle = requireChildHandle(radioButton, 2);
     const radioLabelWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, radioLabelHostHandle);
     expect<i32>(radioLabelWidthIndex).toBe(-1);
-    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, radioLabelHostHandle)).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, radioLabelHostHandle), 1)).toBe(1.0);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, radioLabelHostHandle)).toBe(-1);
     const radioLabelHandle = requireChildHandle(requireChild<Node>(radioButton, 2), 0);
     const radioLabelTextWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, radioLabelHandle);
-    expect<i32>(radioLabelTextWidthIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(radioLabelTextWidthIndex, 1)).toBe(100.0);
-    expect<f64>(getCallArg(radioLabelTextWidthIndex, 2)).toBe(<f64>Unit.Percent);
+    expect<i32>(radioLabelTextWidthIndex).toBe(-1);
 
     checkbox.dispose();
     radioGroup.dispose();

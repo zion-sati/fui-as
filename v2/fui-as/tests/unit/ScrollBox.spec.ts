@@ -1,4 +1,5 @@
 import * as ui from "../../src/bindings/ui";
+import { Checkbox, Dropdown, DropdownItem } from "../../src/controls";
 import { Application } from "../../src/core/Application";
 import { Unit, FlexDirection } from "../../src/core/ffi";
 import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
@@ -264,6 +265,58 @@ describe("ScrollBox", () => {
 
       const expectedSpacing = item1Y + item1Height + 12.0;
       expect<f32>(<f32>Math.abs(item2Y - expectedSpacing)).toBeLessThan(2.0);
+    }
+  });
+
+  it("keeps checkbox heading-to-control spacing stable in auto-width scroll content", () => {
+    ui.resizeWindow(640.0, 480.0);
+
+    const dropdown = new Dropdown()
+      .items([
+        new DropdownItem("small", "Small"),
+        new DropdownItem("medium", "Medium"),
+      ])
+      .selectIndex(1) as Dropdown;
+    const heading = new Text("Checkboxes").fontSize(18.0) as Text;
+    const triStateCheckbox = new Checkbox("Tri-state checkbox")
+      .triState(true)
+      .mixed(true) as Checkbox;
+
+    const controlsSurface = new FlexBox()
+      .flexDirection(FlexDirection.Column)
+      .children([
+        dropdown,
+        new FlexBox().height(16.0, Unit.Pixel),
+        heading,
+        new FlexBox().height(8.0, Unit.Pixel),
+        triStateCheckbox,
+      ])
+      .width(0.0, Unit.Auto);
+
+    const scrollBox = new ScrollBox()
+      .scrollEnabledX(false)
+      .scrollEnabledY(true)
+      .verticalScrollbarVisibility(ScrollBarVisibility.Auto)
+      .horizontalScrollbarVisibility(ScrollBarVisibility.Never)
+      .width(420.0, Unit.Pixel)
+      .height(260.0, Unit.Pixel)
+      .child(controlsSurface) as ScrollBox;
+
+    const root = new FlexBox()
+      .width(640.0, Unit.Pixel)
+      .height(480.0, Unit.Pixel)
+      .child(scrollBox);
+
+    Application.mount(root);
+    ui.commitFrame();
+
+    const headingBounds = ui.tryGetBounds(heading.builtHandle);
+    const checkboxBounds = ui.tryGetBounds(triStateCheckbox.builtHandle);
+
+    if (headingBounds !== null && checkboxBounds !== null) {
+      const headingBottom = unchecked(headingBounds[1]) + unchecked(headingBounds[3]);
+      const actualGap = unchecked(checkboxBounds[1]) - headingBottom;
+      expect<f32>(<f32>Math.abs(actualGap - 8.0)).toBeLessThan(2.0);
     }
   });
 

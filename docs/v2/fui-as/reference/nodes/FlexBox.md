@@ -21,9 +21,13 @@ import { FlexBox, Unit } from "./Fui";
 - `fillWidth()` fills the available width on that axis.
 - `fillHeight()` fills the available height on that axis.
 - `fillSize()` fills both axes.
+- `width(0.0, Unit.Auto)` / `height(0.0, Unit.Auto)` size to intrinsic content.
 
 Use `fill*` when you want the node to take the available space on an axis.
 Use `Unit.Percent` when you want a literal ratio of the parent.
+Do not combine `fillWidth()` with `width(..., Unit.Auto)` on width, or
+`fillHeight()` with `height(..., Unit.Auto)` on height: those are contradictory
+instructions on the same axis.
 
 For the full decision matrix and examples, see:
 - [Controls and nodes sizing guide](../../CONTROLS_AND_NODES.md#layout-sizing-guide-fill-vs-unitpercent)

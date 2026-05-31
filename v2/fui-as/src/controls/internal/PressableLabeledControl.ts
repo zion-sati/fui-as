@@ -43,9 +43,7 @@ export class PressableLabeledControl extends FlexBox {
     this.gapNode = new FlexBox()
       .width(activeTheme.value.spacing.sm, Unit.Pixel)
       .height(1.0, Unit.Pixel);
-    this.labelHost = new FlexBox()
-      .fillWidth();
-    this.labelNode.width(100.0, Unit.Percent);
+    this.labelHost = new FlexBox();
     this.labelHost.child(this.labelNode);
 
     this.semanticRole(role);

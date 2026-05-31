@@ -64,6 +64,11 @@ literal `100%` can.
 Use `width(..., Unit.Percent)` or `height(..., Unit.Percent)` only when the size
 itself should be a fixed ratio of the parent, such as `25%` / `75%` splits.
 
+`Unit.Auto` means "size to intrinsic content on this axis." Do not combine
+`fillWidth()` with `width(..., Unit.Auto)` on width, or `fillHeight()` with
+`height(..., Unit.Auto)` on height. Those are contradictory asks on the same axis
+(`fill*` = expand to available space, `Unit.Auto` = shrink/grow to content).
+
 ### Decision table
 
 | Goal | Row parent | Column parent | Why |
@@ -71,6 +76,7 @@ itself should be a fixed ratio of the parent, such as `25%` / `75%` splits.
 | Child should fill the parent on the cross-axis | `fillHeight()` | `fillWidth()` | Fill uses available-space sizing and respects the parent content box. |
 | Child should take the available main-axis space next to fixed siblings | `fillWidth()` | `fillHeight()` | Fill is axis-aware; use the axis that is stretching, even when the other axis is fixed. |
 | Child should be a literal percentage of the parent | `width(30.0, Unit.Percent)` | `height(30.0, Unit.Percent)` | Percent means fixed ratio, not "fill the leftover space." |
+| Child should size to intrinsic content | `width(0.0, Unit.Auto)` | `height(0.0, Unit.Auto)` | Auto sizes to content. Do not combine with `fill*` on the same axis. |
 | Root/backdrop should fully cover its parent | `fillWidth().fillHeight()` | `fillWidth().fillHeight()` | Full-bleed container where no ratio sizing is intended. |
 
 ### Main-axis rule
