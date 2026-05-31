@@ -233,6 +233,7 @@ describe("Common controls", () => {
         defaultDarkTheme.colors.scrollbarThumb,
         defaultDarkTheme.colors.dialogBackdrop,
         defaultDarkTheme.colors.dialogShadow,
+        defaultDarkTheme.colors.panelShadow,
         defaultDarkTheme.colors.focusRing,
       ),
       defaultDarkTheme.spacing,

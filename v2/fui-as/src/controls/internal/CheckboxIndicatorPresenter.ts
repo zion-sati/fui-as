@@ -44,8 +44,7 @@ class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
       .justifyContent(1);
     super(root, new PressableIndicatorMetrics(20.0, 20.0));
     const markHost = new FlexBox()
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(1)
       .justifyContent(1);
     const markNode = new Svg();

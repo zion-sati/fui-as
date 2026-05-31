@@ -10,6 +10,8 @@ This page shows what is theme-driven by default and what you can override explic
 - `activeTheme` — current effective theme signal.
 - `bindTheme(owner, handler)` — immediate owner-bound subscription helper for custom controls; returns the disposable listener for your usual cleanup path.
 
+Core elevation tokens: `theme.colors.dialogShadow` is the stronger modal shadow, while `theme.colors.panelShadow` is the softer non-modal panel shadow (dropdown/context menu/tooltip default).
+
 ## Precedence rules
 
 1. Per-control explicit style overrides win over theme defaults.

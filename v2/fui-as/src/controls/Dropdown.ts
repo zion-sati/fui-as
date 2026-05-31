@@ -173,9 +173,7 @@ class DropdownOptionNode extends FlexBox {
 
   private syncPresenterLayout(): void {
     this.height(this.presenter.metrics.height, Unit.Pixel);
-    this.presenter.root
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent);
+    this.presenter.root.fillSize();
   }
 }
 

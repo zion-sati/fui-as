@@ -51,8 +51,7 @@ class DefaultDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
       .wrapping(false) as Text;
     labelNode.overflowFade(true, false);
     const root = new FlexBox()
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(AlignItems.Center)
       .child(labelNode);
     super(root, labelNode, new DropdownOptionRowMetrics(34.0));

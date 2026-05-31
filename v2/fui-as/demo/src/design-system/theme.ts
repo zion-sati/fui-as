@@ -169,6 +169,7 @@ export function generateDemoTheme(isDark: bool, accentColor: u32): Theme {
     demoButtonPrimaryBackground(base),
     base.colors.dialogBackdrop,
     demoStrongSurfaceShadow(base),
+    demoSurfaceShadow(base),
     base.colors.focusRing,
   );
 

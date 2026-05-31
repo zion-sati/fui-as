@@ -623,6 +623,8 @@ export class FlexBox extends Node {
     let inFlowChildCount = 0;
     let fullMainAxisPercentChildCount = 0;
     let mainAxisPercentTotal: f32 = 0.0;
+    let firstFullMainAxisPercentChild: Node | null = null;
+    let firstFullMainAxisPercentChildIndex: i32 = -1;
 
     for (let i = 0; i < this.childNodes.length; ++i) {
       const child = unchecked(this.childNodes[i]);
@@ -639,6 +641,10 @@ export class FlexBox extends Node {
       mainAxisPercentTotal += percent;
       if (percent >= MAIN_AXIS_PERCENT_FULL_THRESHOLD) {
         fullMainAxisPercentChildCount += 1;
+        if (firstFullMainAxisPercentChild === null) {
+          firstFullMainAxisPercentChild = child;
+          firstFullMainAxisPercentChildIndex = i;
+        }
       }
     }
 
@@ -649,7 +655,11 @@ export class FlexBox extends Node {
     if (fullMainAxisPercentChildCount > 0) {
       if ((this.layoutWarningMask & LAYOUT_WARNING_FULL_MAIN_AXIS_PERCENT) == 0) {
         this.layoutWarningMask |= LAYOUT_WARNING_FULL_MAIN_AXIS_PERCENT;
-        warn("Layout", this.buildFullMainAxisPercentWarning(isRow));
+        warn("Layout", this.buildFullMainAxisPercentWarning(
+          isRow,
+          firstFullMainAxisPercentChild,
+          firstFullMainAxisPercentChildIndex,
+        ));
       }
       return;
     }
@@ -721,18 +731,56 @@ export class FlexBox extends Node {
     this.cancelBackgroundColorTransition();
   }
 
-  private buildFullMainAxisPercentWarning(isRow: bool): string {
+  private buildFullMainAxisPercentWarning(isRow: bool, child: Node | null, childIndex: i32): string {
+    let message = "";
     if (isRow) {
-      return "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space.";
+      message = "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space.";
+    } else {
+      message = "A column container has an in-flow child using height(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() when the child should take remaining column space.";
     }
-    return "A column container has an in-flow child using height(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() when the child should take remaining column space.";
+    return message + this.buildWarningContextSuffix(child, childIndex);
   }
 
   private buildMainAxisPercentOverflowWarning(isRow: bool): string {
+    let message = "";
     if (isRow) {
-      return "A row container has in-flow children whose explicit width percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() for the child that should expand, or reduce the percentages so they fit.";
+      message = "A row container has in-flow children whose explicit width percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() for the child that should expand, or reduce the percentages so they fit.";
+    } else {
+      message = "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() for the child that should expand, or reduce the percentages so they fit.";
     }
-    return "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() for the child that should expand, or reduce the percentages so they fit.";
+    return message + this.buildWarningContextSuffix(null, -1);
+  }
+
+  private buildWarningContextSuffix(child: Node | null, childIndex: i32): string {
+    const containerNodeId = this._debugNodeId();
+    const childNodeId = child !== null ? child._debugNodeId() : null;
+    const containerPath = this._debugTreePath();
+    const childPath = child !== null ? child._debugTreePath() : null;
+    const hasContainerNodeId = containerNodeId !== null && containerNodeId.length > 0;
+    const hasChildNodeId = childNodeId !== null && childNodeId.length > 0;
+    const hasChildPath = childPath !== null;
+    const hasChildIndex = childIndex >= 0;
+    let suffix = " [containerPath=" + containerPath;
+    let needsSeparator = true;
+    if (hasChildPath) {
+      suffix += ", childPath=" + changetype<string>(childPath);
+    }
+    if (hasContainerNodeId) {
+      suffix += ", containerNodeId=" + changetype<string>(containerNodeId);
+      needsSeparator = true;
+    }
+    if (hasChildNodeId) {
+      suffix += ", childNodeId=" + changetype<string>(childNodeId);
+      needsSeparator = true;
+    }
+    if (hasChildIndex) {
+      if (needsSeparator) {
+        suffix += ", ";
+      }
+      suffix += "childIndex=" + childIndex.toString();
+    }
+    suffix += "]";
+    return suffix;
   }
 
   protected applyVisualStyle(): void {

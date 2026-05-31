@@ -206,7 +206,28 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_LOG)).toBeGreaterThan(-1);
     expect<bool>(lastLogCategoryEquals("Warning/Layout")).toBe(true);
     expect<bool>(lastLogMessageEquals(
-      "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space.",
+      "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space. [containerPath=root, childPath=root/0, childIndex=0]",
+    )).toBe(true);
+  });
+
+  it("includes node ids in full-percent layout warnings when available", () => {
+    resetCalls();
+    setLogsEnabled(true);
+
+    const parent = new FlexBox()
+      .nodeId("LayoutRoot") as FlexBox;
+    parent.flexDirection(FlexDirection.Row);
+    const mainPane = new FlexBox()
+      .nodeId("MainPane") as FlexBox;
+    parent
+      .child(mainPane.width(100.0, Unit.Percent))
+      .child(new FlexBox().width(48.0, Unit.Pixel))
+      .build();
+
+    expect<i32>(findCall(CALL_LOG)).toBeGreaterThan(-1);
+    expect<bool>(lastLogCategoryEquals("Warning/Layout")).toBe(true);
+    expect<bool>(lastLogMessageEquals(
+      "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space. [containerPath=root, childPath=root/0, containerNodeId=LayoutRoot, childNodeId=MainPane, childIndex=0]",
     )).toBe(true);
   });
 
@@ -222,7 +243,7 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_LOG)).toBeGreaterThan(-1);
     expect<bool>(lastLogCategoryEquals("Warning/Layout")).toBe(true);
     expect<bool>(lastLogMessageEquals(
-      "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() for the child that should expand, or reduce the percentages so they fit.",
+      "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() for the child that should expand, or reduce the percentages so they fit. [containerPath=root]",
     )).toBe(true);
   });
 

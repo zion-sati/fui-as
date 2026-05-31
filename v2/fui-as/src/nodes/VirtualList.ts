@@ -99,9 +99,7 @@ export class VirtualList extends FlexBox {
       .child(topSpacerValue);
 
     for (let index = 0; index < poolSizeValue; ++index) {
-      const container = new FlexBox()
-        .width(FULL_SIZE, Unit.Percent)
-        .height(FULL_SIZE, Unit.Percent);
+      const container = new FlexBox().fillSize();
       const rowArea = new SelectionArea()
         .width(FULL_SIZE, Unit.Percent)
         .height(0.0, Unit.Pixel)
@@ -117,8 +115,7 @@ export class VirtualList extends FlexBox {
       .scrollEnabledY(true)
       .scrollOffset(scrollStateValue.offsetX.value, scrollStateValue.offsetY.value)
       .scrollContentSize(-1.0, <f32>totalItemsValue * itemHeightValue)
-      .width(FULL_SIZE, Unit.Percent)
-      .height(FULL_SIZE, Unit.Percent)
+      .fillSize()
       .child(contentValue) as ScrollBox;
     scrollStateValue.contentHeight.value = <f32>totalItemsValue * itemHeightValue;
 
@@ -132,8 +129,7 @@ export class VirtualList extends FlexBox {
 
     this.flexDirection(FlexDirection.Column)
       .child(this.scrollBoxValue)
-      .width(FULL_SIZE, Unit.Percent)
-      .height(FULL_SIZE, Unit.Percent);
+      .fillSize();
     this.attachListeners();
   }
 

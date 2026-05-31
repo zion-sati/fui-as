@@ -1343,6 +1343,38 @@ export abstract class Node implements DragGestureHost, Disposable {
     return false;
   }
 
+  _debugNodeId(): string | null {
+    return this.nodeIdValue;
+  }
+
+  _debugTreePath(): string {
+    const segments = new Array<i32>();
+    let current: Node | null = this;
+    while (current !== null) {
+      const parent = current.retainedParent;
+      if (parent === null) {
+        break;
+      }
+      let childIndex = -1;
+      for (let index = 0; index < parent.childNodes.length; ++index) {
+        if (unchecked(parent.childNodes[index]) === current) {
+          childIndex = index;
+          break;
+        }
+      }
+      if (childIndex < 0) {
+        break;
+      }
+      segments.push(childIndex);
+      current = parent;
+    }
+    let path = "root";
+    for (let index = segments.length - 1; index >= 0; --index) {
+      path += "/" + unchecked(segments[index]).toString();
+    }
+    return path;
+  }
+
   protected capturePointer(): void {
     if (!this.hasBuiltHandle()) {
       return;

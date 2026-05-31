@@ -124,6 +124,17 @@ describe("Theme", () => {
     expect<u32>(dark.colors.focusRing).not.toBe(0);
   });
 
+  it("derives panel shadow as a softer variant of dialog shadow", () => {
+    const light = generateTheme(false, rgb(0x25, 0x63, 0xeb));
+    const dark = generateTheme(true, rgb(0x25, 0x63, 0xeb));
+    expect<u32>(light.colors.panelShadow & 0xff).toBe(<u32>Math.round(<f32>(light.colors.dialogShadow & 0xff) * 0.30));
+    expect<u32>(dark.colors.panelShadow & 0xff).toBe(<u32>Math.round(<f32>(dark.colors.dialogShadow & 0xff) * 0.30));
+    expect<u32>(light.contextMenu.panelShadowColor).toBe(light.colors.panelShadow);
+    expect<u32>(dark.contextMenu.panelShadowColor).toBe(dark.colors.panelShadow);
+    expect<u32>(light.toolTip.panelShadowColor).toBe(light.colors.panelShadow);
+    expect<u32>(dark.toolTip.panelShadowColor).toBe(dark.colors.panelShadow);
+  });
+
   it("exposes a bundled mono family without changing the default body stacks", () => {
     const theme = generateTheme(true, rgb(0x25, 0x63, 0xeb));
 

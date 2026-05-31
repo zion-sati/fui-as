@@ -38,6 +38,7 @@ export class Colors {
     readonly scrollbarThumb: u32,
     readonly dialogBackdrop: u32,
     readonly dialogShadow: u32,
+    readonly panelShadow: u32,
     readonly focusRing: u32,
   ) {}
 }
@@ -231,16 +232,17 @@ export function generateTheme(isDark: bool, accentColor: u32 = DEFAULT_ACCENT_CO
     : mixColor(accent, surface, 0.40);
   const dialogBackdrop = isDark ? rgba(0x00, 0x00, 0x00, 0x24) : rgba(0x00, 0x00, 0x00, 0x18);
   const dialogShadow = isDark ? rgba(0x00, 0x00, 0x00, 0xd8) : rgba(0x00, 0x00, 0x00, 0x88);
+  const panelShadow = withAlpha(dialogShadow, <u32>Math.round(<f32>colorAlpha(dialogShadow) * 0.30));
   const focusRing = accent;
   const contextMenuPanelBackground = isDark ? rgba(0x18, 0x1d, 0x26, 0xd8) : rgba(0xff, 0xff, 0xff, 0xdc);
   const contextMenuPanelBorderColor = isDark ? rgba(0xff, 0xff, 0xff, 0x10) : rgba(0x0f, 0x17, 0x2a, 0x14);
-  const contextMenuPanelShadowColor = isDark ? rgba(0x00, 0x00, 0x00, 0xb0) : rgba(0x0f, 0x17, 0x2a, 0x24);
+  const contextMenuPanelShadowColor = panelShadow;
   const contextMenuItemBackground = rgba(0x00, 0x00, 0x00, 0x00);
   const contextMenuItemHover = isDark ? rgba(0xff, 0xff, 0xff, 0x0c) : rgba(0x0f, 0x17, 0x2a, 0x08);
   const contextMenuSeparatorColor = isDark ? rgba(0xff, 0xff, 0xff, 0x10) : rgba(0x0f, 0x17, 0x2a, 0x12);
   const toolTipPanelBackground = isDark ? rgba(0x11, 0x17, 0x20, 0xf0) : rgba(0xff, 0xff, 0xff, 0xf8);
   const toolTipPanelBorderColor = isDark ? rgba(0xff, 0xff, 0xff, 0x12) : rgba(0x0f, 0x17, 0x2a, 0x12);
-  const toolTipPanelShadowColor = isDark ? rgba(0x00, 0x00, 0x00, 0xb8) : rgba(0x0f, 0x17, 0x2a, 0x22);
+  const toolTipPanelShadowColor = panelShadow;
 
   return new Theme(
     new Colors(
@@ -257,6 +259,7 @@ export function generateTheme(isDark: bool, accentColor: u32 = DEFAULT_ACCENT_CO
       scrollbarThumb,
       dialogBackdrop,
       dialogShadow,
+      panelShadow,
       focusRing,
     ),
     DEFAULT_SPACING,

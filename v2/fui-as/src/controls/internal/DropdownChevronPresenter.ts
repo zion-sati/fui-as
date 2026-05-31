@@ -34,8 +34,7 @@ class DefaultDropdownChevronPresenter extends DropdownChevronPresenter {
 
   constructor() {
     const root = new FlexBox()
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center);
     const iconNode = new Svg()
@@ -48,8 +47,7 @@ class DefaultDropdownChevronPresenter extends DropdownChevronPresenter {
 
   apply(theme: Theme, state: DropdownChevronVisualState): void {
     this.root
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center);
     this.iconNode
