@@ -320,8 +320,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
       .overflowFade(true, false)
       .verticalAlign(TextVerticalAlign.Center);
     const valueHost = new FlexBox()
-      .width(0.0, Unit.Pixel)
-      .flexGrow(1.0)
+      .fillWidth()
       .child(valueNode) as FlexBox;
     const chevronHost = new FlexBox()
       .width(28.0, Unit.Pixel)
@@ -346,8 +345,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
       .padding(14.0, 10.0, 14.0, 10.0)
       .bgColor(state.open ? theme.colors.background : theme.colors.surface);
     this.valueHost
-      .width(0.0, Unit.Pixel)
-      .flexGrow(1.0);
+      .fillWidth();
     this.valueNode
       .font(theme.fonts.body, theme.fonts.sizeBody)
       .textColor(state.enabled ? theme.colors.textPrimary : theme.colors.textMuted);

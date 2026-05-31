@@ -145,7 +145,7 @@ class ReorderRowView {
       this.titleText,
       verticalSpacer(4.0),
       this.detailText,
-    ).width(0.0, Unit.Pixel).flexGrow(1.0);
+    ).fillWidth();
 
     this.card = new FlexBox()
       .width(100.0, Unit.Percent)

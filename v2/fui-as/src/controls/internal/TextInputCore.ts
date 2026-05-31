@@ -190,6 +190,7 @@ export class TextInputCore extends FlexBox {
     this.placeholderHost = new TextInputPlaceholderHost(this, this.placeholderText);
     if (profile.multiline) {
       const scrollBox = new ScrollBox(new ScrollState(), new TextInputEditorViewport(this))
+        .fillSize()
         .child(this.editorText) as ScrollBox;
       this.editorScrollBox = scrollBox;
       this.child(scrollBox);
@@ -488,9 +489,7 @@ export class TextInputCore extends FlexBox {
     if (scrollBox !== null) {
       scrollBox.cursor(CursorStyle.Default);
       scrollBox.viewport.cursor(editableCursor);
-      scrollBox.width(100.0, Unit.Percent);
-      scrollBox.height(100.0, Unit.Percent);
-      scrollBox.flexGrow(1.0);
+      scrollBox.fillSize();
       this.syncScrollChromeState();
     }
     this.syncFocusChrome(theme);

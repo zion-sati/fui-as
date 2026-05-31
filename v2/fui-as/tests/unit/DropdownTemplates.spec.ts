@@ -66,8 +66,7 @@ class TrackingDropdownFieldPresenter extends DropdownFieldPresenter {
       .maxLines(1)
       .wrapping(false) as Text;
     const valueHost = new FlexBox()
-      .width(0.0, Unit.Pixel)
-      .flexGrow(1.0)
+      .fillWidth()
       .child(valueNode) as FlexBox;
     const chevronHost = new FlexBox()
       .width(20.0, Unit.Pixel)
@@ -89,8 +88,7 @@ class TrackingDropdownFieldPresenter extends DropdownFieldPresenter {
       .padding(12.0, 8.0, 12.0, 8.0)
       .bgColor(state.pressed ? theme.colors.background : theme.colors.surface);
     this.valueHost
-      .width(0.0, Unit.Pixel)
-      .flexGrow(1.0);
+      .fillWidth();
     this.valueNode
       .font(theme.fonts.body, theme.fonts.sizeBody)
       .textColor(theme.colors.textPrimary);

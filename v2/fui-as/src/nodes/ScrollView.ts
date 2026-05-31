@@ -38,13 +38,13 @@ export class ScrollView extends Node {
   private widthValue: f32 = 0.0;
   private widthUnit: Unit = Unit.Pixel;
   private hasWidth: bool = false;
+  private hasFillWidth: bool = false;
   private heightValue: f32 = 0.0;
   private heightUnit: Unit = Unit.Pixel;
   private hasHeight: bool = false;
+  private hasFillHeight: bool = false;
   private flexBasisValue: f32 = 0.0;
   private hasFlexBasis: bool = false;
-  private flexGrowValue: f32 = 0.0;
-  private hasFlexGrow: bool = false;
   private enableScrollX: bool = true;
   private enableScrollY: bool = true;
   private showScrollbarsValue: bool = true;
@@ -99,6 +99,7 @@ export class ScrollView extends Node {
     this.widthValue = value;
     this.widthUnit = unit;
     this.hasWidth = true;
+    this.hasFillWidth = false;
     if (unit == Unit.Pixel) {
       this._scrollState.viewportWidth.value = value;
     }
@@ -113,6 +114,7 @@ export class ScrollView extends Node {
     this.heightValue = value;
     this.heightUnit = unit;
     this.hasHeight = true;
+    this.hasFillHeight = false;
     if (unit == Unit.Pixel) {
       this._scrollState.viewportHeight.value = value;
     }
@@ -124,12 +126,20 @@ export class ScrollView extends Node {
   }
 
   fillWidth(): this {
-    this.width(100.0, Unit.Percent);
+    this.hasFillWidth = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFillWidth(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
     return this;
   }
 
   fillHeight(): this {
-    this.height(100.0, Unit.Percent);
+    this.hasFillHeight = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFillHeight(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
     return this;
   }
 
@@ -146,21 +156,6 @@ export class ScrollView extends Node {
       ui.setFlexBasis(this.handle, value);
       this.notifyRetainedLayoutMutation();
     }
-    return this;
-  }
-
-  flexGrow(value: f32): this {
-    this.flexGrowValue = value;
-    this.hasFlexGrow = true;
-    if (this.hasBuiltHandle()) {
-      ui.setFlexGrow(this.handle, value);
-      this.notifyRetainedLayoutMutation();
-    }
-    return this;
-  }
-
-  grow(value: f32 = 1.0): this {
-    this.flexGrow(value);
     return this;
   }
 
@@ -319,11 +314,14 @@ export class ScrollView extends Node {
     if (this.hasWidth) {
       ui.setWidth(this.handle, this.widthValue, <u32>this.widthUnit);
     }
+    if (this.hasFillWidth) {
+      ui.setFillWidth(this.handle, true);
+    }
     if (this.hasHeight) {
       ui.setHeight(this.handle, this.heightValue, <u32>this.heightUnit);
     }
-    if (this.hasFlexGrow) {
-      ui.setFlexGrow(this.handle, this.flexGrowValue);
+    if (this.hasFillHeight) {
+      ui.setFillHeight(this.handle, true);
     }
     if (this.hasFlexBasis) {
       ui.setFlexBasis(this.handle, this.flexBasisValue);

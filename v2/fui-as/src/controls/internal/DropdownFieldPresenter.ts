@@ -63,8 +63,7 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
       .overflowFade(true, false)
       .verticalAlign(TextVerticalAlign.Center);
     const valueHost = new FlexBox()
-      .width(0.0, Unit.Pixel)
-      .flexGrow(1.0)
+      .fillWidth()
       .child(valueNode) as FlexBox;
     const chevronHost = new FlexBox()
       .width(DEFAULT_CHEVRON_BOX_SIZE, Unit.Pixel)
@@ -88,8 +87,7 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
       .padding(theme.spacing.md, theme.spacing.sm, theme.spacing.md, theme.spacing.sm)
       .bgColor(state.pressed && state.enabled ? theme.colors.background : theme.colors.surface);
     this.valueHost
-      .width(0.0, Unit.Pixel)
-      .flexGrow(1.0);
+      .fillWidth();
     this.valueNode
       .font(theme.fonts.body, theme.fonts.sizeBody)
       .textColor(state.enabled ? theme.colors.textPrimary : theme.colors.textMuted);

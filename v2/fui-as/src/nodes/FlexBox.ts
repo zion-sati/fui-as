@@ -38,17 +38,17 @@ export class FlexBoxProps {
   widthValue: f32 = 0.0;
   widthUnit: Unit = Unit.Pixel;
   hasWidth: bool = false;
+  hasFillWidth: bool = false;
   heightValue: f32 = 0.0;
   heightUnit: Unit = Unit.Pixel;
   hasHeight: bool = false;
+  hasFillHeight: bool = false;
   flexBasisValue: f32 = 0.0;
   hasFlexBasis: bool = false;
   backgroundColor: u32 = 0;
   hasBackgroundColor: bool = false;
   flexDirectionValue: FlexDirection = FlexDirection.Column;
   hasFlexDirection: bool = false;
-  flexGrowValue: f32 = 0.0;
-  hasFlexGrow: bool = false;
   justifyContentValue: JustifyContent = JustifyContent.Start;
   hasJustifyContent: bool = false;
   alignItemsValue: AlignItems = AlignItems.Start;
@@ -72,9 +72,11 @@ export class FlexBox extends Node {
   private widthValue: f32 = 0.0;
   private widthUnit: Unit = Unit.Pixel;
   private hasWidth: bool = false;
+  private hasFillWidth: bool = false;
   private heightValue: f32 = 0.0;
   private heightUnit: Unit = Unit.Pixel;
   private hasHeight: bool = false;
+  private hasFillHeight: bool = false;
   private flexBasisValue: f32 = 0.0;
   private hasFlexBasis: bool = false;
   private backgroundColor: u32 = 0;
@@ -91,8 +93,6 @@ export class FlexBox extends Node {
   private borderDashOff: f32 = 0.0;
   private flexDirectionValue: FlexDirection = FlexDirection.Column;
   private hasFlexDirection: bool = false;
-  private flexGrowValue: f32 = 0.0;
-  private hasFlexGrow: bool = false;
   private justifyContentValue: JustifyContent = JustifyContent.Start;
   private hasJustifyContent: bool = false;
   private alignItemsValue: AlignItems = AlignItems.Start;
@@ -149,6 +149,7 @@ export class FlexBox extends Node {
     this.widthValue = value;
     this.widthUnit = unit;
     this.hasWidth = true;
+    this.hasFillWidth = false;
     if (this.hasBuiltHandle()) {
       ui.setWidth(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
@@ -160,6 +161,7 @@ export class FlexBox extends Node {
     this.heightValue = value;
     this.heightUnit = unit;
     this.hasHeight = true;
+    this.hasFillHeight = false;
     if (this.hasBuiltHandle()) {
       ui.setHeight(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
@@ -168,12 +170,20 @@ export class FlexBox extends Node {
   }
 
   fillWidth(): this {
-    this.width(100.0, Unit.Percent);
+    this.hasFillWidth = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFillWidth(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
     return this;
   }
 
   fillHeight(): this {
-    this.height(100.0, Unit.Percent);
+    this.hasFillHeight = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFillHeight(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
     return this;
   }
 
@@ -271,21 +281,6 @@ export class FlexBox extends Node {
       this.notifyRetainedLayoutMutation();
       this.onRetainedChildLayoutChanged();
     }
-    return this;
-  }
-
-  flexGrow(grow: f32): this {
-    this.flexGrowValue = grow;
-    this.hasFlexGrow = true;
-    if (this.hasBuiltHandle()) {
-      ui.setFlexGrow(this.handle, grow);
-      this.notifyRetainedLayoutMutation();
-    }
-    return this;
-  }
-
-  grow(grow: f32 = 1.0): this {
-    this.flexGrow(grow);
     return this;
   }
 
@@ -530,14 +525,17 @@ export class FlexBox extends Node {
     if (this.hasWidth) {
       ui.setWidth(this.handle, this.widthValue, <u32>this.widthUnit);
     }
+    if (this.hasFillWidth) {
+      ui.setFillWidth(this.handle, true);
+    }
     if (this.hasHeight) {
       ui.setHeight(this.handle, this.heightValue, <u32>this.heightUnit);
     }
+    if (this.hasFillHeight) {
+      ui.setFillHeight(this.handle, true);
+    }
     if (this.hasFlexDirection) {
       ui.setFlexDirection(this.handle, <u32>this.flexDirectionValue);
-    }
-    if (this.hasFlexGrow) {
-      ui.setFlexGrow(this.handle, this.flexGrowValue);
     }
     if (this.hasFlexBasis) {
       ui.setFlexBasis(this.handle, this.flexBasisValue);
@@ -569,8 +567,14 @@ export class FlexBox extends Node {
     if (props.hasWidth) {
       this.width(props.widthValue, props.widthUnit);
     }
+    if (props.hasFillWidth) {
+      this.fillWidth();
+    }
     if (props.hasHeight) {
       this.height(props.heightValue, props.heightUnit);
+    }
+    if (props.hasFillHeight) {
+      this.fillHeight();
     }
     if (props.hasFlexBasis) {
       this.flexBasis(props.flexBasisValue);
@@ -580,9 +584,6 @@ export class FlexBox extends Node {
     }
     if (props.hasFlexDirection) {
       this.flexDirection(props.flexDirectionValue);
-    }
-    if (props.hasFlexGrow) {
-      this.flexGrow(props.flexGrowValue);
     }
     if (props.hasJustifyContent) {
       this.justifyContent(props.justifyContentValue);
@@ -722,16 +723,16 @@ export class FlexBox extends Node {
 
   private buildFullMainAxisPercentWarning(isRow: bool): string {
     if (isRow) {
-      return "A row container has an in-flow child using width(100.0, Unit.Percent) or fillWidth() alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use grow() when siblings should share the row.";
+      return "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space.";
     }
-    return "A column container has an in-flow child using height(100.0, Unit.Percent) or fillHeight() alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use grow() when siblings should share the column.";
+    return "A column container has an in-flow child using height(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() when the child should take remaining column space.";
   }
 
   private buildMainAxisPercentOverflowWarning(isRow: bool): string {
     if (isRow) {
-      return "A row container has in-flow children whose explicit width percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use grow() when siblings should share the row, or reduce the percentages so they fit.";
+      return "A row container has in-flow children whose explicit width percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() for the child that should expand, or reduce the percentages so they fit.";
     }
-    return "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use grow() when siblings should share the column, or reduce the percentages so they fit.";
+    return "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() for the child that should expand, or reduce the percentages so they fit.";
   }
 
   protected applyVisualStyle(): void {

@@ -128,11 +128,14 @@ export function createUiImportModule(deps: UiImportDeps) {
     ui_set_height(handle: AppHandleLike, value: number, unit: number): void {
       deps.getRuntime().ui._ui_set_height(toBigIntHandle(handle), value, unit);
     },
+    ui_set_fill_width(handle: AppHandleLike, fill: number): void {
+      deps.getRuntime().ui._ui_set_fill_width(toBigIntHandle(handle), fill);
+    },
+    ui_set_fill_height(handle: AppHandleLike, fill: number): void {
+      deps.getRuntime().ui._ui_set_fill_height(toBigIntHandle(handle), fill);
+    },
     ui_set_flex_direction(handle: AppHandleLike, direction: number): void {
       deps.getRuntime().ui._ui_set_flex_direction(toBigIntHandle(handle), direction);
-    },
-    ui_set_flex_grow(handle: AppHandleLike, grow: number): void {
-      deps.getRuntime().ui._ui_set_flex_grow(toBigIntHandle(handle), grow);
     },
     ui_set_flex_basis(handle: AppHandleLike, basis: number): void {
       deps.getRuntime().ui._ui_set_flex_basis(toBigIntHandle(handle), basis);

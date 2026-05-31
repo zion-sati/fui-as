@@ -464,6 +464,7 @@ wall-clock reads inside a worker module.
 - [SDK docs index](./SDK_INDEX.md)
 - [API reference](./API_REFERENCE.md)
 - [Controls and nodes](./CONTROLS_AND_NODES.md)
+- [Layout sizing guide (`fill*` vs `Unit.Percent`)](./CONTROLS_AND_NODES.md#layout-sizing-guide-fill-vs-unitpercent)
 - [Accessibility and semantics](./ACCESSIBILITY_AND_SEMANTICS.md)
 - [Per-type reference](./reference/README.md)
 - [Events and callbacks](./EVENTS_AND_CALLBACKS.md)

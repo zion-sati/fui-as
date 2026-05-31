@@ -8,6 +8,14 @@ export class ObjectDisposedError extends Error {
   }
 }
 
+export class VirtualListItemBindingError extends Error {
+  constructor() {
+    const message = "VirtualList: item renderer not configured. Call .onBindItem() or .onBindItemWith() after construction.";
+    super(message);
+    this.name = "VirtualListItemBindingError";
+  }
+}
+
 export function throwNullArgument(functionName: string, argumentName: string): void {
   error("Validation", functionName + ": " + argumentName + " must not be null");
   throw new TypeError(functionName + ": " + argumentName + " must not be null");

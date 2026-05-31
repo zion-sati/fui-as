@@ -49,12 +49,10 @@ export class ScrollBox extends FlexBox {
     const viewportValue = (viewportOverride === null ? new ScrollView() : viewportOverride)
       .bindScrollState(scrollState)
       .showScrollbars(false)
-      .width(0.0, Unit.Pixel)
-      .height(100.0, Unit.Percent)
-      .flexGrow(1.0);
+      .fillSize();
     const verticalGutterValue = new FlexBox()
       .width(DEFAULT_SCROLLBAR_GUTTER, Unit.Pixel)
-      .height(100.0, Unit.Percent)
+      .fillHeight()
       .onPointerDown(noopPointerCallback) as FlexBox;
     const verticalScrollBarValue = new ScrollBar(scrollState, Orientation.Vertical);
     const cornerValue = new FlexBox()
@@ -68,13 +66,13 @@ export class ScrollBox extends FlexBox {
       verticalScrollBarValue.render(),
     );
     topRowValue.onPointerDown(noopPointerCallback);
-    topRowValue.width(100.0, Unit.Percent).height(0.0, Unit.Pixel).flexGrow(1.0);
+    topRowValue.fillSize();
     const bottomRowValue = Row(
       horizontalScrollBarValue.render(),
       cornerValue,
     );
     bottomRowValue.onPointerDown(noopPointerCallback);
-    bottomRowValue.width(100.0, Unit.Percent).height(0.0, Unit.Pixel);
+    bottomRowValue.fillWidth();
 
     this.viewportValue = viewportValue;
     this.topRowValue = topRowValue;

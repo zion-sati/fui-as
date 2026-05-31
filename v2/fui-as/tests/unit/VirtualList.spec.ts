@@ -36,7 +36,7 @@ function staticBindVirtualListItem(container: FlexBox, index: i32): void {
 describe("VirtualList", () => {
   it("binds only the visible window for a fixed-height list", () => {
     renderedIndices.length = 0;
-    const list = new VirtualList(10000, 20.0, trackedBindVirtualListItem);
+    const list = new VirtualList(10000, 20.0).onBindItem(trackedBindVirtualListItem);
     list.width(180.0, Unit.Pixel);
     list.height(100.0, Unit.Pixel);
 
@@ -52,7 +52,7 @@ describe("VirtualList", () => {
 
   it("rebinds pooled rows without recreating nodes when the scroll offset changes", () => {
     renderedIndices.length = 0;
-    const list = new VirtualList(10000, 20.0, trackedBindVirtualListItem);
+    const list = new VirtualList(10000, 20.0).onBindItem(trackedBindVirtualListItem);
     list.width(180.0, Unit.Pixel);
     list.height(100.0, Unit.Pixel);
     list.build();
@@ -75,7 +75,7 @@ describe("VirtualList", () => {
   });
 
   it("tracks content height and clamps the visible window when the item count changes", () => {
-    const list = new VirtualList(10000, 24.0, staticBindVirtualListItem);
+    const list = new VirtualList(10000, 24.0).onBindItem(staticBindVirtualListItem);
     list.height(120.0, Unit.Pixel);
 
     expect<f32>(list.scrollState.contentHeight.value).toBe(240000.0);

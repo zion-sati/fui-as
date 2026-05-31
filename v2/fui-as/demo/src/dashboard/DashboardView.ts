@@ -208,8 +208,8 @@ export class DashboardView {
   readonly sidebarList: VirtualList = new VirtualList(
     SIDEBAR_LIST_TOTAL_ITEMS,
     SIDEBAR_LIST_ITEM_HEIGHT,
-    bindDemoListItem,
   )
+    .onBindItem(bindDemoListItem)
     .nodeId("demo-dashboard:sidebar-list")
     .width(FULL_SIZE, Unit.Percent)
     .height(computeSidebarListViewportHeight(), Unit.Pixel) as VirtualList;

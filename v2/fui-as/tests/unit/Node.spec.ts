@@ -30,12 +30,13 @@ import {
   CALL_SET_BOX_STYLE,
   CALL_SET_BACKGROUND_BLUR,
   CALL_SET_CLIP_TO_BOUNDS,
+  CALL_SET_FILL_HEIGHT,
+  CALL_SET_FILL_WIDTH,
   CALL_SET_VISIBILITY,
   CALL_SET_CARET_COLOR,
   CALL_SET_EDITABLE,
   CALL_SET_DROP_SHADOW,
   CALL_SET_FLEX_DIRECTION,
-  CALL_SET_FLEX_GROW,
   CALL_SET_FLEX_BASIS,
   CALL_SET_FOCUSABLE,
   CALL_SET_FONT,
@@ -123,7 +124,6 @@ describe("Node builders", () => {
       .bgColor(0xff336699)
       .flexDirection(FlexDirection.Row)
       .flexBasis(48.0)
-      .flexGrow(1.0)
       .justifyContent(JustifyContent.Center)
       .alignItems(AlignItems.Center)
       .margin(5.0, 6.0, 7.0, 8.0)
@@ -140,7 +140,6 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_BOX_STYLE)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_FLEX_DIRECTION)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_FLEX_BASIS)).toBeGreaterThan(-1);
-    expect<i32>(findCall(CALL_SET_FLEX_GROW)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_JUSTIFY_CONTENT)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_ALIGN_ITEMS)).toBeGreaterThan(-1);
     const marginIndex = findCall(CALL_SET_MARGIN);
@@ -158,28 +157,18 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_CLIP_TO_BOUNDS)).toBeGreaterThan(-1);
   });
 
-  it("exposes fill and grow sizing helpers", () => {
+  it("exposes fill sizing helpers", () => {
     resetCalls();
 
     new FlexBox()
       .fillWidth()
       .fillHeight()
-      .grow()
       .build();
 
-    const widthIndex = findCall(CALL_SET_WIDTH);
-    expect<i32>(widthIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(widthIndex, 1)).toBe(100.0);
-    expect<f64>(getCallArg(widthIndex, 2)).toBe(<f64>Unit.Percent);
-
-    const heightIndex = findCall(CALL_SET_HEIGHT);
-    expect<i32>(heightIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(heightIndex, 1)).toBe(100.0);
-    expect<f64>(getCallArg(heightIndex, 2)).toBe(<f64>Unit.Percent);
-
-    const flexGrowIndex = findCall(CALL_SET_FLEX_GROW);
-    expect<i32>(flexGrowIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(flexGrowIndex, 1)).toBe(1.0);
+    expect<i32>(findCall(CALL_SET_WIDTH)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_HEIGHT)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_FILL_WIDTH)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_FILL_HEIGHT)).toBeGreaterThan(-1);
   });
 
   it("exposes flexBasis helpers on FlexBox and ScrollView", () => {
@@ -210,14 +199,14 @@ describe("Node builders", () => {
 
     new FlexBox()
       .flexDirection(FlexDirection.Row)
-      .child(new FlexBox().fillWidth())
-      .child(new FlexBox().fillWidth())
+      .child(new FlexBox().width(100.0, Unit.Percent))
+      .child(new FlexBox().width(100.0, Unit.Percent))
       .build();
 
     expect<i32>(findCall(CALL_LOG)).toBeGreaterThan(-1);
     expect<bool>(lastLogCategoryEquals("Warning/Layout")).toBe(true);
     expect<bool>(lastLogMessageEquals(
-      "A row container has an in-flow child using width(100.0, Unit.Percent) or fillWidth() alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use grow() when siblings should share the row.",
+      "A row container has an in-flow child using width(100.0, Unit.Percent) alongside siblings. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillWidth() when the child should take remaining row space.",
     )).toBe(true);
   });
 
@@ -233,7 +222,7 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_LOG)).toBeGreaterThan(-1);
     expect<bool>(lastLogCategoryEquals("Warning/Layout")).toBe(true);
     expect<bool>(lastLogMessageEquals(
-      "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use grow() when siblings should share the column, or reduce the percentages so they fit.",
+      "A column container has in-flow children whose explicit height percentages exceed 100% in total. Unit.Percent is literal parent-relative sizing, not flex sharing. Use fillHeight() for the child that should expand, or reduce the percentages so they fit.",
     )).toBe(true);
   });
 

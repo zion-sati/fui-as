@@ -251,7 +251,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     this.cursor(CursorStyle.Pointer);
     this.flexDirection(FlexDirection.Row);
     this.alignItems(AlignItems.Center);
-    fieldPresenter.root.flexGrow(1.0);
+    fieldPresenter.root.fillWidth();
     fieldPresenter.chevronHost.child(chevronPresenter.root);
     this.child(fieldPresenter.root);
     this.child(this.popupRoot);
@@ -780,7 +780,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     this.padding(0.0, 0.0, 0.0, 0.0);
     this.bgColor(0x00000000);
     this.opacity(this.isEnabled ? 1.0 : 0.6);
-    this.fieldPresenter.root.flexGrow(1.0);
+    this.fieldPresenter.root.fillWidth();
     this.fieldPresenter.apply(
       theme,
       new DropdownFieldVisualState(
@@ -845,7 +845,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     const previousFieldRoot = this.fieldPresenter.root;
     this.fieldPresenter = nextFieldPresenter;
     this.chevronPresenter = nextChevronPresenter;
-    nextFieldPresenter.root.flexGrow(1.0);
+    nextFieldPresenter.root.fillWidth();
     nextFieldPresenter.chevronHost.addChildNode(nextChevronPresenter.root);
     const children = new Array<Node>();
     children.push(nextFieldPresenter.root);

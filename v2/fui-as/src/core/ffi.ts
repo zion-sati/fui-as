@@ -228,11 +228,14 @@ export declare function ui_set_width(handle: u64, value: f32, unit: u32): void;
 @external("effindom_v2_ui", "ui_set_height")
 export declare function ui_set_height(handle: u64, value: f32, unit: u32): void;
 
+@external("effindom_v2_ui", "ui_set_fill_width")
+export declare function ui_set_fill_width(handle: u64, fill: bool): void;
+
+@external("effindom_v2_ui", "ui_set_fill_height")
+export declare function ui_set_fill_height(handle: u64, fill: bool): void;
+
 @external("effindom_v2_ui", "ui_set_flex_direction")
 export declare function ui_set_flex_direction(handle: u64, direction: u32): void;
-
-@external("effindom_v2_ui", "ui_set_flex_grow")
-export declare function ui_set_flex_grow(handle: u64, grow: f32): void;
 
 @external("effindom_v2_ui", "ui_set_flex_basis")
 export declare function ui_set_flex_basis(handle: u64, basis: f32): void;

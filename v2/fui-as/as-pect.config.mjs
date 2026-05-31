@@ -7,6 +7,8 @@ const CallOp = Object.freeze({
   DeleteNode: 2,
   SetWidth: 3,
   SetHeight: 4,
+  SetFillWidth: 101,
+  SetFillHeight: 102,
   SetBackgroundColor: 5,
   SetText: 6,
   SetTextStyleRuns: 84,
@@ -49,7 +51,6 @@ const CallOp = Object.freeze({
   SetNodeId: 25,
   SetPortal: 26,
   SetIsSharedSizeScope: 77,
-  SetFlexGrow: 27,
   SetFlexBasis: 80,
   SetInteractive: 28,
   SetScrollEnabled: 62,
@@ -321,11 +322,14 @@ export default {
         ui_set_height(handle, value, unit) {
           record(CallOp.SetHeight, toNumber(handle), value, unit);
         },
+        ui_set_fill_width(handle, fill) {
+          record(CallOp.SetFillWidth, toNumber(handle), fill ? 1 : 0);
+        },
+        ui_set_fill_height(handle, fill) {
+          record(CallOp.SetFillHeight, toNumber(handle), fill ? 1 : 0);
+        },
         ui_set_flex_direction(handle, direction) {
           record(CallOp.SetFlexDirection, toNumber(handle), direction);
-        },
-        ui_set_flex_grow(handle, grow) {
-          record(CallOp.SetFlexGrow, toNumber(handle), grow);
         },
         ui_set_flex_basis(handle, basis) {
           record(CallOp.SetFlexBasis, toNumber(handle), basis);

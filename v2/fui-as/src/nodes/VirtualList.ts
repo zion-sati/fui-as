@@ -2,6 +2,7 @@ import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { markNeedsCommit } from "../core/FrameScheduler";
 import { FlexDirection, HandleValue, Unit } from "../core/ffi";
+import { VirtualListItemBindingError } from "../core/Errors";
 import { Node } from "../core/Node";
 import { FlexBox } from "./FlexBox";
 import { ScrollBar } from "./ScrollBar";
@@ -20,7 +21,7 @@ export type VirtualListBinder = (container: FlexBox, index: i32) => void;
 export class VirtualList extends FlexBox {
   private totalItemsValue: i32;
   private readonly itemHeightValue: f32;
-  private readonly bindItemValue: VirtualListBinder;
+  private bindItemValue: VirtualListBinder;
   private readonly scrollStateValue: ScrollState;
   private readonly scrollBoxValue: ScrollBox;
   private readonly contentValue: FlexBox;
@@ -33,7 +34,7 @@ export class VirtualList extends FlexBox {
   private currentFirstVisibleIndex: i32 = -1;
   private currentLastVisibleIndex: i32 = -1;
 
-  constructor(totalItems: i32, itemHeight: f32, bindItem: VirtualListBinder, maxVisible: i32 = DEFAULT_MAX_VISIBLE_ITEMS) {
+  constructor(totalItems: i32, itemHeight: f32, maxVisible: i32 = DEFAULT_MAX_VISIBLE_ITEMS) {
     super();
     const scrollStateValue = new ScrollState();
     const poolValue = new Array<SelectionArea>();
@@ -44,7 +45,9 @@ export class VirtualList extends FlexBox {
     const poolSizeValue = maxVisible > 0 ? maxVisible + POOL_OVERSCAN_ITEMS : POOL_OVERSCAN_ITEMS;
     this.totalItemsValue = totalItemsValue;
     this.itemHeightValue = itemHeightValue;
-    this.bindItemValue = bindItem;
+    this.bindItemValue = (): void => {
+      throw new VirtualListItemBindingError();
+    };
     this.scrollStateValue = scrollStateValue;
     this.poolSizeValue = poolSizeValue;
 
@@ -95,9 +98,7 @@ export class VirtualList extends FlexBox {
       .child(this.scrollBoxValue)
       .width(FULL_SIZE, Unit.Percent)
       .height(FULL_SIZE, Unit.Percent);
-
     this.attachListeners();
-    this.rebuildVisibleRange(false);
   }
 
   get scrollState(): ScrollState {
@@ -150,6 +151,9 @@ export class VirtualList extends FlexBox {
       return this.builtHandle;
     }
     const handle = super.build();
+    if (this.currentFirstVisibleIndex < 0 && this.totalItemsValue > 0) {
+      this.rebuildVisibleRange(false);
+    }
     ui.setSelectionAreaBarrier(handle, true);
     return handle;
   }
@@ -171,6 +175,24 @@ export class VirtualList extends FlexBox {
   }
 
   render(): this {
+    return this;
+  }
+
+  onBindItem(renderer: VirtualListBinder): this {
+    this.bindItemValue = renderer;
+    this.currentFirstVisibleIndex = -1;
+    this.currentLastVisibleIndex = -1;
+    this.rebuildVisibleRange(true);
+    return this;
+  }
+
+  onBindItemWith<Owner>(owner: Owner, renderer: (owner: Owner, container: FlexBox, index: i32) => void): this {
+    this.bindItemValue = (container: FlexBox, index: i32): void => {
+      renderer(owner, container, index);
+    };
+    this.currentFirstVisibleIndex = -1;
+    this.currentLastVisibleIndex = -1;
+    this.rebuildVisibleRange(true);
     return this;
   }
 
@@ -301,7 +323,7 @@ export class VirtualList extends FlexBox {
         const nextItemIndex = firstVisibleIndex + poolIndex;
         rowArea.height(this.itemHeightValue, Unit.Pixel);
         const container = changetype<FlexBox>(rowArea.getChildAt(0));
-        this.bindItemValue(container, nextItemIndex);
+        this.renderItem(container, nextItemIndex);
         unchecked(this.poolItemIndexByRow[poolIndex] = nextItemIndex);
       } else {
         this.hidePoolItem(rowArea, poolIndex);
@@ -419,6 +441,10 @@ export class VirtualList extends FlexBox {
       return;
     }
     markNeedsCommit();
+  }
+
+  private renderItem(container: FlexBox, index: i32): void {
+    this.bindItemValue(container, index);
   }
 
   private maxOffsetForCurrentViewport(): f32 {

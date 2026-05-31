@@ -43,7 +43,7 @@ For the complete export list, see:
 | `ScrollState` | Shared scroll metrics/state object | offsets + content/viewport metrics for scroll surfaces |
 | `ScrollBar` / `ScrollBarVisibility` | Retained scrollbar chrome | axis-aware style/sizing (`trackWidth(...)`, `thumbWidth(...)`, colors/radii) |
 | `ScrollBox` | High-level scroll container | owned viewport + owned scrollbars, per-axis enable/visibility control, `scrollTo(...)`, `scrollToAnimated(...)`, `scrollContentSize(...)` |
-| `VirtualList` | Pooled retained list surface | recycled rows + owned scrollbar (`list.scrollBar`) |
+| `VirtualList` | Pooled retained list surface | `onBindItem(...)` / `onBindItemWith(...)`, recycled rows + owned scrollbar (`list.scrollBar`) |
 | `GradientStop` | Linear gradient stop value | `offset` + packed color |
 
 ## Helpers
@@ -53,6 +53,61 @@ For the complete export list, see:
 - `px(...)`
 - `pct(...)`
 - `span(...)`
+
+## Layout sizing guide (`fill*` vs `Unit.Percent`)
+
+`fillWidth()` and `fillHeight()` mean "take the available space on this axis."
+They are the default choice for stretch/fill layouts and account for the parent
+content box, so padding and margins do not create the overflow problem that a
+literal `100%` can.
+
+Use `width(..., Unit.Percent)` or `height(..., Unit.Percent)` only when the size
+itself should be a fixed ratio of the parent, such as `25%` / `75%` splits.
+
+### Decision table
+
+| Goal | Row parent | Column parent | Why |
+|---|---|---|---|
+| Child should fill the parent on the cross-axis | `fillHeight()` | `fillWidth()` | Fill uses available-space sizing and respects the parent content box. |
+| Child should take the available main-axis space next to fixed siblings | `fillWidth()` | `fillHeight()` | Fill is axis-aware; use the axis that is stretching, even when the other axis is fixed. |
+| Child should be a literal percentage of the parent | `width(30.0, Unit.Percent)` | `height(30.0, Unit.Percent)` | Percent means fixed ratio, not "fill the leftover space." |
+| Root/backdrop should fully cover its parent | `fillWidth().fillHeight()` | `fillWidth().fillHeight()` | Full-bleed container where no ratio sizing is intended. |
+
+### Main-axis rule
+
+In a `Row`, width is the main axis. In a `Column`, height is the main axis.
+When you want a child to expand in the main direction, use the matching
+`fill*()` API for that axis. When you want a fixed ratio instead, use
+`Unit.Percent`.
+
+### Examples
+
+Fixed width, growing height:
+
+```ts
+const panel = Column(
+  header.height(64.0, Unit.Pixel),
+  body.width(280.0, Unit.Pixel).fillHeight(),
+).fillWidth();
+```
+
+Header + body layout:
+
+```ts
+const page = Column(
+  header.height(64.0, Unit.Pixel),
+  body.fillWidth().fillHeight(),
+).fillSize();
+```
+
+Intentional ratio split:
+
+```ts
+const split = Row(
+  left.width(30.0, Unit.Percent),
+  right.width(70.0, Unit.Percent),
+).fillSize();
+```
 
 ## Common node state APIs
 

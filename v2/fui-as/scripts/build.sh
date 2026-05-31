@@ -124,10 +124,10 @@ resolve_runtime_dist_dir() {
   fi
 
   candidates+=(
+    "${REPO_ROOT}/public/v2/browser-bridge"
+    "${REPO_ROOT}/v2/browser-bridge/dist"
     "${PACKAGE_DIR}/node_modules/@effindomv2/runtime/dist"
     "${REPO_ROOT}/node_modules/@effindomv2/runtime/dist"
-    "${REPO_ROOT}/v2/browser-bridge/dist"
-    "${REPO_ROOT}/public/v2/browser-bridge"
   )
 
   for candidate in "${candidates[@]}"; do
@@ -177,9 +177,11 @@ copy_runtime_assets() {
     cp "${RUNTIME_DIST_DIR}/icu-asset.json" "${destination}/runtime/dist/icu-asset.json"
   fi
   cp -R "${RUNTIME_DIST_DIR}/runtime" "${destination}/runtime/dist/runtime"
-  if [ -d "${RUNTIME_DIST_DIR}/fonts" ]; then
-    mkdir -p "${destination}/runtime"
-    cp -R "${RUNTIME_DIST_DIR}/fonts" "${destination}/runtime/fonts"
+  mkdir -p "${destination}/runtime/fonts"
+  if [ -d "${REPO_ROOT}/public/v2/fonts" ]; then
+    cp -R "${REPO_ROOT}/public/v2/fonts/." "${destination}/runtime/fonts/"
+  elif [ -d "${RUNTIME_DIST_DIR}/fonts" ]; then
+    cp -R "${RUNTIME_DIST_DIR}/fonts/." "${destination}/runtime/fonts/"
   fi
 }
 

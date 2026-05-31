@@ -100,12 +100,16 @@ export function setHeight(handle: u64, value: f32, unit: u32): void {
   ffi.ui_set_height(handle, value, unit);
 }
 
-export function setFlexDirection(handle: u64, direction: u32): void {
-  ffi.ui_set_flex_direction(handle, direction);
+export function setFillWidth(handle: u64, fill: bool): void {
+  ffi.ui_set_fill_width(handle, fill);
 }
 
-export function setFlexGrow(handle: u64, grow: f32): void {
-  ffi.ui_set_flex_grow(handle, grow);
+export function setFillHeight(handle: u64, fill: bool): void {
+  ffi.ui_set_fill_height(handle, fill);
+}
+
+export function setFlexDirection(handle: u64, direction: u32): void {
+  ffi.ui_set_flex_direction(handle, direction);
 }
 
 export function setFlexBasis(handle: u64, basis: f32): void {

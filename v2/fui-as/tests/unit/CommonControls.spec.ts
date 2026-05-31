@@ -29,7 +29,7 @@ import {
   CALL_SET_TEXT_WRAPPING,
   CALL_SET_TEXT_OBSCURED,
   CALL_SET_DROP_SHADOW,
-  CALL_SET_FLEX_GROW,
+  CALL_SET_FILL_WIDTH,
   getCallArg,
   getCallSequence,
   lastTextEquals,
@@ -337,10 +337,8 @@ describe("Common controls", () => {
     const checkboxLabelHostHandle = requireChildHandle(checkbox, 2);
     const checkboxLabelWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, checkboxLabelHostHandle);
     expect<i32>(checkboxLabelWidthIndex).toBe(-1);
-    expect<i32>(lastCallIndexForHandle(CALL_SET_FLEX_BASIS, checkboxLabelHostHandle)).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FLEX_BASIS, checkboxLabelHostHandle), 1)).toBe(0.0);
-    expect<i32>(lastCallIndexForHandle(CALL_SET_FLEX_GROW, checkboxLabelHostHandle)).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FLEX_GROW, checkboxLabelHostHandle), 1)).toBe(1.0);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, checkboxLabelHostHandle)).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, checkboxLabelHostHandle), 1)).toBe(1.0);
     const checkboxLabelHandle = requireChildHandle(requireChild<Node>(checkbox, 2), 0);
     const checkboxLabelTextWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, checkboxLabelHandle);
     expect<i32>(checkboxLabelTextWidthIndex).toBeGreaterThan(-1);
@@ -354,10 +352,8 @@ describe("Common controls", () => {
     const radioLabelHostHandle = requireChildHandle(radioButton, 2);
     const radioLabelWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, radioLabelHostHandle);
     expect<i32>(radioLabelWidthIndex).toBe(-1);
-    expect<i32>(lastCallIndexForHandle(CALL_SET_FLEX_BASIS, radioLabelHostHandle)).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FLEX_BASIS, radioLabelHostHandle), 1)).toBe(0.0);
-    expect<i32>(lastCallIndexForHandle(CALL_SET_FLEX_GROW, radioLabelHostHandle)).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FLEX_GROW, radioLabelHostHandle), 1)).toBe(1.0);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, radioLabelHostHandle)).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, radioLabelHostHandle), 1)).toBe(1.0);
     const radioLabelHandle = requireChildHandle(requireChild<Node>(radioButton, 2), 0);
     const radioLabelTextWidthIndex = lastCallIndexForHandle(CALL_SET_WIDTH, radioLabelHandle);
     expect<i32>(radioLabelTextWidthIndex).toBeGreaterThan(-1);
