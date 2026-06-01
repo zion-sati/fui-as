@@ -111,14 +111,14 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
   constructor(metrics: DropdownFieldMetrics = DEFAULT_DROPDOWN_FIELD_METRICS) {
     const valueNode = new Text("")
       .selectable(false)
-      .width(100.0, Unit.Percent)
+      .fillSize()
       .maxLines(1)
       .wrapping(false) as Text;
     valueNode
       .overflowFade(true, false)
       .verticalAlign(TextVerticalAlign.Center);
     const valueHost = new FlexBox()
-      .fillWidth()
+      .fillSize()
       .child(valueNode) as FlexBox;
     const chevronHost = new FlexBox()
       .width(metrics.chevronBoxSize, Unit.Pixel)
@@ -144,7 +144,8 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
       .padding(metrics.paddingLeft, metrics.paddingTop, metrics.paddingRight, metrics.paddingBottom)
       .bgColor(state.pressed && state.enabled ? theme.colors.background : theme.colors.surface);
     this.valueHost
-      .fillWidth();
+      .fillWidth()
+      .fillHeight();
     this.valueNode
       .font(theme.fonts.body, metrics.fontSize)
       .textColor(state.enabled ? theme.colors.textPrimary : theme.colors.textMuted);

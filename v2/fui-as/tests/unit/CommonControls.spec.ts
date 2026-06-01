@@ -28,13 +28,15 @@ import {
 import { Application } from "../../src/core/Application";
 import { Node } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
-import { CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, Unit } from "../../src/core/ffi";
+import { CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
 import { __fui_on_selection_changed, __fui_on_text_changed, __fui_on_text_replaced, __fui_text_buffer } from "../../src/core/event_exports";
 import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
 import {
   CALL_SET_FLEX_BASIS,
+  CALL_SET_FILL_HEIGHT,
   CALL_SET_FONT,
+  CALL_SET_TEXT_VERTICAL_ALIGN,
   CALL_ADD_CHILD,
   CALL_REMOVE_CHILD,
   CALL_SET_EDITABLE,
@@ -922,10 +924,14 @@ describe("Common controls", () => {
     const handle = dropdown.build();
     setNodeBounds(handle, 20.0, 20.0, 180.0, 28.0);
     const fieldHandle = requireChildHandle(dropdown, 0);
+    const valueHost = requireChild<Node>(requireChild<Node>(dropdown, 0), 0);
+    const valueLabelHandle = requireChildHandle(valueHost, 0);
     const chevronHostHandle = requireChildHandle(requireChild<Node>(dropdown, 0), 1);
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fieldHandle), 1)).toBe(28.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, requireChildHandle(requireChild<Node>(requireChild<Node>(dropdown, 0), 0), 0)), 2)).toBe(14.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, valueLabelHandle), 2)).toBe(14.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FILL_HEIGHT, valueLabelHandle), 1)).toBe(1.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_TEXT_VERTICAL_ALIGN, valueLabelHandle), 1)).toBe(<f64>TextVerticalAlign.Center);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, chevronHostHandle), 1)).toBe(14.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, chevronHostHandle), 1)).toBe(14.0);
     expect<i32>(findCallWithArg(CALL_SET_WIDTH, 1, 10.0)).toBeGreaterThan(-1);
