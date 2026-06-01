@@ -20,9 +20,10 @@ import { PersistedFloat32Codec, PersistedValueState } from "../core/PersistedSta
 import { Node } from "../core/Node";
 import { FlexBox } from "../nodes";
 import { bind1 } from "../core/bind";
+import { SliderSizing } from "./ControlSizing";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
-  defaultSliderTemplate,
+  createDefaultSliderPresenter,
   SliderPresenter,
   SliderTemplate,
   SliderVisualState,
@@ -63,18 +64,21 @@ const SLIDER_CONTENT_INSET: f32 = 1.0;
 const SLIDER_OUTER_INSET: f32 = SLIDER_CHROME_INSET + SLIDER_CONTENT_INSET;
 const SLIDER_CHILD_INSET: f32 = SLIDER_PADDING + SLIDER_CONTENT_INSET;
 
-function createSliderPresenter(template: SliderTemplate | null): SliderPresenter {
+function createSliderPresenter(template: SliderTemplate | null, sizing: SliderSizing | null = null): SliderPresenter {
   if (template !== null) {
     return template.create();
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.slider : null;
-  return (appTemplate === null ? defaultSliderTemplate : appTemplate).create();
+  return appTemplate === null
+    ? createDefaultSliderPresenter(sizing)
+    : appTemplate.create();
 }
 
 export class Slider extends FlexBox implements DragGestureHost {
-  private sliderPresenter: SliderPresenter = createSliderPresenter(null);
+  private sliderPresenter: SliderPresenter = createSliderPresenter(null, null);
   private templateOverride: SliderTemplate | null = null;
+  private sizingValue: SliderSizing | null = null;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private readonly dragGesture!: DragGesture;
   private changedCallback: ((value: f32) => void) | null = null;
@@ -172,9 +176,23 @@ export class Slider extends FlexBox implements DragGestureHost {
     return this;
   }
 
+  sizing(sizing: SliderSizing | null): this {
+    this.sizingValue = sizing;
+    if (!this.usesDefaultPresenter()) {
+      return this;
+    }
+    this.replacePresenter(createSliderPresenter(this.templateOverride, this.sizingValue));
+    const thumbSize = this.sliderPresenter.metrics.thumbSize;
+    if (this.lengthValue <= thumbSize) {
+      this.lengthValue = thumbSize + 1.0;
+    }
+    this.syncPresentation();
+    return this;
+  }
+
   template(template: SliderTemplate | null): this {
     this.templateOverride = template;
-    const nextPresenter = createSliderPresenter(this.templateOverride);
+    const nextPresenter = createSliderPresenter(this.templateOverride, this.sizingValue);
     this.replacePresenter(nextPresenter);
     const thumbSize = this.sliderPresenter.metrics.thumbSize;
     if (this.lengthValue <= thumbSize) {
@@ -445,6 +463,14 @@ export class Slider extends FlexBox implements DragGestureHost {
     children.push(nextPresenter.root.positionAbsolute());
     this.replaceChildren(children);
     previousRoot.dispose();
+  }
+
+  private usesDefaultPresenter(): bool {
+    if (this.templateOverride !== null) {
+      return false;
+    }
+    const templateSet = getControlTemplates();
+    return templateSet === null || templateSet.slider === null;
   }
 
   private track(disposable: Disposable): void {

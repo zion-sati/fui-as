@@ -1,14 +1,40 @@
 import * as ui from "../../src/bindings/ui";
-import { Checkbox, Dropdown, DropdownItem, RadioButton, RadioGroup, Slider, Switch, TextArea, TextInput } from "../../src/controls";
+import {
+  Checkbox,
+  CheckboxIndicatorPresenter,
+  CheckboxIndicatorTemplate,
+  CheckboxIndicatorVisualState,
+  Dropdown,
+  DropdownFieldMetrics,
+  DropdownFieldPresenter,
+  DropdownFieldTemplate,
+  DropdownFieldVisualState,
+  DropdownItem,
+  DropdownSizing,
+  LabeledControlSizing,
+  PressableIndicatorMetrics,
+  RadioButton,
+  RadioGroup,
+  Slider,
+  SliderPresenter,
+  SliderPresenterMetrics,
+  SliderSizing,
+  SliderTemplate,
+  SliderVisualState,
+  Switch,
+  TextArea,
+  TextInput,
+} from "../../src/controls";
 import { Application } from "../../src/core/Application";
 import { Node } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
 import { CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
 import { __fui_on_selection_changed, __fui_on_text_changed, __fui_on_text_replaced, __fui_text_buffer } from "../../src/core/event_exports";
-import { FlexBox, ScrollBarVisibility, ScrollBox } from "../../src/nodes";
+import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
 import {
   CALL_SET_FLEX_BASIS,
+  CALL_SET_FONT,
   CALL_ADD_CHILD,
   CALL_REMOVE_CHILD,
   CALL_SET_EDITABLE,
@@ -36,6 +62,7 @@ import {
   lastTextLength,
   findCall,
   resetCalls,
+  setNodeBounds,
   CALL_SET_WIDTH,
   CALL_SET_HEIGHT,
   CALL_REQUEST_SEMANTIC_ANNOUNCEMENT,
@@ -112,6 +139,84 @@ function requireChildHandle(node: Node, index: i32): u64 {
   return requireChild<Node>(node, index).builtHandle;
 }
 
+class FixedCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
+  constructor() {
+    const root = new FlexBox()
+      .width(33.0, Unit.Pixel)
+      .height(33.0, Unit.Pixel);
+    super(root, new PressableIndicatorMetrics(33.0, 33.0));
+  }
+
+  apply(_theme: Theme, _state: CheckboxIndicatorVisualState): void {
+    this.root
+      .width(33.0, Unit.Pixel)
+      .height(33.0, Unit.Pixel);
+  }
+}
+
+class FixedCheckboxIndicatorTemplate extends CheckboxIndicatorTemplate {
+  create(): CheckboxIndicatorPresenter {
+    return new FixedCheckboxIndicatorPresenter();
+  }
+}
+
+class FixedSliderPresenter extends SliderPresenter {
+  constructor() {
+    super(new FlexBox(), new SliderPresenterMetrics(25.0, 9.0, 0.0));
+  }
+
+  layout(_state: SliderVisualState, _length: f32): void {
+    this.root
+      .width(25.0, Unit.Pixel)
+      .height(25.0, Unit.Pixel);
+  }
+
+  apply(_theme: Theme, _state: SliderVisualState): void {}
+}
+
+class FixedSliderTemplate extends SliderTemplate {
+  create(): SliderPresenter {
+    return new FixedSliderPresenter();
+  }
+}
+
+class FixedDropdownFieldPresenter extends DropdownFieldPresenter {
+  constructor() {
+    const valueNode = new Text("")
+      .selectable(false)
+      .width(100.0, Unit.Percent)
+      .maxLines(1)
+      .wrapping(false) as Text;
+    const valueHost = new FlexBox()
+      .fillWidth()
+      .child(valueNode) as FlexBox;
+    const chevronHost = new FlexBox()
+      .width(19.0, Unit.Pixel)
+      .height(19.0, Unit.Pixel);
+    const root = new FlexBox()
+      .flexDirection(FlexDirection.Row)
+      .alignItems(1)
+      .height(44.0, Unit.Pixel)
+      .child(valueHost)
+      .child(chevronHost);
+    super(root, valueHost, valueNode, chevronHost, new DropdownFieldMetrics(44.0, 18.0, 19.0, 6.0, 6.0, 6.0, 6.0));
+  }
+
+  apply(theme: Theme, _state: DropdownFieldVisualState): void {
+    this.root.height(44.0, Unit.Pixel);
+    this.valueNode.font(theme.fonts.body, 18.0);
+    this.chevronHost
+      .width(19.0, Unit.Pixel)
+      .height(19.0, Unit.Pixel);
+  }
+}
+
+class FixedDropdownFieldTemplate extends DropdownFieldTemplate {
+  create(): DropdownFieldPresenter {
+    return new FixedDropdownFieldPresenter();
+  }
+}
+
 let textInputChangedValue = "";
 let textInputFocusChangedCount = 0;
 let textInputSelectionStart = 0;
@@ -183,7 +288,7 @@ describe("Common controls", () => {
     checkbox.dispose();
   });
 
-  it("checkbox uses an svg checkmark and keeps mixed state filled without a mark", () => {
+  it("checkbox uses an svg checkmark and leaves mixed state as a blank filled box", () => {
     EventRouter.reset();
     resetTheme();
     resetCalls();
@@ -277,6 +382,41 @@ describe("Common controls", () => {
       expect<f32>(unchecked(checkboxBounds[2])).toBeGreaterThan(200.0);
       expect<f32>(unchecked(checkboxBounds[3])).toBeLessThan(60.0);
     }
+  });
+
+  it("checkbox sizing updates the built-in indicator and label font size", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const checkbox = new Checkbox("Compact")
+      .sizing(new LabeledControlSizing().indicatorSize(16.0).labelFontSize(14.0));
+    checkbox.build();
+    const indicatorHandle = requireChildHandle(checkbox, 0);
+    const labelHandle = requireChildHandle(requireChild<Node>(checkbox, 2), 0);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, indicatorHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, indicatorHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, labelHandle), 2)).toBe(14.0);
+
+    checkbox.dispose();
+  });
+
+  it("checkbox sizing leaves custom indicator templates authoritative", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const checkbox = new Checkbox("Compact")
+      .sizing(new LabeledControlSizing().indicatorSize(16.0).labelFontSize(14.0))
+      .template(new FixedCheckboxIndicatorTemplate());
+    checkbox.build();
+    const indicatorHandle = requireChildHandle(checkbox, 0);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, indicatorHandle), 1)).toBe(33.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, indicatorHandle), 1)).toBe(33.0);
+
+    checkbox.dispose();
   });
 
   it("keeps radio group option height stable in auto-width containers", () => {
@@ -488,7 +628,7 @@ describe("Common controls", () => {
     group.dispose();
   });
 
-  it("radio buttons center the selection dot when checked", () => {
+  it("radio buttons optically center the selection dot when checked", () => {
     EventRouter.reset();
     resetTheme();
     resetCalls();
@@ -502,6 +642,24 @@ describe("Common controls", () => {
 
     expect<i32>(findPositionCall(5.0, 5.0)).toBeGreaterThan(-1);
     group.dispose();
+  });
+
+  it("radio sizing updates the built-in indicator and label font size", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const radio = new RadioButton("alpha", "Alpha")
+      .sizing(new LabeledControlSizing().indicatorSize(16.0).labelFontSize(14.0));
+    radio.build();
+    const indicatorHandle = requireChildHandle(radio, 0);
+    const labelHandle = requireChildHandle(requireChild<Node>(radio, 2), 0);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, indicatorHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, indicatorHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, labelHandle), 2)).toBe(14.0);
+
+    radio.dispose();
   });
 
   it("slider reserves shell space outside the track and thumb geometry", () => {
@@ -528,6 +686,70 @@ describe("Common controls", () => {
     expect<i32>(findPositionCall(3.0, 3.0)).toBeGreaterThan(-1);
     expect<i32>(findPositionCall(9.0, 7.0)).toBeGreaterThan(-1);
     expect<i32>(findPositionCall(0.0, 1.0)).toBeGreaterThan(-1);
+
+    slider.dispose();
+  });
+
+  it("vertical sliders keep the same metric model on the y axis", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const slider = new Slider(50.0)
+      .orientation(Orientation.Vertical);
+    slider.build();
+    const presenterRoot = requireChild<Node>(slider, 0);
+    const presenterRootHandle = presenterRoot.builtHandle;
+    const trackHandle = requireChildHandle(presenterRoot, 0);
+    const thumbHandle = requireChildHandle(presenterRoot, 2);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, slider.builtHandle), 1)).toBe(30.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(190.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, presenterRootHandle), 1)).toBe(20.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, presenterRootHandle), 1)).toBe(180.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, trackHandle), 1)).toBe(6.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(162.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, thumbHandle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, thumbHandle), 1)).toBe(18.0);
+    expect<i32>(findPositionCall(7.0, 9.0)).toBeGreaterThan(-1);
+    expect<i32>(findPositionCall(1.0, 81.0)).toBeGreaterThan(-1);
+
+    slider.dispose();
+  });
+
+  it("slider sizing updates built-in thumb and track geometry", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const slider = new Slider()
+      .sizing(new SliderSizing().thumbSize(16.0).trackThickness(4.0));
+    slider.build();
+    const presenterRoot = requireChild<Node>(slider, 0);
+    const presenterRootHandle = presenterRoot.builtHandle;
+    const trackHandle = requireChildHandle(presenterRoot, 0);
+    const thumbHandle = requireChildHandle(presenterRoot, 2);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(28.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, presenterRootHandle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(4.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, thumbHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, thumbHandle), 1)).toBe(16.0);
+
+    slider.dispose();
+  });
+
+  it("slider sizing leaves custom templates authoritative", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const slider = new Slider()
+      .sizing(new SliderSizing().thumbSize(16.0).trackThickness(4.0))
+      .template(new FixedSliderTemplate());
+    slider.build();
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(35.0);
 
     slider.dispose();
   });
@@ -672,6 +894,66 @@ describe("Common controls", () => {
     svgIndex = lastCallIndex(CALL_SET_SVG);
     expect<i32>(svgIndex).toBeGreaterThan(-1);
     expect<f64>(getCallArg(svgIndex, 1)).toBeGreaterThan(0.0);
+
+    dropdown.dispose();
+  });
+
+  it("dropdown sizing updates the built-in trigger and option-row geometry", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const items = new Array<DropdownItem>();
+    items.push(new DropdownItem("one", "One"));
+    items.push(new DropdownItem("two", "Two"));
+    items.push(new DropdownItem("three", "Three"));
+    const dropdown = new Dropdown()
+      .maxVisibleItems(2)
+      .sizing(
+        new DropdownSizing()
+          .fieldFontSize(14.0)
+          .optionFontSize(14.0)
+          .fieldHeight(28.0)
+          .optionHeight(28.0)
+          .chevronBoxSize(14.0)
+          .chevronIconSize(10.0),
+      )
+      .items(items);
+    const handle = dropdown.build();
+    setNodeBounds(handle, 20.0, 20.0, 180.0, 28.0);
+    const fieldHandle = requireChildHandle(dropdown, 0);
+    const chevronHostHandle = requireChildHandle(requireChild<Node>(dropdown, 0), 1);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fieldHandle), 1)).toBe(28.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, requireChildHandle(requireChild<Node>(requireChild<Node>(dropdown, 0), 0), 0)), 2)).toBe(14.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, chevronHostHandle), 1)).toBe(14.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, chevronHostHandle), 1)).toBe(14.0);
+    expect<i32>(findCallWithArg(CALL_SET_WIDTH, 1, 10.0)).toBeGreaterThan(-1);
+    expect<i32>(findCallWithArg(CALL_SET_HEIGHT, 1, 10.0)).toBeGreaterThan(-1);
+
+    resetCalls();
+    EventRouter.dispatchKeyEvent(handle, KeyEventType.Down, "ArrowDown", 0);
+    expect<i32>(findCallWithArg(CALL_SET_HEIGHT, 1, 28.0)).toBeGreaterThan(-1);
+
+    dropdown.dispose();
+  });
+
+  it("dropdown sizing leaves custom field templates authoritative", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const items = new Array<DropdownItem>();
+    items.push(new DropdownItem("one", "One"));
+    items.push(new DropdownItem("two", "Two"));
+    const dropdown = new Dropdown()
+      .sizing(new DropdownSizing().fieldHeight(28.0).fieldFontSize(14.0))
+      .fieldTemplate(new FixedDropdownFieldTemplate())
+      .items(items);
+    dropdown.build();
+    const fieldHandle = requireChildHandle(dropdown, 0);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fieldHandle), 1)).toBe(44.0);
 
     dropdown.dispose();
   });

@@ -1,11 +1,36 @@
-import { AlignItems, Unit } from "../../core/ffi";
+import { AlignItems, TextVerticalAlign, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox, Text } from "../../nodes";
+import { DropdownSizing } from "../ControlSizing";
 
 export class DropdownOptionRowMetrics {
   constructor(
     readonly height: f32,
+    readonly paddingLeft: f32 = 10.0,
+    readonly paddingTop: f32 = 6.0,
+    readonly paddingRight: f32 = 10.0,
+    readonly paddingBottom: f32 = 6.0,
+    readonly fontSize: f32 = 16.0,
   ) {}
+}
+
+const DEFAULT_DROPDOWN_OPTION_ROW_METRICS = new DropdownOptionRowMetrics(34.0);
+
+function resolveOptionRowMetrics(sizing: DropdownSizing | null): DropdownOptionRowMetrics {
+  if (sizing === null || (!sizing.hasOptionHeight && !sizing.hasOptionFontSize)) {
+    return DEFAULT_DROPDOWN_OPTION_ROW_METRICS;
+  }
+  const fontSize = sizing.hasOptionFontSize ? sizing.optionFontSizePx : DEFAULT_DROPDOWN_OPTION_ROW_METRICS.fontSize;
+  const height = sizing.hasOptionHeight ? sizing.optionHeightPx : DEFAULT_DROPDOWN_OPTION_ROW_METRICS.height;
+  const verticalPadding = height > fontSize ? (height - fontSize) * 0.5 : 0.0;
+  return new DropdownOptionRowMetrics(
+    height,
+    DEFAULT_DROPDOWN_OPTION_ROW_METRICS.paddingLeft,
+    verticalPadding,
+    DEFAULT_DROPDOWN_OPTION_ROW_METRICS.paddingRight,
+    verticalPadding,
+    fontSize,
+  );
 }
 
 export class DropdownOptionRowVisualState {
@@ -43,27 +68,30 @@ export abstract class DropdownOptionRowTemplate {
 }
 
 class DefaultDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
-  constructor() {
+  constructor(metrics: DropdownOptionRowMetrics = DEFAULT_DROPDOWN_OPTION_ROW_METRICS) {
     const labelNode = new Text("")
       .selectable(false)
       .width(100.0, Unit.Percent)
       .maxLines(1)
       .wrapping(false) as Text;
-    labelNode.overflowFade(true, false);
+    labelNode
+      .overflowFade(true, false)
+      .verticalAlign(TextVerticalAlign.Center);
     const root = new FlexBox()
       .fillSize()
       .alignItems(AlignItems.Center)
       .child(labelNode);
-    super(root, labelNode, new DropdownOptionRowMetrics(34.0));
+    super(root, labelNode, metrics);
   }
 
   apply(theme: Theme, state: DropdownOptionRowVisualState): void {
+    const metrics = this.metrics;
     this.root
-      .padding(10.0, 6.0, 10.0, 6.0)
+      .padding(metrics.paddingLeft, metrics.paddingTop, metrics.paddingRight, metrics.paddingBottom)
       .cornerRadius(theme.spacing.xs)
       .bgColor(state.highlighted ? theme.contextMenu.item.hoverBackground : 0x00000000);
     this.labelNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .font(theme.fonts.body, metrics.fontSize)
       .textColor(
         !state.enabled
           ? theme.colors.textMuted
@@ -79,3 +107,7 @@ class DefaultDropdownOptionRowTemplate extends DropdownOptionRowTemplate {
 }
 
 export const defaultDropdownOptionRowTemplate = new DefaultDropdownOptionRowTemplate();
+
+export function createDefaultDropdownOptionRowPresenter(sizing: DropdownSizing | null = null): DropdownOptionRowPresenter {
+  return new DefaultDropdownOptionRowPresenter(resolveOptionRowMetrics(sizing));
+}

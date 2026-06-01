@@ -22,21 +22,22 @@ import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState
 import { registerScrollHook } from "../core/ScrollHooks";
 import { FlexBox, Portal, ScrollBarVisibility, ScrollBox, ScrollView } from "../nodes";
 import { bind2 } from "../core/bind";
+import { DropdownSizing } from "./ControlSizing";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
-  defaultDropdownChevronTemplate,
+  createDefaultDropdownChevronPresenter,
   DropdownChevronPresenter,
   DropdownChevronTemplate,
   DropdownChevronVisualState,
 } from "./internal/DropdownChevronPresenter";
 import {
-  defaultDropdownFieldTemplate,
+  createDefaultDropdownFieldPresenter,
   DropdownFieldPresenter,
   DropdownFieldTemplate,
   DropdownFieldVisualState,
 } from "./internal/DropdownFieldPresenter";
 import {
-  defaultDropdownOptionRowTemplate,
+  createDefaultDropdownOptionRowPresenter,
   DropdownOptionRowPresenter,
   DropdownOptionRowTemplate,
   DropdownOptionRowVisualState,
@@ -74,31 +75,37 @@ class PersistedDropdownState extends PersistedValueState<Dropdown, i32> {
 
 const DROPDOWN_PERSISTED_STATE = new PersistedDropdownState();
 
-function createFieldPresenter(template: DropdownFieldTemplate | null): DropdownFieldPresenter {
+function createFieldPresenter(template: DropdownFieldTemplate | null, sizing: DropdownSizing | null = null): DropdownFieldPresenter {
   if (template !== null) {
     return template.create();
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.dropdownField : null;
-  return (appTemplate === null ? defaultDropdownFieldTemplate : appTemplate).create();
+  return appTemplate === null
+    ? createDefaultDropdownFieldPresenter(sizing)
+    : appTemplate.create();
 }
 
-function createChevronPresenter(template: DropdownChevronTemplate | null): DropdownChevronPresenter {
+function createChevronPresenter(template: DropdownChevronTemplate | null, sizing: DropdownSizing | null = null): DropdownChevronPresenter {
   if (template !== null) {
     return template.create();
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.dropdownChevron : null;
-  return (appTemplate === null ? defaultDropdownChevronTemplate : appTemplate).create();
+  return appTemplate === null
+    ? createDefaultDropdownChevronPresenter(sizing)
+    : appTemplate.create();
 }
 
-function createOptionRowPresenter(template: DropdownOptionRowTemplate | null): DropdownOptionRowPresenter {
+function createOptionRowPresenter(template: DropdownOptionRowTemplate | null, sizing: DropdownSizing | null = null): DropdownOptionRowPresenter {
   if (template !== null) {
     return template.create();
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.dropdownOptionRow : null;
-  return (appTemplate === null ? defaultDropdownOptionRowTemplate : appTemplate).create();
+  return appTemplate === null
+    ? createDefaultDropdownOptionRowPresenter(sizing)
+    : appTemplate.create();
 }
 
 export class DropdownItem {
@@ -111,9 +118,9 @@ class DropdownOptionNode extends FlexBox {
   private slotIndex: i32 = -1;
   private currentLabel: string = "";
 
-  constructor(template: DropdownOptionRowTemplate | null) {
+  constructor(template: DropdownOptionRowTemplate | null, sizing: DropdownSizing | null) {
     super();
-    this.presenter = createOptionRowPresenter(template);
+    this.presenter = createOptionRowPresenter(template, sizing);
     this.semanticRole(SemanticRole.ListItem);
     this.width(100.0, Unit.Percent);
     this.cursor(CursorStyle.Pointer);
@@ -136,9 +143,9 @@ class DropdownOptionNode extends FlexBox {
     return this;
   }
 
-  template(template: DropdownOptionRowTemplate | null): void {
+  template(template: DropdownOptionRowTemplate | null, sizing: DropdownSizing | null): void {
     const previousPresenter = this.presenter;
-    const nextPresenter = createOptionRowPresenter(template);
+    const nextPresenter = createOptionRowPresenter(template, sizing);
     this.presenter = nextPresenter;
     this.removeChildNode(previousPresenter.root);
     this.addChildNode(nextPresenter.root);
@@ -185,6 +192,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   private fieldTemplateValue: DropdownFieldTemplate | null = null;
   private chevronTemplateValue: DropdownChevronTemplate | null = null;
   private optionRowTemplateValue: DropdownOptionRowTemplate | null = null;
+  private sizingValue: DropdownSizing | null = null;
   private fieldPresenter: DropdownFieldPresenter;
   private chevronPresenter: DropdownChevronPresenter;
   private readonly popupRoot: Portal;
@@ -215,8 +223,8 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   constructor() {
     super();
     Dropdown.ensureScrollHook();
-    const fieldPresenter = createFieldPresenter(null);
-    const chevronPresenter = createChevronPresenter(null);
+    const fieldPresenter = createFieldPresenter(null, null);
+    const chevronPresenter = createChevronPresenter(null, null);
     const popupRoot = new Portal()
       .positionAbsolute()
       .position(0.0, 0.0)
@@ -340,11 +348,38 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     return this;
   }
 
+  sizing(sizing: DropdownSizing | null): this {
+    this.close();
+    this.sizingValue = sizing;
+    if (this.usesDefaultFieldPresenter()) {
+      this.replaceFieldPresenter(
+        createFieldPresenter(this.fieldTemplateValue, this.sizingValue),
+        createChevronPresenter(this.chevronTemplateValue, this.sizingValue),
+      );
+    } else if (this.usesDefaultChevronPresenter()) {
+      const previousPresenter = this.chevronPresenter;
+      const nextPresenter = createChevronPresenter(this.chevronTemplateValue, this.sizingValue);
+      this.chevronPresenter = nextPresenter;
+      this.fieldPresenter.chevronHost.removeChildNode(previousPresenter.root);
+      this.fieldPresenter.chevronHost.addChildNode(nextPresenter.root);
+      previousPresenter.root.dispose();
+    }
+    if (this.usesDefaultOptionRowPresenter()) {
+      for (let index = 0; index < this.optionNodes.length; ++index) {
+        unchecked(this.optionNodes[index]).template(this.optionRowTemplateValue, this.sizingValue);
+      }
+      this.refreshPanelLayout();
+    }
+    this.syncValueLabel();
+    this.handleThemeChanged();
+    return this;
+  }
+
   fieldTemplate(template: DropdownFieldTemplate | null): this {
     this.close();
     this.fieldTemplateValue = template;
-    const nextFieldPresenter = createFieldPresenter(template);
-    const nextChevronPresenter = createChevronPresenter(this.chevronTemplateValue);
+    const nextFieldPresenter = createFieldPresenter(template, this.sizingValue);
+    const nextChevronPresenter = createChevronPresenter(this.chevronTemplateValue, this.sizingValue);
     this.replaceFieldPresenter(nextFieldPresenter, nextChevronPresenter);
     this.syncValueLabel();
     this.handleThemeChanged();
@@ -355,7 +390,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     this.close();
     this.chevronTemplateValue = template;
     const previousPresenter = this.chevronPresenter;
-    const nextPresenter = createChevronPresenter(template);
+    const nextPresenter = createChevronPresenter(template, this.sizingValue);
     this.chevronPresenter = nextPresenter;
     this.fieldPresenter.chevronHost.removeChildNode(previousPresenter.root);
     this.fieldPresenter.chevronHost.addChildNode(nextPresenter.root);
@@ -368,7 +403,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     this.close();
     this.optionRowTemplateValue = template;
     for (let index = 0; index < this.optionNodes.length; ++index) {
-      unchecked(this.optionNodes[index]).template(template);
+      unchecked(this.optionNodes[index]).template(template, this.sizingValue);
     }
     this.refreshPanelLayout();
     this.syncOptionVisuals();
@@ -763,13 +798,21 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
 
   private ensureOptionNodes(): void {
     while (this.optionNodes.length < this.itemsValue.length) {
-      const optionNode = new DropdownOptionNode(this.optionRowTemplateValue).bindOwner(this, this.optionNodes.length);
+      const optionNode = new DropdownOptionNode(this.optionRowTemplateValue, this.sizingValue).bindOwner(this, this.optionNodes.length);
       this.optionNodes.push(optionNode);
     }
   }
 
   private resolveOptionRowHeight(): f32 {
     if (this.optionNodes.length == 0) {
+      const sizing = this.sizingValue;
+      if (
+        sizing !== null &&
+        sizing.hasOptionHeight &&
+        this.usesDefaultOptionRowPresenter()
+      ) {
+        return sizing.optionHeightPx;
+      }
       return OPTION_HEIGHT;
     }
     return unchecked(this.optionNodes[0]).rowHeight;
@@ -921,5 +964,29 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     children.push(this.popupRoot);
     this.replaceChildren(children);
     previousFieldRoot.dispose();
+  }
+
+  private usesDefaultFieldPresenter(): bool {
+    if (this.fieldTemplateValue !== null) {
+      return false;
+    }
+    const templateSet = getControlTemplates();
+    return templateSet === null || templateSet.dropdownField === null;
+  }
+
+  private usesDefaultChevronPresenter(): bool {
+    if (this.chevronTemplateValue !== null) {
+      return false;
+    }
+    const templateSet = getControlTemplates();
+    return templateSet === null || templateSet.dropdownChevron === null;
+  }
+
+  private usesDefaultOptionRowPresenter(): bool {
+    if (this.optionRowTemplateValue !== null) {
+      return false;
+    }
+    const templateSet = getControlTemplates();
+    return templateSet === null || templateSet.dropdownOptionRow === null;
   }
 }

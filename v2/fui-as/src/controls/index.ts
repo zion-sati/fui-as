@@ -1,5 +1,6 @@
 export { Button } from "./Button";
 export { Checkbox } from "./Checkbox";
+export { DropdownSizing, LabeledControlSizing, SliderSizing } from "./ControlSizing";
 export { ContextMenu, MenuItem } from "./ContextMenu";
 export { Dialog } from "./Dialog";
 export { Dropdown, DropdownItem } from "./Dropdown";

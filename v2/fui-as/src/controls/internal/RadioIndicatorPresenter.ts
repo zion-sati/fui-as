@@ -1,6 +1,7 @@
 import { BorderStyle, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
+import { LabeledControlSizing } from "../ControlSizing";
 import {
   PressableIndicatorMetrics,
   PressableIndicatorPresenter,
@@ -31,36 +32,77 @@ export abstract class RadioIndicatorTemplate {
   abstract create(): RadioIndicatorPresenter;
 }
 
+class RadioIndicatorMetrics extends PressableIndicatorMetrics {
+  constructor(
+    readonly indicatorSize: f32,
+    readonly dotSize: f32,
+    readonly borderWidth: f32,
+  ) {
+    super(indicatorSize, indicatorSize);
+  }
+}
+
+function centeredInset(outerSize: f32, innerSize: f32): f32 {
+  return outerSize > innerSize ? (outerSize - innerSize) * 0.5 : 0.0;
+}
+
+function dotInset(metrics: RadioIndicatorMetrics): f32 {
+  const inset = centeredInset(metrics.indicatorSize, metrics.dotSize);
+  return inset > metrics.borderWidth
+    ? inset - metrics.borderWidth
+    : 0.0;
+}
+
+const DEFAULT_RADIO_METRICS = new RadioIndicatorMetrics(20.0, 8.0, 1.0);
+
+function resolveRadioMetrics(sizing: LabeledControlSizing | null): RadioIndicatorMetrics {
+  if (sizing === null || !sizing.hasIndicatorSize) {
+    return DEFAULT_RADIO_METRICS;
+  }
+  const indicatorSize = sizing.indicatorSizePx;
+  return new RadioIndicatorMetrics(
+    indicatorSize,
+    indicatorSize * 0.4,
+    indicatorSize >= 24.0 ? 2.0 : 1.0,
+  );
+}
+
 class DefaultRadioIndicatorPresenter extends RadioIndicatorPresenter {
+  private readonly geometry: RadioIndicatorMetrics;
   private readonly dotNode: FlexBox;
 
-  constructor() {
+  constructor(metrics: RadioIndicatorMetrics = DEFAULT_RADIO_METRICS) {
     const root = new FlexBox()
-      .width(20.0, Unit.Pixel)
-      .height(20.0, Unit.Pixel)
+      .width(metrics.indicatorSize, Unit.Pixel)
+      .height(metrics.indicatorSize, Unit.Pixel)
       .alignItems(1)
       .justifyContent(1);
-    super(root, new PressableIndicatorMetrics(20.0, 20.0));
+    super(root, metrics);
+    this.geometry = metrics;
     const dotNode = new FlexBox()
       .positionAbsolute()
-      .position(5.0, 5.0)
-      .width(8.0, Unit.Pixel)
-      .height(8.0, Unit.Pixel);
+      .position(dotInset(metrics), dotInset(metrics))
+      .width(metrics.dotSize, Unit.Pixel)
+      .height(metrics.dotSize, Unit.Pixel);
     this.dotNode = dotNode;
     root.child(dotNode);
   }
 
   apply(theme: Theme, state: RadioIndicatorVisualState): void {
+    const geometry = this.geometry;
     const outerColor = state.checked
       ? (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent))
       : theme.colors.border;
-    this.root.cornerRadius(10.0);
-    this.root.border(1.0, outerColor, BorderStyle.Solid);
+    this.root.cornerRadius(geometry.indicatorSize * 0.5);
+    this.root.border(geometry.borderWidth, outerColor, BorderStyle.Solid);
     this.root.bgColor(theme.colors.surface);
-    this.dotNode.cornerRadius(4.0);
-    this.dotNode.position(5.0, 5.0);
-    this.dotNode.bgColor(outerColor);
-    this.dotNode.opacity(state.checked ? 1.0 : 0.0);
+    this.dotNode
+      .cornerRadius(geometry.dotSize * 0.5)
+      .position(dotInset(geometry), dotInset(geometry))
+      .width(geometry.dotSize, Unit.Pixel)
+      .height(geometry.dotSize, Unit.Pixel)
+      .bgColor(outerColor)
+      .opacity(state.checked ? 1.0 : 0.0);
   }
 }
 
@@ -71,3 +113,7 @@ class DefaultRadioIndicatorTemplate extends RadioIndicatorTemplate {
 }
 
 export const defaultRadioIndicatorTemplate = new DefaultRadioIndicatorTemplate();
+
+export function createDefaultRadioIndicatorPresenter(sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
+  return new DefaultRadioIndicatorPresenter(resolveRadioMetrics(sizing));
+}

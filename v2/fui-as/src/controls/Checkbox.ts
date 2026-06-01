@@ -2,6 +2,7 @@ import { Callback1, Handler1 } from "../core/BoundCallback";
 import { SemanticCheckedState, SemanticRole } from "../core/ffi";
 import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState";
 import { bind1 } from "../core/bind";
+import { LabeledControlSizing } from "./ControlSizing";
 import { getControlTemplates } from "./ControlTemplateSet";
 import { activeTheme } from "../core/Theme";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
@@ -9,7 +10,7 @@ import {
   CheckboxIndicatorPresenter,
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
-  defaultCheckboxIndicatorTemplate,
+  createDefaultCheckboxIndicatorPresenter,
 } from "./internal/CheckboxIndicatorPresenter";
 const CHECKBOX_PERSISTED_CODEC = new PersistedInt32Codec();
 
@@ -39,18 +40,21 @@ class PersistedCheckboxState extends PersistedValueState<Checkbox, i32> {
 
 const CHECKBOX_PERSISTED_STATE = new PersistedCheckboxState();
 
-function createIndicatorPresenter(template: CheckboxIndicatorTemplate | null): CheckboxIndicatorPresenter {
+function createIndicatorPresenter(template: CheckboxIndicatorTemplate | null, sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
   if (template !== null) {
     return template.create();
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.checkboxIndicator : null;
-  return (appTemplate === null ? defaultCheckboxIndicatorTemplate : appTemplate).create();
+  return appTemplate === null
+    ? createDefaultCheckboxIndicatorPresenter(sizing)
+    : appTemplate.create();
 }
 
 export class Checkbox extends PressableLabeledControl {
   private indicatorPresenter: CheckboxIndicatorPresenter;
   private templateOverride: CheckboxIndicatorTemplate | null = null;
+  private sizingValue: LabeledControlSizing | null = null;
   private checkedStateValue: SemanticCheckedState = SemanticCheckedState.False;
   private triStateEnabled: bool = false;
   private changedCallback: ((state: SemanticCheckedState) => void) | null = null;
@@ -94,9 +98,22 @@ export class Checkbox extends PressableLabeledControl {
     return this;
   }
 
+  sizing(sizing: LabeledControlSizing | null): this {
+    this.sizingValue = sizing;
+    this.setLabelFontSizeOverride(
+      sizing !== null && sizing.hasLabelFontSize ? sizing.labelFontSizePx : 0.0,
+    );
+    if (this.usesDefaultIndicatorPresenter()) {
+      this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
+      this.replaceIndicatorRoot(this.indicatorPresenter.root);
+      this.syncVisualState();
+    }
+    return this;
+  }
+
   template(template: CheckboxIndicatorTemplate | null): this {
     this.templateOverride = template;
-    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride);
+    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
     this.replaceIndicatorRoot(this.indicatorPresenter.root);
     this.syncVisualState();
     return this;
@@ -176,6 +193,14 @@ export class Checkbox extends PressableLabeledControl {
         binding.invoke(next);
       }
     }
+  }
+
+  private usesDefaultIndicatorPresenter(): bool {
+    if (this.templateOverride !== null) {
+      return false;
+    }
+    const templateSet = getControlTemplates();
+    return templateSet === null || templateSet.checkboxIndicator === null;
   }
 
 }

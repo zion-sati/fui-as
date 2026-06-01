@@ -1,27 +1,31 @@
 import { KeyEventType, SemanticCheckedState, SemanticRole } from "../core/ffi";
 import { activeTheme } from "../core/Theme";
+import { LabeledControlSizing } from "./ControlSizing";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
 import { getControlTemplates } from "./ControlTemplateSet";
 import { RadioGroup } from "./RadioGroup";
 import {
-  defaultRadioIndicatorTemplate,
+  createDefaultRadioIndicatorPresenter,
   RadioIndicatorPresenter,
   RadioIndicatorTemplate,
   RadioIndicatorVisualState,
 } from "./internal/RadioIndicatorPresenter";
 
-function createIndicatorPresenter(template: RadioIndicatorTemplate | null): RadioIndicatorPresenter {
+function createIndicatorPresenter(template: RadioIndicatorTemplate | null, sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
   if (template !== null) {
     return template.create();
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.radioIndicator : null;
-  return (appTemplate === null ? defaultRadioIndicatorTemplate : appTemplate).create();
+  return appTemplate === null
+    ? createDefaultRadioIndicatorPresenter(sizing)
+    : appTemplate.create();
 }
 
 export class RadioButton extends PressableLabeledControl {
   private indicatorPresenter: RadioIndicatorPresenter;
   private templateOverride: RadioIndicatorTemplate | null = null;
+  private sizingValue: LabeledControlSizing | null = null;
   private readonly valueText: string;
   private checkedValue: bool = false;
   private changedCallback: ((checked: bool) => void) | null = null;
@@ -54,9 +58,22 @@ export class RadioButton extends PressableLabeledControl {
     return this;
   }
 
+  sizing(sizing: LabeledControlSizing | null): this {
+    this.sizingValue = sizing;
+    this.setLabelFontSizeOverride(
+      sizing !== null && sizing.hasLabelFontSize ? sizing.labelFontSizePx : 0.0,
+    );
+    if (this.usesDefaultIndicatorPresenter()) {
+      this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
+      this.replaceIndicatorRoot(this.indicatorPresenter.root);
+      this.syncVisualState();
+    }
+    return this;
+  }
+
   template(template: RadioIndicatorTemplate | null): this {
     this.templateOverride = template;
-    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride);
+    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
     this.replaceIndicatorRoot(this.indicatorPresenter.root);
     this.syncVisualState();
     return this;
@@ -131,5 +148,13 @@ export class RadioButton extends PressableLabeledControl {
         callback(flag);
       }
     }
+  }
+
+  private usesDefaultIndicatorPresenter(): bool {
+    if (this.templateOverride !== null) {
+      return false;
+    }
+    const templateSet = getControlTemplates();
+    return templateSet === null || templateSet.radioIndicator === null;
   }
 }

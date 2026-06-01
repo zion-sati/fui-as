@@ -30,6 +30,7 @@ export class PressableLabeledControl extends FlexBox {
   private readonly labelHost: FlexBox;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private disposed: bool = false;
+  private labelFontSizeOverride: f32 = 0.0;
   protected hoveredState: bool = false;
   protected pressedState: bool = false;
   protected focusedState: bool = false;
@@ -171,6 +172,11 @@ export class PressableLabeledControl extends FlexBox {
     previousRoot.dispose();
   }
 
+  protected setLabelFontSizeOverride(fontSize: f32): void {
+    this.labelFontSizeOverride = fontSize > 0.0 ? fontSize : 0.0;
+    this.syncBaseTheme(activeTheme.value);
+  }
+
   protected syncBaseTheme(theme: Theme): void {
     this.cursor(this.isEnabled ? CursorStyle.Pointer : CursorStyle.Default);
     this.cornerRadius(theme.spacing.sm);
@@ -182,7 +188,10 @@ export class PressableLabeledControl extends FlexBox {
     this.padding(theme.spacing.xs, theme.spacing.xs, theme.spacing.xs, theme.spacing.xs);
     this.opacity(this.isEnabled ? 1.0 : 0.6);
     this.gapNode.width(theme.spacing.sm, Unit.Pixel);
-    this.labelNode.font(theme.fonts.body, theme.fonts.sizeBody);
+    this.labelNode.font(
+      theme.fonts.body,
+      this.labelFontSizeOverride > 0.0 ? this.labelFontSizeOverride : theme.fonts.sizeBody,
+    );
     this.labelNode.textColor(this.isEnabled ? theme.colors.textPrimary : theme.colors.textMuted);
     this.syncFocusChrome(theme);
   }

@@ -32,6 +32,7 @@ export {
   SliderVisualState,
 } from "./internal/SliderPresenter";
 export {
+  DropdownFieldMetrics,
   DropdownFieldPresenter,
   DropdownFieldTemplate,
   DropdownFieldVisualState,
