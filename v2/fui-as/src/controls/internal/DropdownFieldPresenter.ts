@@ -12,7 +12,6 @@ import { DropdownSizing } from "../ControlSizing";
 
 const DEFAULT_CHEVRON_BOX_SIZE: f32 = 16.0;
 const DEFAULT_FIELD_PADDING_X: f32 = 16.0;
-const DEFAULT_FIELD_PADDING_Y: f32 = 8.0;
 const DEFAULT_FIELD_FONT_SIZE: f32 = 16.0;
 const DEFAULT_FIELD_HEIGHT: f32 = 32.0;
 
@@ -33,9 +32,9 @@ const DEFAULT_DROPDOWN_FIELD_METRICS = new DropdownFieldMetrics(
   DEFAULT_FIELD_FONT_SIZE,
   DEFAULT_CHEVRON_BOX_SIZE,
   DEFAULT_FIELD_PADDING_X,
-  DEFAULT_FIELD_PADDING_Y,
+  0.0,
   DEFAULT_FIELD_PADDING_X,
-  DEFAULT_FIELD_PADDING_Y,
+  0.0,
 );
 
 function resolveFieldMetrics(sizing: DropdownSizing | null): DropdownFieldMetrics {
@@ -48,16 +47,15 @@ function resolveFieldMetrics(sizing: DropdownSizing | null): DropdownFieldMetric
   const fontSize = sizing.hasFieldFontSize ? sizing.fieldFontSizePx : DEFAULT_DROPDOWN_FIELD_METRICS.fontSize;
   const chevronBoxSize = sizing.hasChevronBoxSize ? sizing.chevronBoxSizePx : DEFAULT_DROPDOWN_FIELD_METRICS.chevronBoxSize;
   const contentHeight = fontSize > chevronBoxSize ? fontSize : chevronBoxSize;
-  const height = sizing.hasFieldHeight ? sizing.fieldHeightPx : contentHeight + (DEFAULT_FIELD_PADDING_Y * 2.0);
-  const verticalPadding = height > contentHeight ? (height - contentHeight) * 0.5 : 0.0;
+  const height = sizing.hasFieldHeight ? sizing.fieldHeightPx : <f32>Math.max(DEFAULT_DROPDOWN_FIELD_METRICS.height, contentHeight);
   return new DropdownFieldMetrics(
     height,
     fontSize,
     chevronBoxSize,
     DEFAULT_FIELD_PADDING_X,
-    verticalPadding,
+    0.0,
     DEFAULT_FIELD_PADDING_X,
-    verticalPadding,
+    0.0,
   );
 }
 
@@ -135,6 +133,10 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
 
   apply(theme: Theme, state: DropdownFieldVisualState): void {
     const metrics = this.metrics;
+    const contentHeight = <f32>Math.max(
+      metrics.fontSize,
+      metrics.height - metrics.paddingTop - metrics.paddingBottom,
+    );
     this.root
       .flexDirection(FlexDirection.Row)
       .alignItems(AlignItems.Center)
@@ -144,10 +146,10 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
       .padding(metrics.paddingLeft, metrics.paddingTop, metrics.paddingRight, metrics.paddingBottom)
       .bgColor(state.pressed && state.enabled ? theme.colors.background : theme.colors.surface);
     this.valueHost
-      .fillWidth()
-      .fillHeight();
+      .fillSize();
     this.valueNode
       .font(theme.fonts.body, metrics.fontSize)
+      .lineHeight(contentHeight)
       .textColor(state.enabled ? theme.colors.textPrimary : theme.colors.textMuted);
     this.chevronHost
       .width(metrics.chevronBoxSize, Unit.Pixel)

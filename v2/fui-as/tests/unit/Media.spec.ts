@@ -2,6 +2,7 @@ import { AssetLoadState, Image, ObjectFit, Svg, Unit, getTextureAssetError, getT
 import { __fui_on_svg_failed, __fui_on_svg_loaded, __fui_on_texture_failed, __fui_on_texture_loaded } from "../../src/core/Assets";
 import {
   CALL_CREATE_NODE,
+  CALL_SET_HEIGHT,
   CALL_LOAD_SVG,
   CALL_LOAD_TEXTURE,
   CALL_RELEASE_SVG,
@@ -11,6 +12,7 @@ import {
   CALL_SET_SEMANTIC_LABEL,
   CALL_SET_SEMANTIC_ROLE,
   CALL_SET_SVG,
+  CALL_SET_WIDTH,
   getCallArg,
   getCallSequence,
   lastSvgUrlEquals,
@@ -332,6 +334,48 @@ describe("Media nodes", () => {
     expect<AssetLoadState>(svg.assetState()).toBe(AssetLoadState.Ready);
     expect<f32>(svg.assetWidth()).toBe(128.0);
     expect<f32>(svg.assetHeight()).toBe(112.0);
+  });
+
+  it("image auto sizing resolves to intrinsic texture dimensions once the asset is ready", () => {
+    resetCalls();
+
+    const image = Image.load("/images/intrinsic.png", ObjectFit.Contain)
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto);
+    const handle = image.build();
+
+    let widthIndex = findLastCall(CALL_SET_WIDTH);
+    expect<i32>(widthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(widthIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(widthIndex, 1)).toBe(0.0);
+    expect<f64>(getCallArg(widthIndex, 2)).toBe(<f64>Unit.Auto);
+
+    let heightIndex = findLastCall(CALL_SET_HEIGHT);
+    expect<i32>(heightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(heightIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(heightIndex, 1)).toBe(0.0);
+    expect<f64>(getCallArg(heightIndex, 2)).toBe(<f64>Unit.Auto);
+
+    const imageIndex = findLastCall(CALL_SET_IMAGE);
+    expect<i32>(imageIndex).toBeGreaterThan(-1);
+    const textureId = <u32>getCallArg(imageIndex, 1);
+
+    resetCalls();
+    __fui_on_texture_loaded(textureId, 96.0, 64.0);
+
+    widthIndex = findLastCall(CALL_SET_WIDTH);
+    expect<i32>(widthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(widthIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(widthIndex, 1)).toBe(96.0);
+    expect<f64>(getCallArg(widthIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    heightIndex = findLastCall(CALL_SET_HEIGHT);
+    expect<i32>(heightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(heightIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(heightIndex, 1)).toBe(64.0);
+    expect<f64>(getCallArg(heightIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    image.dispose();
   });
 
   it("asset failure callbacks remain non-fatal even with empty host errors", () => {

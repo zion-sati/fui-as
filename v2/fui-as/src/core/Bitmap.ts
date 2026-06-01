@@ -1,4 +1,5 @@
 import * as ui from "../bindings/ui";
+import { markTextureAssetReady } from "./Assets";
 import { Disposable } from "./Disposable";
 import { allocateDynamicTextureId } from "./DynamicAssetIds";
 import { throwObjectDisposed } from "./Errors";
@@ -50,6 +51,7 @@ export class Bitmap implements Disposable {
   commit(): u32 {
     this.ensureNotDisposed("Bitmap.commit");
     ui.bitmapCommit(this.textureId, this.pixelBytes, this.width, this.height);
+    markTextureAssetReady(this.textureId, <f32>this.width, <f32>this.height);
     return this.textureId;
   }
 

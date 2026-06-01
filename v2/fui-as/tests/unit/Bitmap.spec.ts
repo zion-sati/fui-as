@@ -1,9 +1,11 @@
-import { Bitmap, Image, ObjectFit } from "../../src/Fui";
+import { Bitmap, Image, ObjectFit, Unit } from "../../src/Fui";
 import {
   CALL_BITMAP_COMMIT,
   CALL_BITMAP_RELEASE,
   CALL_CREATE_NODE,
+  CALL_SET_HEIGHT,
   CALL_SET_IMAGE,
+  CALL_SET_WIDTH,
   findCall,
   getCallArg,
   getCallSequence,
@@ -70,6 +72,34 @@ describe("Bitmap", () => {
     expect<f64>(getCallArg(imageIndex, 0)).toBe(<f64>handle);
     expect<f64>(getCallArg(imageIndex, 1)).toBe(<f64>bitmap.textureId);
     expect<f64>(getCallArg(imageIndex, 2)).toBe(<f64>ObjectFit.Contain);
+
+    image.dispose();
+    bitmap.dispose();
+  });
+
+  it("publishes bitmap dimensions for image auto sizing", () => {
+    resetCalls();
+
+    const bitmap = new Bitmap(40, 20);
+    bitmap.commit();
+    resetCalls();
+
+    const image = new Image(bitmap.textureId, ObjectFit.Contain)
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto);
+    const handle = image.build();
+
+    const widthIndex = findLastCall(CALL_SET_WIDTH);
+    expect<i32>(widthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(widthIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(widthIndex, 1)).toBe(40.0);
+    expect<f64>(getCallArg(widthIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    const heightIndex = findLastCall(CALL_SET_HEIGHT);
+    expect<i32>(heightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(heightIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(heightIndex, 1)).toBe(20.0);
+    expect<f64>(getCallArg(heightIndex, 2)).toBe(<f64>Unit.Pixel);
 
     image.dispose();
     bitmap.dispose();

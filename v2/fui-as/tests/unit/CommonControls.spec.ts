@@ -36,6 +36,7 @@ import {
   CALL_SET_FLEX_BASIS,
   CALL_SET_FILL_HEIGHT,
   CALL_SET_FONT,
+  CALL_SET_LINE_HEIGHT,
   CALL_SET_TEXT_VERTICAL_ALIGN,
   CALL_ADD_CHILD,
   CALL_REMOVE_CHILD,
@@ -931,6 +932,7 @@ describe("Common controls", () => {
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fieldHandle), 1)).toBe(28.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, valueLabelHandle), 2)).toBe(14.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FILL_HEIGHT, valueLabelHandle), 1)).toBe(1.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_LINE_HEIGHT, valueLabelHandle), 1)).toBe(28.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_TEXT_VERTICAL_ALIGN, valueLabelHandle), 1)).toBe(<f64>TextVerticalAlign.Center);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, chevronHostHandle), 1)).toBe(14.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, chevronHostHandle), 1)).toBe(14.0);

@@ -123,6 +123,10 @@ export function getTextureAssetHeight(textureId: u32): f32 {
   return getAssetRecord(textureAssets, textureId).height;
 }
 
+export function markTextureAssetReady(textureId: u32, width: f32, height: f32): void {
+  markLoaded(getAssetRecord(textureAssets, textureId), width, height);
+}
+
 function loadSvgInternal(svgId: u32, url: string, pinned: bool): void {
   const record = getAssetRecord(svgAssets, svgId);
   if (record.url.length > 0 && record.url != url) {

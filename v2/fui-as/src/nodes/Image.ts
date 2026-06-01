@@ -8,8 +8,9 @@ import {
   getTextureAssetWidth,
   releaseTextureAsset,
 } from "../core/Assets";
+import { Action, HandlerAction } from "../core/Action";
 import * as ui from "../bindings/ui";
-import { HandleValue, NodeType, ObjectFit, SemanticRole } from "../core/ffi";
+import { HandleValue, NodeType, ObjectFit, SemanticRole, Unit } from "../core/ffi";
 import { Signal } from "../core/Signal";
 import { FlexBox, FlexBoxProps } from "./FlexBox";
 
@@ -23,11 +24,20 @@ export class Image extends FlexBox {
   private insetTop: f32 = 0.0;
   private insetRight: f32 = 0.0;
   private insetBottom: f32 = 0.0;
+  private requestedWidthValue: f32 = 0.0;
+  private requestedWidthUnit: Unit = Unit.Pixel;
+  private hasRequestedWidth: bool = false;
+  private requestedHeightValue: f32 = 0.0;
+  private requestedHeightUnit: Unit = Unit.Pixel;
+  private hasRequestedHeight: bool = false;
+  private assetStateAction: Action<AssetLoadState> | null = null;
+  private trackedTextureAssetId: u32 = 0;
 
   constructor(textureId: u32 = 0, objectFit: ObjectFit = ObjectFit.Fill) {
     super();
     this.textureIdValue = textureId;
     this.objectFitValue = objectFit;
+    this.attachAssetStateListener();
   }
 
   static from(props: FlexBoxProps, textureId: u32 = 0, objectFit: ObjectFit = ObjectFit.Fill): Image {
@@ -47,6 +57,8 @@ export class Image extends FlexBox {
     this.releaseOwnedSourceAsset();
     this.sourceUrlValue = "";
     this.textureIdValue = textureId;
+    this.attachAssetStateListener();
+    this.applyResolvedSizing();
     if (this.hasBuiltHandle()) {
       this.applyImageSource();
       this.notifyRetainedMutation();
@@ -65,6 +77,8 @@ export class Image extends FlexBox {
     this.sourceUrlValue = url;
     this.textureIdValue = acquireTextureAsset(url);
     this.ownedTextureAssetId = this.textureIdValue;
+    this.attachAssetStateListener();
+    this.applyResolvedSizing();
     if (this.hasBuiltHandle()) {
       this.applyImageSource();
       this.notifyRetainedMutation();
@@ -81,6 +95,8 @@ export class Image extends FlexBox {
     this.insetTop = 0.0;
     this.insetRight = 0.0;
     this.insetBottom = 0.0;
+    this.attachAssetStateListener();
+    this.applyResolvedSizing();
     if (this.hasBuiltHandle()) {
       this.applyImageSource();
       this.notifyRetainedMutation();
@@ -129,13 +145,31 @@ export class Image extends FlexBox {
     return this;
   }
 
+  width(value: f32, unit: Unit = Unit.Pixel): this {
+    this.requestedWidthValue = value;
+    this.requestedWidthUnit = unit;
+    this.hasRequestedWidth = true;
+    this.applyResolvedSizing();
+    return this;
+  }
+
+  height(value: f32, unit: Unit = Unit.Pixel): this {
+    this.requestedHeightValue = value;
+    this.requestedHeightUnit = unit;
+    this.hasRequestedHeight = true;
+    this.applyResolvedSizing();
+    return this;
+  }
+
   build(): u64 {
     this.buildStyledNode(NodeType.Image, false);
+    this.applyResolvedSizing();
     this.applyImageSource();
     return this.handle;
   }
 
   dispose(): void {
+    this.detachAssetStateListener();
     this.releaseOwnedSourceAsset();
     super.dispose();
   }
@@ -177,6 +211,68 @@ export class Image extends FlexBox {
       return;
     }
     ui.setImage(this.handle, this.textureIdValue, <u32>this.objectFitValue);
+  }
+
+  private applyResolvedSizing(): void {
+    if (!this.hasRequestedWidth && !this.hasRequestedHeight) {
+      return;
+    }
+
+    const assetWidth = this.assetWidth();
+    const assetHeight = this.assetHeight();
+    const hasIntrinsicSize = assetWidth > 0.0 && assetHeight > 0.0;
+
+    if (this.hasRequestedWidth) {
+      let resolvedWidthValue = this.requestedWidthValue;
+      let resolvedWidthUnit = this.requestedWidthUnit;
+      if (this.requestedWidthUnit == Unit.Auto && hasIntrinsicSize) {
+        if (this.hasRequestedHeight && this.requestedHeightUnit == Unit.Pixel) {
+          resolvedWidthValue = this.requestedHeightValue * (assetWidth / assetHeight);
+        } else {
+          resolvedWidthValue = assetWidth;
+        }
+        resolvedWidthUnit = Unit.Pixel;
+      }
+      super.width(resolvedWidthValue, resolvedWidthUnit);
+    }
+
+    if (this.hasRequestedHeight) {
+      let resolvedHeightValue = this.requestedHeightValue;
+      let resolvedHeightUnit = this.requestedHeightUnit;
+      if (this.requestedHeightUnit == Unit.Auto && hasIntrinsicSize) {
+        if (this.hasRequestedWidth && this.requestedWidthUnit == Unit.Pixel) {
+          resolvedHeightValue = this.requestedWidthValue * (assetHeight / assetWidth);
+        } else {
+          resolvedHeightValue = assetHeight;
+        }
+        resolvedHeightUnit = Unit.Pixel;
+      }
+      super.height(resolvedHeightValue, resolvedHeightUnit);
+    }
+  }
+
+  private attachAssetStateListener(): void {
+    if (this.trackedTextureAssetId == this.textureIdValue) {
+      return;
+    }
+    this.detachAssetStateListener();
+    this.trackedTextureAssetId = this.textureIdValue;
+    if (this.textureIdValue == 0) {
+      return;
+    }
+    this.assetStateAction = getTextureAssetState(this.textureIdValue).addAction(
+      new HandlerAction<Image, AssetLoadState>(this, (image: Image, _state: AssetLoadState): void => {
+        image.applyResolvedSizing();
+      }),
+    );
+  }
+
+  private detachAssetStateListener(): void {
+    if (this.assetStateAction !== null) {
+      changetype<Action<AssetLoadState>>(this.assetStateAction).dispose();
+      this.assetStateAction = null;
+    }
+    this.trackedTextureAssetId = 0;
   }
 
   private releaseOwnedSourceAsset(): void {
