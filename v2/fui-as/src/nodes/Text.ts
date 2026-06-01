@@ -15,8 +15,14 @@ export class Text extends TextCore {
     if (props.hasWidth) {
       text.width(props.widthValue, props.widthUnit);
     }
+    if (props.hasFillWidth) {
+      text.fillWidth();
+    }
     if (props.hasHeight) {
       text.height(props.heightValue, props.heightUnit);
+    }
+    if (props.hasFillHeight) {
+      text.fillHeight();
     }
     if (props.hasFontFamily) {
       const family = props.fontFamilyValue;

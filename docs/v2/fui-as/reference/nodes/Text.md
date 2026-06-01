@@ -6,6 +6,7 @@ import { Text } from "./Fui";
 
 - **Constructor:** `new Text(content = "")`
 - **Content:** `text(content)`, `semanticLabel(label)`
+- **Layout sizing:** `width(...)`, `height(...)`, `fillWidth()`, `fillHeight()`, `fillSize()`
 - **Overflow fades:** `overflowFade(horizontal = true, vertical = false)`
 
 `Text` extends `TextCore`, so typography and selection/editability APIs from the text stack are available (for example `fontFamily`, `fontWeight`, `lineHeight`, `textAlign`, `verticalAlign`, `selectable`).

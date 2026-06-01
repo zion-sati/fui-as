@@ -20,9 +20,11 @@ export class TextProps {
   widthValue: f32 = 0.0;
   widthUnit: Unit = Unit.Pixel;
   hasWidth: bool = false;
+  hasFillWidth: bool = false;
   heightValue: f32 = 0.0;
   heightUnit: Unit = Unit.Pixel;
   hasHeight: bool = false;
+  hasFillHeight: bool = false;
   fontId: u32 = 0;
   fontSize: f32 = 0.0;
   hasFont: bool = false;
@@ -66,9 +68,11 @@ export class TextCore extends Node {
   private widthValue: f32 = 0.0;
   private widthUnit: Unit = Unit.Pixel;
   private hasWidth: bool = false;
+  private hasFillWidth: bool = false;
   private heightValue: f32 = 0.0;
   private heightUnit: Unit = Unit.Pixel;
   private hasHeight: bool = false;
+  private hasFillHeight: bool = false;
   private fontId: u32 = 0;
   private fontSizeValue: f32 = 0.0;
   private hasFont: bool = false;
@@ -147,6 +151,7 @@ export class TextCore extends Node {
     this.widthValue = value;
     this.widthUnit = unit;
     this.hasWidth = true;
+    this.hasFillWidth = false;
     if (this.hasBuiltHandle()) {
       ui.setWidth(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
@@ -158,10 +163,35 @@ export class TextCore extends Node {
     this.heightValue = value;
     this.heightUnit = unit;
     this.hasHeight = true;
+    this.hasFillHeight = false;
     if (this.hasBuiltHandle()) {
       ui.setHeight(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
     }
+    return this;
+  }
+
+  fillWidth(): this {
+    this.hasFillWidth = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFillWidth(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  fillHeight(): this {
+    this.hasFillHeight = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFillHeight(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  fillSize(): this {
+    this.fillWidth();
+    this.fillHeight();
     return this;
   }
 
@@ -423,8 +453,14 @@ export class TextCore extends Node {
     if (this.hasWidth) {
       ui.setWidth(this.handle, this.widthValue, <u32>this.widthUnit);
     }
+    if (this.hasFillWidth) {
+      ui.setFillWidth(this.handle, true);
+    }
     if (this.hasHeight) {
       ui.setHeight(this.handle, this.heightValue, <u32>this.heightUnit);
+    }
+    if (this.hasFillHeight) {
+      ui.setFillHeight(this.handle, true);
     }
     ui.setText(this.handle, this.contentValue);
     if (this.textStyleRunsWords !== null) {

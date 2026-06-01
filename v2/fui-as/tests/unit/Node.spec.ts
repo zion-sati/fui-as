@@ -171,6 +171,20 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_FILL_HEIGHT)).toBeGreaterThan(-1);
   });
 
+  it("exposes fill sizing helpers on text nodes", () => {
+    resetCalls();
+
+    new Text("Hello")
+      .fillWidth()
+      .fillHeight()
+      .build();
+
+    expect<i32>(findCall(CALL_SET_WIDTH)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_HEIGHT)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_FILL_WIDTH)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_FILL_HEIGHT)).toBeGreaterThan(-1);
+  });
+
   it("exposes flexBasis helpers on FlexBox and ScrollView", () => {
     resetCalls();
 
