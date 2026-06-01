@@ -62,7 +62,7 @@ This gives state-first callback behavior.
 
 ## Drag gesture signals (`DragGesture`)
 
-The shipped phase-1 drag foundation is a low-level `DragGesture` helper for custom node/control authors.
+`DragGesture` is the low-level drag helper for custom node/control authors.
 
 - `drag.started: Signal<DragStartedEvent>`
 - `drag.delta: Signal<DragDeltaEvent>`
@@ -76,11 +76,11 @@ Practical contract:
 - `started` fires once the configured threshold is crossed, or immediately when the threshold is `0`.
 - `delta` reports both per-step delta and total delta from the drag start point.
 - `completed` fires only for drags that actually started; press/release below threshold does not emit a completion.
-- The current phase-1 surface is intentionally AssemblyScript-friendly: consumers should prefer `signal.bind(owner, handler)` / `HandlerAction` style wiring instead of captured closures.
+- This surface is intentionally AssemblyScript-friendly: consumers should prefer `signal.bind(owner, handler)` / `HandlerAction` style wiring instead of captured closures.
 
 ## Drag/drop callbacks (`Node` + `DragSession`)
 
-The shipped phase-3 drag/drop surface layers declarative source/target participation on top of `DragGesture`.
+The drag/drop surface layers declarative source/target participation on top of `DragGesture`.
 
 - source-side:
   - `dragData(() => DragDataObject | null)`

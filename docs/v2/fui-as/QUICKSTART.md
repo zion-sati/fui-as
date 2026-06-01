@@ -37,7 +37,7 @@ The advanced-controls route includes the live `ProgressBar` + `Worker` sample
 for the first-party worker API and the external-drop/file-bridge sample for the
 built-in browser file bridge.
 
-## npm package wiring (Phase 3)
+## npm package wiring
 
 - runtime package: `@effindomv2/runtime`
 - FUI-AS package: `@effindomv2/fui-as`
@@ -49,7 +49,7 @@ The canonical scaffold template sources are:
 - `v2/create-fui-as-app/templates/hello/**` (`--template hello`)
 - `v2/create-fui-as-app/templates/mvc/**` (`--template mvc`)
 
-## Scaffold a new app (Phase 4)
+## Scaffold a new app
 
 ```bash
 npm create @effindomv2/fui-as-app@latest my-app
@@ -78,7 +78,7 @@ The generated project includes:
 4. `generate:host*`, `dev`, `build`, and `test` scripts with runtime staging and watch rebuilds (`build`/`test` regenerate host bindings automatically).
 5. `tsconfig.json` that extends `assemblyscript/std/assembly.json` so `src/**/*.ts` is treated as AssemblyScript in editor/type tooling.
 
-## 3. Public import barrels (release API)
+## 3. Public import barrels
 
 Use only the public barrels when authoring apps, demos, or custom controls:
 
@@ -115,7 +115,7 @@ Its harness is intentionally minimal while still wiring app-owned host registrie
 
 ### Custom control templates
 
-The public control-templating surface is now available for `Button`,
+The public control-templating surface covers `Button`,
 `Checkbox`, `RadioButton`, `Switch`, `Slider`, `Dropdown`, `TextInput`, and
 `TextArea` through typed presenter/template contracts.
 
@@ -296,7 +296,7 @@ Worker entry files live under `src/workers/*.ts`. Re-export
 
 alongside each harness root under `public/v2/fui-as/**`.
 
-Cancellation is cooperative and chunked. The current recommended pattern is
+Cancellation is cooperative and chunked. The recommended pattern is
 `WorkerJob`: keep only a single nullable job reference at module scope, store
 in-flight state on instance fields, and return after calling `yield(delayMs)`.
 On the next invocation, the same job instance resumes and can check
@@ -309,7 +309,7 @@ available in AssemblyScript worker code.
 ## 6. Browser file bridge
 
 `File` is the first-class SDK surface for browser-owned file pick/open,
-chunked reads, chunked writes, dropped-file unification, and the current
+chunked reads, chunked writes, dropped-file unification, and the
 Worker-backed chunk-processing flow.
 
 ```ts
@@ -361,7 +361,7 @@ file.readBytesChunkWith(this, 0, 64 * 1024, (owner, chunk) => {
 });
 ```
 
-Current shape:
+Supported behavior:
 
 - `File.processFileInWorker(file)` is the built-in worker-backed chunk
   processing path
@@ -369,8 +369,8 @@ Current shape:
 - without `.saveToPickedFile(...)`, use `onChunk(...)` to receive worker-read
   chunks back in AssemblyScript for upload/search/indexing-style flows
 - arbitrary user-defined binary transforms inside the AssemblyScript
-  `Worker` / `WorkerJob` runtime are still not shipped because that transport
-  is still string-message based
+  `Worker` / `WorkerJob` runtime do not support arbitrary user-defined binary
+  transforms because that transport is still string-message based
 
 ## 7. Browser fetch bridge
 
@@ -405,13 +405,13 @@ class UploadController {
 }
 ```
 
-Current shape:
+Supported behavior:
 
 - the same API is exported from `./FuiWorker` for worker modules
 - the main app and multiple workers can all issue requests concurrently
 - Worker support is assumed by the runtime, so fetch does not expose a separate
   worker-availability capability check
-- this first slice returns response metadata only; response-body helpers can
+- this API returns response metadata only; response-body helpers can
   layer on later without changing the callback model
 
 ## 8. JS host services and host events
@@ -476,7 +476,7 @@ wall-clock reads inside a worker module.
 
 ## 10. Keyed persisted state
 
-The routed/browser host now ships two persistence layers:
+The routed/browser host provides two persistence layers:
 
 1. **Built-in scroll persistence** for `ScrollView`, `ScrollBox`, and
    `VirtualList` via `nodeId(...).persistScroll()`.
@@ -561,6 +561,4 @@ password fields.
 
 ## See also
 
-- [Implementation inventory](./IMPLEMENTATION_INVENTORY.md)
-- [FUI-AS plan](./plan.md)
 - [v2 architecture positioning](../core/ARCHITECTURE.md#positioning-why-this-is-not-a-game-engine-or-a-mobile-port-runtime)

@@ -34,7 +34,6 @@ This is the primary SDK navigation page for `v2/fui-as`.
 - [Browser fetch bridge quickstart](./QUICKSTART.md#7-browser-fetch-bridge)
 - [JS host services quickstart](./QUICKSTART.md#8-js-host-services-and-host-events)
 - [Text input reference](./TEXT_INPUT_REFERENCE.md)
-- [Implementation inventory](./IMPLEMENTATION_INVENTORY.md) - includes the current runtime font-streaming / tofu-swap status, phase-4 diagnostics/policy surface, and the future prefetch direction.
 
 ## Theme
 
@@ -53,4 +52,3 @@ This is the primary SDK navigation page for `v2/fui-as`.
 - [FUI-AS API reference](./API_REFERENCE.md)
 - [FUI-AS per-type reference](./reference/README.md)
 - [FUI-AS accessibility and semantics](./ACCESSIBILITY_AND_SEMANTICS.md)
-- [FUI-AS plan](./plan.md)

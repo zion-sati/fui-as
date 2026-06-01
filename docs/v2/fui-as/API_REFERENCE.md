@@ -1,6 +1,6 @@
 # FUI AssemblyScript API Reference (v2)
 
-This page documents the current public SDK surface exported by:
+This page documents the public SDK surface exported by:
 
 - `v2/fui-as/src/Fui.ts`
 - `v2/fui-as/src/FuiPrimitives.ts`
@@ -217,7 +217,7 @@ worker bootstrap can call back into the wasm module.
   - `localToAbsolutePosition(localX, localY)`
   - pre-build or invalid-handle calls return default zero-bounds/identity transforms
 
-The current shipped drag/drop surface is intentionally in-app and AssemblyScript-friendly:
+The drag/drop surface is intentionally in-app and AssemblyScript-friendly:
 
 - source participation is declarative and data is created lazily only once the drag really starts
 - target negotiation returns `DropProposal` instead of mutating shared event args
@@ -294,7 +294,7 @@ The current shipped drag/drop surface is intentionally in-app and AssemblyScript
   - `processedBytes`
   - `outputFileName`
 
-Current shipped shape:
+Supported behavior:
 
 - dropped files and picker results resolve to the same `BrowserFile` abstraction
 - chunked read/write support is first-class
@@ -303,10 +303,10 @@ Current shipped shape:
 - `.saveToPickedFile(...)` opt-ins the main-thread native save-picker / writable-stream sink
 - without `.saveToPickedFile(...)`, worker-read chunks are delivered back through `onChunk(...)`
 
-Current constraint:
+Limitations:
 
 - the built-in worker path is still a browser-harness convenience layer for worker-side chunked reads plus either app-owned chunk callbacks or the built-in picked-file sink
-- arbitrary user-defined binary transforms inside the AssemblyScript `Worker` / `WorkerJob` runtime are still not shipped because that transport remains string-message oriented rather than byte/transferable oriented
+- arbitrary user-defined binary transforms inside the AssemblyScript `Worker` / `WorkerJob` runtime are not yet supported because that transport remains string-message oriented rather than byte/transferable oriented
 
 ## Browser fetch bridge
 
@@ -328,17 +328,17 @@ Current constraint:
   - `statusText`
   - `url`
 
-Current shipped shape:
+Supported behavior:
 
 - the same first-class fetch surface is available from both `./Fui` and `./FuiWorker`
 - requests are owner-bound and callback-driven, matching the rest of the SDK
 - the browser harness and the worker bootstrap each own their own in-flight request tables, so the main thread plus multiple workers can use fetch concurrently
 - Worker support is a base runtime requirement for FUI-AS rather than a per-feature capability flag
 
-Current constraint:
+Limitations:
 
-- the shipped fetch surface currently returns response metadata only (`ok`, `status`, `statusText`, `url`)
-- request bodies can be supplied as text or bytes, but response body streaming / text decoding is not part of this first shipped slice yet
+- the fetch surface currently returns response metadata only (`ok`, `status`, `statusText`, `url`)
+- request bodies can be supplied as text or bytes, but response body streaming / text decoding is not supported yet
 
 ## Host asset APIs
 
@@ -363,7 +363,7 @@ Current constraint:
 - `getSvgAssetHeight`
 - `getSvgAssetError`
 
-`Bitmap` is the shipped Phase 1 custom-drawing surface: app code owns a live
+`Bitmap` is the custom-drawing surface: app code owns a live
 AssemblyScript `Uint8Array` buffer, writes premultiplied RGBA8 pixels directly,
 and calls `commit()` to upload/update the retained texture referenced by
 `textureId`.
@@ -399,17 +399,17 @@ releases ownership for the previous URL-backed asset automatically.
 - `animateColor(from, to, timing, handler)`
 - `animateColorWith(owner, from, to, timing, handler)`
 
-The current shipped animation surface includes:
+The animation surface includes:
 
-- Phase 1 imperative foundations:
+- Imperative foundations:
   - shared frame-driven manager
   - typed easing/timing
   - float/color helpers
-- Phase 2 typed transitions through `NodeTransitions`:
+- Typed transitions through `NodeTransitions`:
   - `opacity(...)`
   - `bgColor(...)`
   - `scrollOffset(...)`
-- Phase 3 smooth scroll on retained scroll surfaces:
+- Smooth scroll on retained scroll surfaces:
   - `ScrollView.scrollTo(x, y)`
   - `ScrollView.scrollToAnimated(x, y, timing)`
   - `ScrollView.scrollContentSize(width, height)`

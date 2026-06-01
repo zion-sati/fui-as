@@ -1,6 +1,6 @@
 # FUI-AS Controls and Nodes (v2)
 
-This page is the practical guide to the current public retained UI building blocks exported from `./Fui`.
+This page is the practical guide to the public retained UI building blocks exported from `./Fui`.
 
 For the complete export list, see:
 
@@ -172,7 +172,7 @@ Use this when the logical scroll range is larger than the retained child subtree
 currently mounted, such as pooled or virtualized content. A negative axis value
 returns that axis to layout-derived sizing.
 
-Ownership follows the shipped later-wins rule:
+Ownership follows the later-wins rule:
 
 - programmatic smooth scroll clears active Ui momentum before taking over
 - later user wheel/touch scroll input cancels the active programmatic scroll
@@ -209,13 +209,13 @@ Apps can also set house-style defaults once through
 `Application.register(app => app.controlTemplates(templateSet)...)` or
 `Application.useControlTemplates(templateSet)`. Per-instance template setters
 still win over app defaults, and any control without either falls back to the
-built-in shipped presenter.
+built-in presenter.
 
 ## Notes
 
 - Public app-facing imports are from `./Fui`.
 - Runtime bridge exports are from `./FuiExports`.
-- Internal popup plumbing exists in the SDK internals, but `Popup` is not part of the current public `./Fui` surface.
+- Internal popup plumbing exists in the SDK internals, but `Popup` is not part of the public `./Fui` surface.
 - For text-editing specifics, see:
   - [Text input behavior guide](./TEXT_INPUT_DESIGN.md)
   - [Text input reference](./TEXT_INPUT_REFERENCE.md)
