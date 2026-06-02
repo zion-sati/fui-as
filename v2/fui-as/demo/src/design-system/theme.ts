@@ -160,6 +160,7 @@ export function generateDemoTheme(isDark: bool, accentColor: u32): Theme {
     mixColor(base.colors.surface, base.colors.accent, isDark ? 0.05 : 0.02),
     base.colors.textPrimary,
     base.colors.textMuted,
+    base.colors.textOnAccent,
     base.colors.accent,
     base.colors.accentPressed,
     base.colors.accentHovered,

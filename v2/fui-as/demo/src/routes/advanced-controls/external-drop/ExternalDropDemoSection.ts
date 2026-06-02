@@ -33,7 +33,7 @@ import {
 const FONT_REGULAR: u32 = 1;
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 function externalDropEnter(owner: ExternalDropDemoSection, args: ExternalDropEventArgs): DropProposal {
@@ -84,14 +84,14 @@ export class ExternalDropDemoSection {
     .font(FONT_REGULAR, 15.0)
     .maxLines(6) as Text;
   readonly copyButton: Button = new Button("Save dropped file copy")
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .height(48.0, Unit.Pixel)
     .padding(14.0, 14.0, 14.0, 14.0)
     .cornerRadius(16.0)
     .onClickWith<ExternalDropDemoSection>(this, startDroppedFileCopy) as Button;
 
   readonly dropTarget: FlexBox = new FlexBox()
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .height(156.0, Unit.Pixel)
     .padding(18.0, 18.0, 18.0, 18.0)
     .cornerRadius(20.0)
@@ -127,7 +127,7 @@ export class ExternalDropDemoSection {
         this.dropTitleText,
         verticalSpacer(8.0),
         this.dropBodyText,
-      ).width(100.0, Unit.Percent),
+      ).fillWidth(),
     );
     this.sectionBody = Column(
       this.dropTarget,
@@ -141,7 +141,7 @@ export class ExternalDropDemoSection {
       this.capabilityText,
       verticalSpacer(10.0),
       this.hintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     this.syncStatus("External drop status: idle");
     this.itemsText.text("External drop items: none");
     this.syncCapabilities();

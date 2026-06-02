@@ -313,7 +313,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
   constructor() {
     const valueNode = new Text("")
       .selectable(false)
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .maxLines(1)
       .wrapping(false) as Text;
     valueNode
@@ -370,8 +370,7 @@ class HouseDropdownChevronPresenter extends DropdownChevronPresenter {
 
   constructor() {
     const root = new FlexBox()
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center);
     const iconNode = new Svg()
@@ -384,8 +383,7 @@ class HouseDropdownChevronPresenter extends DropdownChevronPresenter {
 
   apply(theme: Theme, state: DropdownChevronVisualState): void {
     this.root
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center);
     this.iconNode
@@ -404,13 +402,12 @@ class HouseDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
   constructor() {
     const labelNode = new Text("")
       .selectable(false)
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .maxLines(1)
       .wrapping(false) as Text;
     labelNode.overflowFade(true, false);
     const root = new FlexBox()
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent)
+      .fillSize()
       .alignItems(AlignItems.Center)
       .child(labelNode);
     super(root, labelNode, new DropdownOptionRowMetrics(38.0));
@@ -496,7 +493,7 @@ class HouseTextInputPresenter extends TextInputPresenter {
       .bgColor(theme.colors.surface);
     this.placeholderHost
       .position(insetX, insetY)
-      .width(100.0, Unit.Percent);
+      .fillWidth();
   }
 }
 

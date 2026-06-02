@@ -71,7 +71,7 @@ const PREVIEW_MARGIN_PX: f32 = 12.0;
 let activeAutoScrollController: ReorderDemoSection | null = null;
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 function rowDragData(owner: ReorderRowView): DragDataObject | null {
@@ -103,7 +103,7 @@ function reorderAutoScrollTimer(): void {
 
 class ReorderRowView {
   readonly marker: FlexBox = new FlexBox()
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .height(REORDER_MARKER_HEIGHT_PX, Unit.Pixel)
     .cornerRadius(REORDER_MARKER_HEIGHT_PX * 0.5)
     .opacity(0.0) as FlexBox;
@@ -148,7 +148,7 @@ class ReorderRowView {
     ).fillWidth();
 
     this.card = new FlexBox()
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .height(REORDER_ROW_BODY_HEIGHT_PX, Unit.Pixel)
       .padding(16.0, 14.0, 16.0, 14.0)
       .cornerRadius(18.0)
@@ -157,11 +157,11 @@ class ReorderRowView {
           this.grip,
           new FlexBox().width(14.0, Unit.Pixel).height(1.0, Unit.Pixel),
           textColumn,
-        ).width(100.0, Unit.Percent),
+        ).fillWidth(),
       ) as FlexBox;
 
     this.slot = new FlexBox()
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .flexDirection(FlexDirection.Column)
       .allowDrop(true)
       .onDragEnterWith<ReorderRowView>(this, rowDragOver)
@@ -240,7 +240,7 @@ export class ReorderDemoSection {
   private readonly items: Array<ReorderDemoItem> = createReorderDemoItems();
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private readonly scrollContent: FlexBox = new FlexBox()
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .flexDirection(FlexDirection.Column);
   readonly scrollBox: DemoScrollBox;
   readonly orderStatusText: Text = new DemoText("", DemoTextRecipe.StatusValue)
@@ -272,7 +272,7 @@ export class ReorderDemoSection {
         this.previewDetailText,
         verticalSpacer(10.0),
         this.previewEffectText,
-      ).width(100.0, Unit.Percent),
+      ).fillWidth(),
     )
     .opacity(0.0)
     .visibility(Visibility.Hidden)
@@ -281,8 +281,7 @@ export class ReorderDemoSection {
   readonly previewPortal: Portal = new Portal()
     .positionAbsolute()
     .position(0.0, 0.0)
-    .width(100.0, Unit.Percent)
-    .height(100.0, Unit.Percent)
+    .fillSize()
     .child(this.previewGhost) as Portal;
   readonly hintText: Text = new DemoText(
     "Drag a grip to reorder the list. Hold near the viewport edge (or just beyond it) to auto-scroll the inner ScrollBox while the outer route page stays scrollable.",
@@ -291,7 +290,7 @@ export class ReorderDemoSection {
     .font(FONT_REGULAR, 15.0)
     .maxLines(4) as Text;
   readonly endMarker: FlexBox = new FlexBox()
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .height(REORDER_MARKER_HEIGHT_PX, Unit.Pixel)
     .cornerRadius(REORDER_MARKER_HEIGHT_PX * 0.5)
     .opacity(0.0) as FlexBox;
@@ -317,7 +316,7 @@ export class ReorderDemoSection {
       .scrollEnabledY(true)
       .verticalScrollbarVisibility(ScrollBarVisibility.Always)
       .horizontalScrollbarVisibility(ScrollBarVisibility.Never)
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .height(REORDER_VIEWPORT_HEIGHT_PX, Unit.Pixel)
       .semanticRole(SemanticRole.StaticText)
       .semanticLabel("Reorder demo viewport") as DemoScrollBox;
@@ -331,7 +330,7 @@ export class ReorderDemoSection {
     }
 
     this.endDropZone = new FlexBox()
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .height(44.0, Unit.Pixel)
       .allowDrop(true)
       .onDragEnterWith<ReorderDemoSection>(this, reorderEndDragOver)
@@ -341,7 +340,7 @@ export class ReorderDemoSection {
     this.endDropZone.child(this.endMarker);
     this.endDropZone.child(
       new FlexBox()
-        .width(100.0, Unit.Percent)
+        .fillWidth()
         .height(36.0, Unit.Pixel)
         .cornerRadius(14.0)
         .justifyContent(JustifyContent.Center)
@@ -361,9 +360,9 @@ export class ReorderDemoSection {
       this.viewportStatusText,
       verticalSpacer(10.0),
       this.hintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     this.sectionRoot = new FlexBox()
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .clipToBounds(false)
       .child(this.sectionBody)
       .child(this.previewPortal) as FlexBox;

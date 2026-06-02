@@ -15,7 +15,7 @@ class NavItem {
 }
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 function horizontalSpacer(width: f32): FlexBox {
@@ -53,16 +53,15 @@ export class RoutePageView {
     .verticalScrollbarVisibility(ScrollBarVisibility.Always)
     .scrollbarGutter(ROUTE_PAGE_SCROLLBAR_GUTTER)
     .width(routePageScrollBoxWidth(), Unit.Pixel)
-    .height(100.0, Unit.Percent) as ScrollBox;
+    .fillHeight() as ScrollBox;
   private readonly surface: FlexBox = new DemoSurface(DemoSurfaceRecipe.PageShell)
-    .width(100.0, Unit.Percent) as FlexBox;
+    .fillWidth() as FlexBox;
   private readonly surfaceFrame: FlexBox = new FlexBox()
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .padding(PAGE_SHELL_FRAME_PADDING, PAGE_SHELL_FRAME_PADDING, PAGE_SHELL_FRAME_PADDING, PAGE_SHELL_FRAME_PADDING)
     .child(this.surface) as FlexBox;
   private readonly root: SelectionArea = new SelectionArea()
-    .width(100.0, Unit.Percent)
-    .height(100.0, Unit.Percent)
+    .fillSize()
     .padding(routePageRootPadding(), routePageRootPadding(), routePageRootPadding(), routePageRootPadding())
     .child(this.contentScrollBox) as SelectionArea;
   private readonly titleText: Text;
@@ -134,7 +133,7 @@ export class RoutePageView {
         ),
       ) as FlexBox;
 
-    const navBar = Row().width(100.0, Unit.Percent);
+    const navBar = Row().fillWidth();
     for (let i = 0; i < model.navItems.length; i += 1) {
       const item = unchecked(model.navItems[i]);
       if (i > 0) {
@@ -159,7 +158,7 @@ export class RoutePageView {
       this.actionButton,
       verticalSpacer(22.0),
       this.highlightCard,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     this.contentColumn.padding(routePageContentPadding(), routePageContentPadding(), routePageContentPadding(), routePageContentPadding());
 
     for (let i = 0; i < sections.length; i += 1) {

@@ -60,6 +60,14 @@ export enum AlignItems {
   Stretch = 4,
 }
 
+export enum AlignSelf {
+  Auto = 0,
+  Start = 1,
+  Center = 2,
+  End = 3,
+  Stretch = 4,
+}
+
 export enum BorderStyle {
   Solid = 0,
   Dashed = 1,
@@ -234,6 +242,24 @@ export declare function ui_set_fill_width(handle: u64, fill: bool): void;
 @external("effindom_v2_ui", "ui_set_fill_height")
 export declare function ui_set_fill_height(handle: u64, fill: bool): void;
 
+@external("effindom_v2_ui", "ui_set_fill_width_percent")
+export declare function ui_set_fill_width_percent(handle: u64, percent: f32): void;
+
+@external("effindom_v2_ui", "ui_set_fill_height_percent")
+export declare function ui_set_fill_height_percent(handle: u64, percent: f32): void;
+
+@external("effindom_v2_ui", "ui_set_min_width")
+export declare function ui_set_min_width(handle: u64, value: f32, unit: u32): void;
+
+@external("effindom_v2_ui", "ui_set_max_width")
+export declare function ui_set_max_width(handle: u64, value: f32, unit: u32): void;
+
+@external("effindom_v2_ui", "ui_set_min_height")
+export declare function ui_set_min_height(handle: u64, value: f32, unit: u32): void;
+
+@external("effindom_v2_ui", "ui_set_max_height")
+export declare function ui_set_max_height(handle: u64, value: f32, unit: u32): void;
+
 @external("effindom_v2_ui", "ui_set_flex_direction")
 export declare function ui_set_flex_direction(handle: u64, direction: u32): void;
 
@@ -245,6 +271,9 @@ export declare function ui_set_justify_content(handle: u64, justify: u32): void;
 
 @external("effindom_v2_ui", "ui_set_align_items")
 export declare function ui_set_align_items(handle: u64, align: u32): void;
+
+@external("effindom_v2_ui", "ui_set_align_self")
+export declare function ui_set_align_self(handle: u64, align: u32): void;
 
 @external("effindom_v2_ui", "ui_set_padding")
 export declare function ui_set_padding(handle: u64, left: f32, top: f32, right: f32, bottom: f32): void;

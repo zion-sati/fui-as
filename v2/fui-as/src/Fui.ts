@@ -69,6 +69,7 @@ export {
 export { DragCompletedEvent, DragDeltaEvent, DragGesture, DragGestureHost, DragStartedEvent } from "./core/DragGesture";
 export { ContextMenuManager } from "./core/ContextMenuManager";
 export {
+  AlignSelf,
   AlignItems,
   BorderStyle,
   CursorStyle,

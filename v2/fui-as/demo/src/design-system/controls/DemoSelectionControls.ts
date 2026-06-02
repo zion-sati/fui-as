@@ -4,13 +4,13 @@ export class DemoCheckbox extends Checkbox {
   constructor(label: string, fullWidth: bool = false) {
     super(label);
     if (fullWidth) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
   }
 
   fullWidth(flag: bool = true): this {
     if (flag) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
     return this;
   }
@@ -20,13 +20,13 @@ export class DemoSwitch extends Switch {
   constructor(label: string, fullWidth: bool = false) {
     super(label);
     if (fullWidth) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
   }
 
   fullWidth(flag: bool = true): this {
     if (flag) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
     return this;
   }
@@ -36,13 +36,13 @@ export class DemoRadioButton extends RadioButton {
   constructor(value: string, label: string = value, fullWidth: bool = false) {
     super(value, label);
     if (fullWidth) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
   }
 
   fullWidth(flag: bool = true): this {
     if (flag) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
     return this;
   }
@@ -52,13 +52,13 @@ export class DemoRadioGroup extends RadioGroup {
   constructor(fullWidth: bool = false) {
     super();
     if (fullWidth) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
   }
 
   fullWidth(flag: bool = true): this {
     if (flag) {
-      this.width(100.0, Unit.Percent);
+      this.fillWidth();
     }
     return this;
   }

@@ -82,7 +82,7 @@ class DefaultButtonPresenter extends ButtonPresenter {
       .fontWeight(FontWeight.Regular)
       .fontStyle(FontStyle.Normal)
       .fontSize(theme.fonts.sizeBody)
-      .textColor(theme.colors.textPrimary);
+      .textColor(theme.colors.textOnAccent);
   }
 }
 

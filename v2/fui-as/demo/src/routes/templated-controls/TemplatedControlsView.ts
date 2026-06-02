@@ -32,7 +32,7 @@ const HOUSE_DROPDOWN_ITEMS: Array<DemoDropdownItem> = [
 ];
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 function createSummaryText(recipe: DemoTextRecipe): Text {
@@ -73,17 +73,17 @@ export class TemplatedControlsView {
   readonly houseDropdown: DemoDropdown = new DemoDropdown()
     .items(HOUSE_DROPDOWN_ITEMS)
     .selectIndex(1)
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .nodeId("templated-controls:house-dropdown") as DemoDropdown;
   readonly houseButton: Button = new Button("Run house action")
     as Button;
   readonly houseTextInput: TextInput = new TextInput("Palette")
     .placeholder("House style input")
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .nodeId("templated-controls:house-text-input") as TextInput;
   readonly houseTextArea: TextArea = new TextArea("Presenter-owned chrome.\nControl-owned behavior.")
     .placeholder("House style text area")
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .height(120.0, Unit.Pixel)
     .nodeId("templated-controls:house-text-area") as TextArea;
   readonly defaultsStatusText: Text = createSummaryText(DemoTextRecipe.StatusValue);
@@ -137,7 +137,7 @@ export class TemplatedControlsView {
       this.houseTextArea,
       verticalSpacer(10.0),
       this.defaultsHintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     return createRoutePageSection(
       "App-level defaults",
       "These controls use the route-wide ControlTemplateSet and keep their built-in semantics, persistence, and interaction behavior.",
@@ -150,7 +150,7 @@ export class TemplatedControlsView {
       this.overrideCheckbox,
       verticalSpacer(10.0),
       this.overrideHintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     return createRoutePageSection(
       "Per-instance override precedence",
       "This control uses a local template override, so it stays distinct from the route's house defaults.",
@@ -163,7 +163,7 @@ export class TemplatedControlsView {
       this.defaultsStatusText,
       verticalSpacer(8.0),
       this.overrideStatusText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     return createRoutePageSection(
       "Live state summary",
       "Use the controls above and confirm the summary updates without any custom behavior leaking into the presenter classes.",

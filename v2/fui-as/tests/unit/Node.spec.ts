@@ -1,4 +1,5 @@
 import {
+  AlignSelf,
   AlignItems,
   BorderStyle,
   FlexDirection,
@@ -27,11 +28,14 @@ import {
   CALL_GRID_SET_ROW_SHARED_SIZE_GROUP,
   CALL_LOAD_FONT,
   CALL_SET_ALIGN_ITEMS,
+  CALL_SET_ALIGN_SELF,
   CALL_SET_BOX_STYLE,
   CALL_SET_BACKGROUND_BLUR,
   CALL_SET_CLIP_TO_BOUNDS,
   CALL_SET_FILL_HEIGHT,
   CALL_SET_FILL_WIDTH,
+  CALL_SET_FILL_HEIGHT_PERCENT,
+  CALL_SET_FILL_WIDTH_PERCENT,
   CALL_SET_VISIBILITY,
   CALL_SET_CARET_COLOR,
   CALL_SET_EDITABLE,
@@ -47,6 +51,10 @@ import {
   CALL_SET_LAYER_EFFECT,
   CALL_SET_LINEAR_GRADIENT,
   CALL_SET_MARGIN,
+  CALL_SET_MAX_HEIGHT,
+  CALL_SET_MAX_WIDTH,
+  CALL_SET_MIN_HEIGHT,
+  CALL_SET_MIN_WIDTH,
   CALL_SET_PADDING,
   CALL_SET_POSITION,
   CALL_SET_POSITION_TYPE,
@@ -126,6 +134,7 @@ describe("Node builders", () => {
       .flexBasis(48.0)
       .justifyContent(JustifyContent.Center)
       .alignItems(AlignItems.Center)
+      .alignSelf(AlignSelf.End)
       .margin(5.0, 6.0, 7.0, 8.0)
       .padding(1.0, 2.0, 3.0, 4.0)
       .clipToBounds(true);
@@ -142,6 +151,7 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_FLEX_BASIS)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_JUSTIFY_CONTENT)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_ALIGN_ITEMS)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_ALIGN_SELF)).toBeGreaterThan(-1);
     const marginIndex = findCall(CALL_SET_MARGIN);
     expect<i32>(marginIndex).toBeGreaterThan(-1);
     expect<f64>(getCallArg(marginIndex, 1)).toBe(5.0);
@@ -183,6 +193,103 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_HEIGHT)).toBe(-1);
     expect<i32>(findCall(CALL_SET_FILL_WIDTH)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_SET_FILL_HEIGHT)).toBeGreaterThan(-1);
+  });
+
+  it("exposes available-space percent fill and min/max sizing helpers", () => {
+    resetCalls();
+
+    new FlexBox()
+      .fillWidthPercent(50.0)
+      .fillHeightPercent(25.0)
+      .minWidth(120.0)
+      .maxWidth(60.0, Unit.Percent)
+      .minHeight(32.0)
+      .maxHeight(40.0, Unit.Percent)
+      .build();
+
+    const fillWidthPercentIndex = findCall(CALL_SET_FILL_WIDTH_PERCENT);
+    expect<i32>(fillWidthPercentIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(fillWidthPercentIndex, 1)).toBe(50.0);
+
+    const fillHeightPercentIndex = findCall(CALL_SET_FILL_HEIGHT_PERCENT);
+    expect<i32>(fillHeightPercentIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(fillHeightPercentIndex, 1)).toBe(25.0);
+
+    const minWidthIndex = findCall(CALL_SET_MIN_WIDTH);
+    expect<i32>(minWidthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(minWidthIndex, 1)).toBe(120.0);
+    expect<f64>(getCallArg(minWidthIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    const maxWidthIndex = findCall(CALL_SET_MAX_WIDTH);
+    expect<i32>(maxWidthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(maxWidthIndex, 1)).toBe(60.0);
+    expect<f64>(getCallArg(maxWidthIndex, 2)).toBe(<f64>Unit.Percent);
+
+    const minHeightIndex = findCall(CALL_SET_MIN_HEIGHT);
+    expect<i32>(minHeightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(minHeightIndex, 1)).toBe(32.0);
+    expect<f64>(getCallArg(minHeightIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    const maxHeightIndex = findCall(CALL_SET_MAX_HEIGHT);
+    expect<i32>(maxHeightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(maxHeightIndex, 1)).toBe(40.0);
+    expect<f64>(getCallArg(maxHeightIndex, 2)).toBe(<f64>Unit.Percent);
+  });
+
+  it("exposes percent fill and min/max sizing helpers on text and scroll nodes", () => {
+    resetCalls();
+
+    new Text("Hello")
+      .fillWidthPercent(65.0)
+      .minHeight(24.0)
+      .build();
+
+    expect<i32>(findCall(CALL_SET_FILL_WIDTH_PERCENT)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_MIN_HEIGHT)).toBeGreaterThan(-1);
+
+    resetCalls();
+
+    new ScrollView()
+      .fillHeightPercent(70.0)
+      .maxWidth(320.0)
+      .build();
+
+    expect<i32>(findCall(CALL_SET_FILL_HEIGHT_PERCENT)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_MAX_WIDTH)).toBeGreaterThan(-1);
+  });
+
+  it("keeps only the final sizing mode per axis before build", () => {
+    resetCalls();
+
+    new FlexBox()
+      .width(100.0, Unit.Percent)
+      .fillWidthPercent(50.0)
+      .fillWidth()
+      .height(100.0, Unit.Percent)
+      .fillHeightPercent(40.0)
+      .fillHeight()
+      .build();
+
+    expect<i32>(findCall(CALL_SET_WIDTH)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_HEIGHT)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_FILL_WIDTH_PERCENT)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_FILL_HEIGHT_PERCENT)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_FILL_WIDTH)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_FILL_HEIGHT)).toBeGreaterThan(-1);
+
+    resetCalls();
+
+    new FlexBox()
+      .fillWidth()
+      .width(75.0, Unit.Percent)
+      .fillHeight()
+      .height(55.0, Unit.Percent)
+      .build();
+
+    expect<i32>(findCall(CALL_SET_FILL_WIDTH)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_FILL_HEIGHT)).toBe(-1);
+    expect<i32>(findCall(CALL_SET_WIDTH)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_HEIGHT)).toBeGreaterThan(-1);
   });
 
   it("exposes flexBasis helpers on FlexBox and ScrollView", () => {

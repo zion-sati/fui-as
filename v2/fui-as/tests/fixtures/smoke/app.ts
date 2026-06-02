@@ -1,11 +1,13 @@
 import {
   Application,
+  Column,
   FlexBox,
   HandleValue,
   Node,
   Row,
   SemanticRole,
   Signal,
+  Svg,
   Text,
   Worker,
   createManagedApplication,
@@ -15,6 +17,7 @@ export * from "../../../src/FuiExports";
 
 const FONT_REGULAR: u32 = 1;
 const PANEL_TEXT: u32 = rgb(0xe2, 0xe8, 0xf0);
+const SMOKE_SVG_URL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 100 50' preserveAspectRatio='xMinYMin meet'><rect width='100' height='50' fill='%23006cff'/></svg>";
 
 enum SmokeWorkerPhase {
   Idle = 0,
@@ -47,14 +50,23 @@ class SmokeApp {
       .textColor(PANEL_TEXT)
       .semanticRole(SemanticRole.Heading)
       .semanticLabel("right") as Text;
+    const smokeSvg = (new Svg()
+      .source(SMOKE_SVG_URL)
+      .width(120.0)
+      .height(96.0) as Svg)
+      .altText("smoke svg");
 
     spacer.width(spacing.value);
     this.spacing = spacing;
     this.spacer = spacer;
-    this.root = Row(
-      left,
-      spacer,
-      right,
+    this.root = Column(
+      Row(
+        left,
+        spacer,
+        right,
+      ),
+      new FlexBox().height(24.0),
+      smokeSvg,
     )
       .padding(24.0, 24.0, 24.0, 24.0);
   }

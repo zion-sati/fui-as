@@ -464,6 +464,7 @@ wall-clock reads inside a worker module.
 - [SDK docs index](./SDK_INDEX.md)
 - [API reference](./API_REFERENCE.md)
 - [Controls and nodes](./CONTROLS_AND_NODES.md)
+- [Core layout concept (`width(100%)` vs `fillWidth()`)](./CONTROLS_AND_NODES.md#core-layout-concept)
 - [Layout sizing guide (`fill*` vs `Unit.Percent`)](./CONTROLS_AND_NODES.md#layout-sizing-guide-fill-vs-unitpercent)
 - [Accessibility and semantics](./ACCESSIBILITY_AND_SEMANTICS.md)
 - [Per-type reference](./reference/README.md)
@@ -509,7 +510,7 @@ const density = new Dropdown()
   .nodeId("settings-density");
 
 const notes = new TextArea()
-  .width(100.0, Unit.Percent)
+  .fillWidth()
   .height(180.0, Unit.Pixel)
   .nodeId("settings-notes");
 ```

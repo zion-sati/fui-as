@@ -4,6 +4,7 @@ import {
   CheckboxIndicatorPresenter,
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
+  Button,
   Dropdown,
   DropdownFieldMetrics,
   DropdownFieldPresenter,
@@ -28,8 +29,9 @@ import {
 import { Application } from "../../src/core/Application";
 import { Node } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
-import { CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
+import { AlignSelf, CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
+import { rgb } from "../../src/color";
 import { __fui_on_selection_changed, __fui_on_text_changed, __fui_on_text_replaced, __fui_text_buffer } from "../../src/core/event_exports";
 import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
 import {
@@ -57,6 +59,8 @@ import {
   CALL_SET_TEXT_LIMITS,
   CALL_SET_TEXT_WRAPPING,
   CALL_SET_TEXT_OBSCURED,
+  CALL_SET_TEXT_COLOR,
+  CALL_SET_ALIGN_SELF,
   CALL_SET_DROP_SHADOW,
   CALL_SET_FILL_WIDTH,
   getCallArg,
@@ -268,6 +272,45 @@ describe("Common controls", () => {
     checkbox.dispose();
   });
 
+  it("button default label color follows the accent foreground token", () => {
+    resetTheme();
+    useCustomTheme(new Theme(
+      new Colors(
+        activeTheme.value.colors.background,
+        activeTheme.value.colors.surface,
+        activeTheme.value.colors.textPrimary,
+        activeTheme.value.colors.textMuted,
+        rgb(0xff, 0xff, 0xff),
+        activeTheme.value.colors.accent,
+        activeTheme.value.colors.accentPressed,
+        activeTheme.value.colors.accentHovered,
+        activeTheme.value.colors.border,
+        activeTheme.value.colors.selection,
+        activeTheme.value.colors.scrollbarTrack,
+        activeTheme.value.colors.scrollbarThumb,
+        activeTheme.value.colors.dialogBackdrop,
+        activeTheme.value.colors.dialogShadow,
+        activeTheme.value.colors.panelShadow,
+        activeTheme.value.colors.focusRing,
+      ),
+      activeTheme.value.spacing,
+      activeTheme.value.fonts,
+      activeTheme.value.contextMenu,
+      activeTheme.value.toolTip,
+    ));
+    resetCalls();
+
+    const button = new Button("Launch");
+    button.build();
+
+    const colorCall = findCall(CALL_SET_TEXT_COLOR);
+    expect<bool>(colorCall >= 0).toBe(true);
+    expect<u32>(<u32>getCallArg(colorCall, 1)).toBe(activeTheme.value.colors.textOnAccent);
+    const alignSelfCall = lastCallIndexForHandle(CALL_SET_ALIGN_SELF, button.builtHandle);
+    expect<bool>(alignSelfCall >= 0).toBe(true);
+    expect<u32>(<u32>getCallArg(alignSelfCall, 1)).toBe(<u32>AlignSelf.Start);
+  });
+
   it("checkbox tri-state cycles false to true to mixed to false on space", () => {
     EventRouter.reset();
     resetTheme();
@@ -308,7 +351,7 @@ describe("Common controls", () => {
     let svgIndex = lastCallIndexForHandle(CALL_SET_SVG, markHandle);
     expect<i32>(svgIndex).toBeGreaterThan(-1);
     expect<f64>(getCallArg(svgIndex, 1)).toBeGreaterThan(0.0);
-    expect<f64>(getCallArg(svgIndex, 2)).toBe(<f64>defaultDarkTheme.colors.surface);
+    expect<f64>(getCallArg(svgIndex, 2)).toBe(<f64>defaultDarkTheme.colors.textOnAccent);
 
     resetCalls();
     EventRouter.dispatchKeyEvent(handle, KeyEventType.Down, " ", 0);
@@ -321,17 +364,18 @@ describe("Common controls", () => {
     checkbox.dispose();
   });
 
-  it("checkbox mark tint resolves against the active theme surface color", () => {
+  it("checkbox mark tint resolves against the active accent foreground token", () => {
     EventRouter.reset();
     resetCalls();
 
-    const customSurface: u32 = 0x112233ff;
+    const customTextOnAccent: u32 = 0x112233ff;
     useCustomTheme(new Theme(
       new Colors(
         defaultDarkTheme.colors.background,
-        customSurface,
+        defaultDarkTheme.colors.surface,
         defaultDarkTheme.colors.textPrimary,
         defaultDarkTheme.colors.textMuted,
+        customTextOnAccent,
         defaultDarkTheme.colors.accent,
         defaultDarkTheme.colors.accentPressed,
         defaultDarkTheme.colors.accentHovered,
@@ -359,7 +403,7 @@ describe("Common controls", () => {
     const svgIndex = lastCallIndex(CALL_SET_SVG);
     expect<i32>(svgIndex).toBeGreaterThan(-1);
     expect<f64>(getCallArg(svgIndex, 1)).toBeGreaterThan(0.0);
-    expect<f64>(getCallArg(svgIndex, 2)).toBe(<f64>customSurface);
+    expect<f64>(getCallArg(svgIndex, 2)).toBe(<f64>customTextOnAccent);
 
     checkbox.dispose();
   });

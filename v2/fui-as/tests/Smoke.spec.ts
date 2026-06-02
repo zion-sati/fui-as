@@ -34,6 +34,7 @@ const SCREENSHOT_DIR = path.join(__dirname, 'screenshots');
 
 let server: StaticServerHandle;
 let baseUrl: string;
+const SMOKE_SVG_URL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 100 50' preserveAspectRatio='xMinYMin meet'><rect width='100' height='50' fill='%23006cff'/></svg>";
 
 function screenshotPath(name: string): string {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -107,7 +108,7 @@ test('renders the smoke row through the browser bridge', async ({ page }) => {
     return await page.evaluate(() => {
       return (window.__bridgeSemanticTree ?? []).length;
     });
-  }).toBe(2);
+  }).toBe(3);
 
   const projected = await page.evaluate(() => {
     return (window.__bridgeSemanticTree ?? []).map((node) => ({
@@ -145,6 +146,149 @@ test('renders the smoke row through the browser bridge', async ({ page }) => {
   }).toBeGreaterThan(right.bounds.x - left.bounds.x);
 
   await page.screenshot({ path: screenshotPath('fui-as-row-layout.png') });
+});
+
+test('smoke SVG render matches browser rasterization for a percentage-root SVG', async ({ page }) => {
+  await page.goto(`${baseUrl}/v2/fui-as/index.html`);
+
+  await expect.poll(async () => {
+    return await page.evaluate(() => {
+      if (window.__fuiAsError !== undefined) {
+        return `error:${window.__fuiAsError}`;
+      }
+      return window.__fuiAsReady === true ? 'ready' : 'pending';
+    });
+  }).toBe('ready');
+
+  await expect.poll(async () => {
+    return await page.evaluate(() => {
+      const node = (window.__bridgeSemanticTree ?? []).find((entry) => entry.label === 'smoke svg');
+      return node?.bounds ?? null;
+    });
+  }).not.toBeNull();
+  const svgBounds = await page.evaluate(() => {
+    const node = (window.__bridgeSemanticTree ?? []).find((entry) => entry.label === 'smoke svg');
+    return node?.bounds ?? null;
+  });
+
+  const blueBounds = await page.evaluate((rawBounds: { x: number; y: number; width: number; height: number; } | null) => {
+    if (rawBounds === null) {
+      throw new Error('Expected smoke SVG semantic bounds.');
+    }
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected smoke canvas.');
+    }
+    const scaleX = canvas.width / Math.max(canvas.clientWidth, 1);
+    const scaleY = canvas.height / Math.max(canvas.clientHeight, 1);
+    const sampleX = Math.max(0, Math.floor(rawBounds.x * scaleX));
+    const sampleY = Math.max(0, Math.floor(rawBounds.y * scaleY));
+    const sampleWidth = Math.max(1, Math.ceil(rawBounds.width * scaleX));
+    const sampleHeight = Math.max(1, Math.ceil(rawBounds.height * scaleY));
+    const probe = document.createElement('canvas');
+    probe.width = canvas.width;
+    probe.height = canvas.height;
+    const context = probe.getContext('2d');
+    if (context === null) {
+      throw new Error('Expected probe context.');
+    }
+    context.drawImage(canvas, 0, 0);
+    const pixels = context.getImageData(sampleX, sampleY, sampleWidth, sampleHeight).data;
+    let minX = sampleWidth;
+    let minY = sampleHeight;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < sampleHeight; y += 1) {
+      for (let x = 0; x < sampleWidth; x += 1) {
+        const offset = ((y * sampleWidth) + x) * 4;
+        const red = pixels[offset] ?? 0;
+        const green = pixels[offset + 1] ?? 0;
+        const blue = pixels[offset + 2] ?? 0;
+        const alpha = pixels[offset + 3] ?? 0;
+        if (alpha < 200 || blue <= red + 40 || blue <= green + 20) {
+          continue;
+        }
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      throw new Error('Expected visible blue SVG pixels.');
+    }
+    return {
+      width: sampleWidth,
+      height: sampleHeight,
+      occupiedWidth: (maxX - minX) + 1,
+      occupiedHeight: (maxY - minY) + 1,
+      minY,
+    };
+  }, svgBounds);
+  const browserReference = await page.evaluate(async ({
+    svgUrl,
+    sampleWidth,
+    sampleHeight,
+  }: {
+    svgUrl: string;
+    sampleWidth: number;
+    sampleHeight: number;
+  }) => {
+    const image = new Image();
+    const loaded = new Promise<void>((resolve, reject) => {
+      image.addEventListener('load', () => { resolve(); }, { once: true });
+      image.addEventListener('error', () => { reject(new Error('Failed to load browser reference SVG.')); }, { once: true });
+    });
+    image.src = svgUrl;
+    await loaded;
+    const probe = document.createElement('canvas');
+    probe.width = sampleWidth;
+    probe.height = sampleHeight;
+    const context = probe.getContext('2d');
+    if (context === null) {
+      throw new Error('Expected browser reference context.');
+    }
+    context.drawImage(image, 0, 0, sampleWidth, sampleHeight);
+    const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+    let minX = sampleWidth;
+    let minY = sampleHeight;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < sampleHeight; y += 1) {
+      for (let x = 0; x < sampleWidth; x += 1) {
+        const offset = ((y * sampleWidth) + x) * 4;
+        const red = pixels[offset] ?? 0;
+        const green = pixels[offset + 1] ?? 0;
+        const blue = pixels[offset + 2] ?? 0;
+        const alpha = pixels[offset + 3] ?? 0;
+        if (alpha < 200 || blue <= red + 40 || blue <= green + 20) {
+          continue;
+        }
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      throw new Error('Expected visible browser reference SVG pixels.');
+    }
+    return {
+      width: sampleWidth,
+      height: sampleHeight,
+      occupiedWidth: (maxX - minX) + 1,
+      occupiedHeight: (maxY - minY) + 1,
+      minY,
+    };
+  }, {
+    svgUrl: SMOKE_SVG_URL,
+    sampleWidth: blueBounds.width,
+    sampleHeight: blueBounds.height,
+  });
+
+  expect(Math.abs(blueBounds.occupiedWidth - browserReference.occupiedWidth)).toBeLessThanOrEqual(2);
+  expect(Math.abs(blueBounds.occupiedHeight - browserReference.occupiedHeight)).toBeLessThanOrEqual(2);
+  expect(Math.abs(blueBounds.minY - browserReference.minY)).toBeLessThanOrEqual(2);
 });
 
 test('smoke startup reports a readable null-child error', async ({ page }) => {

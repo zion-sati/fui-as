@@ -12,7 +12,7 @@ export class RoutePageSection {
 }
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 export function createRoutePageSection(title: string, description: string, body: Node): RoutePageSection {
@@ -33,7 +33,7 @@ export function createRoutePageSection(title: string, description: string, body:
         descriptionText,
         verticalSpacer(14.0),
         body,
-      ).width(100.0, Unit.Percent),
+      ).fillWidth(),
     );
 
   return new RoutePageSection(card, heading, descriptionText);

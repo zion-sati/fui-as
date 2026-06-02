@@ -108,6 +108,30 @@ export function setFillHeight(handle: u64, fill: bool): void {
   ffi.ui_set_fill_height(handle, fill);
 }
 
+export function setFillWidthPercent(handle: u64, percent: f32): void {
+  ffi.ui_set_fill_width_percent(handle, percent);
+}
+
+export function setFillHeightPercent(handle: u64, percent: f32): void {
+  ffi.ui_set_fill_height_percent(handle, percent);
+}
+
+export function setMinWidth(handle: u64, value: f32, unit: u32): void {
+  ffi.ui_set_min_width(handle, value, unit);
+}
+
+export function setMaxWidth(handle: u64, value: f32, unit: u32): void {
+  ffi.ui_set_max_width(handle, value, unit);
+}
+
+export function setMinHeight(handle: u64, value: f32, unit: u32): void {
+  ffi.ui_set_min_height(handle, value, unit);
+}
+
+export function setMaxHeight(handle: u64, value: f32, unit: u32): void {
+  ffi.ui_set_max_height(handle, value, unit);
+}
+
 export function setFlexDirection(handle: u64, direction: u32): void {
   ffi.ui_set_flex_direction(handle, direction);
 }
@@ -122,6 +146,10 @@ export function setJustifyContent(handle: u64, justify: u32): void {
 
 export function setAlignItems(handle: u64, align: u32): void {
   ffi.ui_set_align_items(handle, align);
+}
+
+export function setAlignSelf(handle: u64, align: u32): void {
+  ffi.ui_set_align_self(handle, align);
 }
 
 export function setPadding(handle: u64, left: f32, top: f32, right: f32, bottom: f32): void {

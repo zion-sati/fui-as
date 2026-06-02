@@ -56,13 +56,40 @@ For the complete export list, see:
 
 ## Layout sizing guide (`fill*` vs `Unit.Percent`)
 
+### Core layout concept
+
+This is the most important sizing distinction in the SDK:
+
+- `width(100.0, Unit.Percent)` = **make my box 100% of the parent**
+- `fillWidth()` = **size me to the available inner width the parent layout is offering**
+- `fillWidthPercent(50.0)` = **take 50% of the available inner width the parent layout is offering**
+
+The same rule applies vertically:
+
+- `height(100.0, Unit.Percent)` = **make my box 100% of the parent**
+- `fillHeight()` = **size me to the available inner height the parent layout is offering**
+- `fillHeightPercent(50.0)` = **take 50% of the available inner height the parent layout is offering**
+
+If you come from web UI, `width(100%)` is a natural thing to try. In this SDK it
+is still valid, but it means **literal percentage sizing** of the child box. For
+normal flex-style "take the available space here" layout, prefer `fillWidth()`
+and `fillHeight()`.
+
 `fillWidth()` and `fillHeight()` mean "take the available space on this axis."
 They are the default choice for stretch/fill layouts and account for the parent
 content box, so padding and margins do not create the overflow problem that a
 literal `100%` can.
 
+`alignItems(...)` is a parent-level cross-axis policy, not a child size. Use it
+to say "children in this container stretch/start/center on the cross axis."
+Use `alignSelf(...)` when only one child should override that policy.
+
 Use `width(..., Unit.Percent)` or `height(..., Unit.Percent)` only when the size
 itself should be a fixed ratio of the parent, such as `25%` / `75%` splits.
+
+Use `fillWidthPercent(...)` or `fillHeightPercent(...)` when the size should be a
+fraction of the space layout is actually offering on that axis. This is the
+missing middle ground between literal parent percentages and full fill.
 
 `Unit.Auto` means "size to intrinsic content on this axis." Do not combine
 `fillWidth()` with `width(..., Unit.Auto)` on width, or `fillHeight()` with
@@ -75,9 +102,51 @@ itself should be a fixed ratio of the parent, such as `25%` / `75%` splits.
 |---|---|---|---|
 | Child should fill the parent on the cross-axis | `fillHeight()` | `fillWidth()` | Fill uses available-space sizing and respects the parent content box. |
 | Child should take the available main-axis space next to fixed siblings | `fillWidth()` | `fillHeight()` | Fill is axis-aware; use the axis that is stretching, even when the other axis is fixed. |
+| Child should take a fraction of the offered space on that axis | `fillWidthPercent(50.0)` | `fillHeightPercent(50.0)` | Available-space percent sizes from the axis layout offer, not from the parent box ratio. |
 | Child should be a literal percentage of the parent | `width(30.0, Unit.Percent)` | `height(30.0, Unit.Percent)` | Percent means fixed ratio, not "fill the leftover space." |
 | Child should size to intrinsic content | `width(0.0, Unit.Auto)` | `height(0.0, Unit.Auto)` | Auto sizes to content. Do not combine with `fill*` on the same axis. |
 | Root/backdrop should fully cover its parent | `fillWidth().fillHeight()` | `fillWidth().fillHeight()` | Full-bleed container where no ratio sizing is intended. |
+
+### The three "make it fill" APIs
+
+These can look similar at the call site, but they mean different things:
+
+| API | Meaning | Preferred usage |
+|---|---|---|
+| `alignItems(AlignItems.Stretch)` | Parent says children stretch on the container's cross axis by default. | Set a container-wide cross-axis policy. |
+| `fillWidth()` / `fillHeight()` | Child takes the available space on that axis. | Default choice for normal app layout and demo code. |
+| `fillWidthPercent(...)` / `fillHeightPercent(...)` | Child takes a percentage of the available space on that axis. | When you want "half of the offered space" rather than "half of the parent box." |
+| `width(100.0, Unit.Percent)` / `height(100.0, Unit.Percent)` | Child becomes a literal 100% of the parent on that axis. | Only when you truly want ratio sizing math, not generic fill behavior. |
+
+If your intent is "this child should take the available space here," prefer
+`fillWidth()` / `fillHeight()`. Reserve `100%` percent sizing for explicit
+ratio-based layouts.
+
+### Box size vs available layout space
+
+Another useful mental model:
+
+- `width(...)` / `height(...)` author the node's **own box size**
+- `fillWidth()` / `fillHeight()` ask layout to size the node from the parent's
+  **available inner/content space**
+- `fillWidthPercent(...)` / `fillHeightPercent(...)` ask layout for a **fraction**
+  of that available inner/content space
+
+That is why `width(100.0, Unit.Percent)` can still overflow when margins are
+present: the `100%` sizes the child box first, and margin lives outside that
+box. `fillWidth()` / `fillHeight()` are the safer defaults for ordinary layout.
+
+### Min/max clamps
+
+Use `minWidth(...)`, `maxWidth(...)`, `minHeight(...)`, and `maxHeight(...)` to
+clamp a node after its normal sizing mode is chosen.
+
+- `Unit.Pixel` = pixel clamp
+- `Unit.Percent` = parent-relative clamp
+- `Unit.Auto` = clear the clamp on that axis
+
+These clamps work with explicit width/height, `fill*()`, and
+`fill*Percent(...)`.
 
 ### Main-axis rule
 
@@ -112,6 +181,18 @@ Intentional ratio split:
 const split = Row(
   left.width(30.0, Unit.Percent),
   right.width(70.0, Unit.Percent),
+).fillSize();
+```
+
+Available-space split with clamps:
+
+```ts
+const content = Row(
+  sidebar.width(240.0, Unit.Pixel),
+  body
+    .fillWidthPercent(50.0)
+    .minWidth(320.0)
+    .maxWidth(60.0, Unit.Percent),
 ).fillSize();
 ```
 

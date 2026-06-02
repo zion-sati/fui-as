@@ -18,6 +18,7 @@ This is the primary SDK navigation page for `v2/fui-as`.
 ## Nodes
 
 - [Controls and nodes overview](./CONTROLS_AND_NODES.md#nodes)
+- [Core layout concept (`width(100%)` vs `fillWidth()`)](./CONTROLS_AND_NODES.md#core-layout-concept)
 - [Layout sizing guide (`fill*` vs `Unit.Percent`)](./CONTROLS_AND_NODES.md#layout-sizing-guide-fill-vs-unitpercent)
 - [Per-type node reference](./reference/README.md#nodes)
 - [Events and callbacks](./EVENTS_AND_CALLBACKS.md#node-level-pointer-callbacks)

@@ -1,4 +1,5 @@
 import {
+  AlignItems,
   AnimationTiming,
   BorderStyle,
   Column,
@@ -51,15 +52,16 @@ export const ANIMATION_SCROLL_ROW_HEIGHT_PX: f32 = 80.0;
 const ANIMATION_SCROLL_ROW_COUNT: i32 = 18;
 export const ANIMATION_SCROLL_VIEWPORT_HEIGHT_PX: f32 = 280.0;
 const ANIMATION_SCROLL_LOGICAL_TAIL_PX: f32 = 240.0;
+const ACTION_ROW_BUTTON_HEIGHT_PX: f32 = 60.0;
 export const ANIMATION_SCROLL_LOGICAL_CONTENT_HEIGHT_PX: f32 =
   (<f32>ANIMATION_SCROLL_ROW_COUNT * ANIMATION_SCROLL_ROW_HEIGHT_PX) + ANIMATION_SCROLL_LOGICAL_TAIL_PX;
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 function horizontalSpacer(width: f32): FlexBox {
-  return new FlexBox().width(width, Unit.Pixel).height(100.0, Unit.Percent);
+  return new FlexBox().width(width, Unit.Pixel).fillHeight();
 }
 
 function createFullWidthCheckbox(label: string, checked: bool = false): DemoCheckbox {
@@ -124,7 +126,7 @@ function createVisibilityDropdown(): DemoDropdown {
       new DemoDropdownItem("collapsed", "Visibility: Collapsed - remove layout space and hide the content"),
     ])
     .selectIndex(0)
-    .width(100.0, Unit.Percent) as DemoDropdown;
+    .fillWidth() as DemoDropdown;
 }
 
 export class AdvancedControlsView {
@@ -132,7 +134,7 @@ export class AdvancedControlsView {
     "Line one\nLine two\nLine three\nLonger content so scrollbar policy is easy to spot.",
   )
     .placeholder("Type notes here or paste sample content. Use the controls below to reconfigure the TextArea live.")
-    .width(100.0, Unit.Percent)
+    .fillWidth()
     .height(220.0, Unit.Pixel)
     .nodeId("demo-advanced-controls:text-area") as DemoTextArea;
   readonly readOnlyToggle: DemoCheckbox = createFullWidthCheckbox("Read-only")
@@ -153,9 +155,11 @@ export class AdvancedControlsView {
   readonly workerProgressBar: DemoProgressBar = new DemoProgressBar(0.0)
     .length(320.0) as DemoProgressBar;
   readonly workerStartButton: DemoButton = new DemoButton("Start prime worker")
-    .width(170.0, Unit.Pixel) as DemoButton;
+    .width(170.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly workerCancelButton: DemoButton = new DemoButton("Cancel prime worker")
-    .width(170.0, Unit.Pixel) as DemoButton;
+    .width(170.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly workerStatusText: Text = createStatusText();
   readonly workerDetailText: Text = createSupportingStatusText();
   readonly verticalPolicyGroup: DemoRadioGroup = createVerticalPolicyGroup()
@@ -202,17 +206,23 @@ export class AdvancedControlsView {
   readonly animationPreviewTitleText!: Text;
   readonly animationPreviewBodyText!: Text;
   readonly animationPreviewCalmButton: DemoButton = new DemoButton("Set calm preview")
-    .width(170.0, Unit.Pixel) as DemoButton;
+    .width(170.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly animationPreviewEmphasisButton: DemoButton = new DemoButton("Emphasize preview card", DemoButtonTone.Primary)
-    .width(190.0, Unit.Pixel) as DemoButton;
+    .width(190.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly animationScrollTopButton: DemoButton = new DemoButton("Scroll to first sample")
-    .width(180.0, Unit.Pixel) as DemoButton;
+    .width(180.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly animationScrollMiddleButton: DemoButton = new DemoButton("Scroll to 7th sample")
-    .width(190.0, Unit.Pixel) as DemoButton;
+    .width(190.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly animationScrollBottomButton: DemoButton = new DemoButton("Scroll to 13th sample", DemoButtonTone.Primary)
-    .width(180.0, Unit.Pixel) as DemoButton;
+    .width(180.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly animationScrollTailButton: DemoButton = new DemoButton("Scroll to logical tail")
-    .width(170.0, Unit.Pixel) as DemoButton;
+    .width(170.0, Unit.Pixel)
+    .height(ACTION_ROW_BUTTON_HEIGHT_PX, Unit.Pixel) as DemoButton;
   readonly animationPreviewStatusText: Text = createStatusText();
   readonly animationScrollStatusText: Text = createSupportingStatusText();
   readonly animationHintText: Text = new DemoText(
@@ -272,14 +282,14 @@ export class AdvancedControlsView {
       .fontSize(20.0)
       .lineHeight(28.0)
       .maxLines(1)
-      .width(100.0, Unit.Percent) as RichText;
+      .fillWidth() as RichText;
     this.richTextHelperText = new RichText()
       .fontFamily(this.customFamily)
       .fontWeight(FontWeight.Bold)
       .fontSize(18.0)
       .lineHeight(26.0)
       .maxLines(1)
-      .width(100.0, Unit.Percent) as RichText;
+      .fillWidth() as RichText;
     this.animationPreviewTitleText = new DemoText("Calm transition target", DemoTextRecipe.SectionTitle)
       .font(FONT_REGULAR, 18.0) as Text;
     this.animationPreviewBodyText = new DemoText(
@@ -289,7 +299,7 @@ export class AdvancedControlsView {
       .font(FONT_REGULAR, 15.0)
       .maxLines(3) as Text;
     this.animationPreviewCard = new FlexBox()
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .height(144.0, Unit.Pixel)
       .padding(20.0, 18.0, 20.0, 18.0)
       .cornerRadius(20.0)
@@ -298,7 +308,7 @@ export class AdvancedControlsView {
           this.animationPreviewTitleText,
           verticalSpacer(8.0),
           this.animationPreviewBodyText,
-        ).width(100.0, Unit.Percent),
+        ).fillWidth(),
       )
       .transitions(
         new NodeTransitions()
@@ -306,7 +316,7 @@ export class AdvancedControlsView {
           .opacity(new AnimationTiming(360.0, Easings.cubicOut)),
       ) as FlexBox;
     const animationScrollContent = new FlexBox()
-      .width(100.0, Unit.Percent);
+      .fillWidth();
     for (let index = 0; index < ANIMATION_SCROLL_ROW_COUNT; index += 1) {
       const label = "Animation sample row " + (index + 1).toString();
       const title = new DemoText(label, DemoTextRecipe.Body)
@@ -320,7 +330,7 @@ export class AdvancedControlsView {
         .font(FONT_REGULAR, 14.0)
         .maxLines(2) as Text;
       const rowCard = new FlexBox()
-        .width(100.0, Unit.Percent)
+        .fillWidth()
         .height(ANIMATION_SCROLL_ROW_HEIGHT_PX, Unit.Pixel)
         .padding(16.0, 12.0, 16.0, 12.0)
         .cornerRadius(14.0)
@@ -329,7 +339,7 @@ export class AdvancedControlsView {
             title,
             verticalSpacer(4.0),
             detail,
-          ).width(100.0, Unit.Percent),
+          ).fillWidth(),
         ) as FlexBox;
       animationScrollContent.child(rowCard);
       this.animationRowCards.push(rowCard);
@@ -343,7 +353,7 @@ export class AdvancedControlsView {
       .verticalScrollbarVisibility(ScrollBarVisibility.Always)
       .horizontalScrollbarVisibility(ScrollBarVisibility.Never)
       .scrollContentSize(-1.0, ANIMATION_SCROLL_LOGICAL_CONTENT_HEIGHT_PX)
-      .width(100.0, Unit.Percent)
+      .fillWidth()
       .height(ANIMATION_SCROLL_VIEWPORT_HEIGHT_PX, Unit.Pixel)
       .child(animationScrollContent) as ScrollBox;
     this.wrappingToggle.check(true);
@@ -418,14 +428,14 @@ export class AdvancedControlsView {
         checkboxColumn,
         new FlexBox().width(18.0, Unit.Pixel).height(1.0, Unit.Pixel),
         policyColumn,
-      ).width(100.0, Unit.Percent),
+      ).fillWidth(),
       verticalSpacer(14.0),
       this.focusStatusText,
       verticalSpacer(6.0),
       this.selectionStatusText,
       verticalSpacer(6.0),
       this.settingsStatusText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
 
     return createRoutePageSection(
       "Advanced controls",
@@ -439,17 +449,21 @@ export class AdvancedControlsView {
       this.animationPreviewCalmButton,
       new FlexBox().width(12.0, Unit.Pixel).height(1.0, Unit.Pixel),
       this.animationPreviewEmphasisButton,
-    ).width(100.0, Unit.Percent);
+    )
+      .fillWidth()
+      .alignItems(AlignItems.Stretch);
     const scrollButtonRow = Row(
       this.animationScrollTopButton,
       new FlexBox().width(12.0, Unit.Pixel).height(1.0, Unit.Pixel),
       this.animationScrollMiddleButton,
       new FlexBox().width(12.0, Unit.Pixel).height(1.0, Unit.Pixel),
       this.animationScrollBottomButton,
-    ).width(100.0, Unit.Percent);
+    )
+      .fillWidth()
+      .alignItems(AlignItems.Stretch);
     const logicalTailButtonRow = Row(
       this.animationScrollTailButton,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     const sectionBody = Column(
       this.animationPreviewCard,
       verticalSpacer(14.0),
@@ -466,7 +480,7 @@ export class AdvancedControlsView {
       this.animationScrollStatusText,
       verticalSpacer(10.0),
       this.animationHintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     return createRoutePageSection(
       "Transitions + scroll surfaces",
       "Drive the shipped animation APIs live: typed bgColor/opacity transitions plus smooth scroll and explicit scroll-content sizing on a retained ScrollBox.",
@@ -483,7 +497,7 @@ export class AdvancedControlsView {
       this.customFontDirectStackText,
       verticalSpacer(8.0),
       this.customFontComparisonText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
 
     return createRoutePageSection(
       "App-authored custom fonts",
@@ -546,7 +560,9 @@ export class AdvancedControlsView {
       this.workerStartButton,
       new FlexBox().width(12.0, Unit.Pixel).height(1.0, Unit.Pixel),
       this.workerCancelButton,
-    ).width(100.0, Unit.Percent);
+    )
+      .fillWidth()
+      .alignItems(AlignItems.Stretch);
 
     const sectionBody = Column(
       this.workerProgressBar,
@@ -558,7 +574,7 @@ export class AdvancedControlsView {
       this.workerDetailText,
       verticalSpacer(10.0),
       this.workerHintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
 
     return createRoutePageSection(
       "ProgressBar + Worker sample",
@@ -576,7 +592,7 @@ export class AdvancedControlsView {
       this.richTextHelperText,
       verticalSpacer(10.0),
       this.richTextHelperHintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
 
     return createRoutePageSection(
       "Static rich text",
@@ -619,7 +635,7 @@ export class AdvancedControlsView {
         "Auto-sized containers shrink to their content, ignoring flex growth. Perfect for cards, panels, and labels that need custom borders and padding without hardcoded dimensions.",
         DemoTextRecipe.Hint,
       ).font(FONT_REGULAR, 14.0),
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
 
     return createRoutePageSection(
       "Auto sizing",

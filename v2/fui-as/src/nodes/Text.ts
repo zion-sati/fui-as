@@ -18,11 +18,29 @@ export class Text extends TextCore {
     if (props.hasFillWidth) {
       text.fillWidth();
     }
+    if (props.hasFillWidthPercent) {
+      text.fillWidthPercent(props.fillWidthPercentValue);
+    }
     if (props.hasHeight) {
       text.height(props.heightValue, props.heightUnit);
     }
     if (props.hasFillHeight) {
       text.fillHeight();
+    }
+    if (props.hasFillHeightPercent) {
+      text.fillHeightPercent(props.fillHeightPercentValue);
+    }
+    if (props.hasMinWidth) {
+      text.minWidth(props.minWidthValue, props.minWidthUnit);
+    }
+    if (props.hasMaxWidth) {
+      text.maxWidth(props.maxWidthValue, props.maxWidthUnit);
+    }
+    if (props.hasMinHeight) {
+      text.minHeight(props.minHeightValue, props.minHeightUnit);
+    }
+    if (props.hasMaxHeight) {
+      text.maxHeight(props.maxHeightValue, props.maxHeightUnit);
     }
     if (props.hasFontFamily) {
       const family = props.fontFamilyValue;

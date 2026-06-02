@@ -1,5 +1,6 @@
 import * as ui from "../bindings/ui";
 import {
+  AlignSelf,
   AlignItems,
   BorderStyle,
   CursorStyle,
@@ -113,7 +114,7 @@ export class Button extends FlexBox {
   private fontSizeValue: f32 = activeTheme.value.fonts.sizeBody;
   private fontIdValue: u32 = 0;
   private hasFontIdOverride: bool = false;
-  private textColorValue: u32 = activeTheme.value.colors.textPrimary;
+  private textColorValue: u32 = activeTheme.value.colors.textOnAccent;
   private shadowColorValue: u32 = 0x00000000;
   private shadowOffsetXValue: f32 = 0.0;
   private shadowOffsetYValue: f32 = 0.0;
@@ -151,6 +152,7 @@ export class Button extends FlexBox {
     this.flexDirection(FlexDirection.Row);
     this.justifyContent(JustifyContent.Center);
     this.alignItems(AlignItems.Center);
+    this.alignSelf(AlignSelf.Start);
     this.syncThemeState(activeTheme.value);
     this.applyBackground();
   }
@@ -543,7 +545,7 @@ export class Button extends FlexBox {
       this.fontSizeValue = theme.fonts.sizeBody;
     }
     if (!this.textColorOverridden) {
-      this.textColorValue = theme.colors.textPrimary;
+      this.textColorValue = theme.colors.textOnAccent;
     }
     const presenterHostState = new ButtonPresenterHostState(
       this.backgroundOverridden,

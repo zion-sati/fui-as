@@ -95,7 +95,7 @@ class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
         : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);
       borderColor = background;
       markVisible = state.checkedState == SemanticCheckedState.True;
-      markColor = theme.colors.surface;
+      markColor = theme.colors.textOnAccent;
     } else if (state.hovered) {
       background = theme.colors.background;
     }

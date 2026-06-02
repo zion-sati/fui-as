@@ -134,6 +134,24 @@ export function createUiImportModule(deps: UiImportDeps) {
     ui_set_fill_height(handle: AppHandleLike, fill: number): void {
       deps.getRuntime().ui._ui_set_fill_height(toBigIntHandle(handle), fill);
     },
+    ui_set_fill_width_percent(handle: AppHandleLike, percent: number): void {
+      deps.getRuntime().ui._ui_set_fill_width_percent(toBigIntHandle(handle), percent);
+    },
+    ui_set_fill_height_percent(handle: AppHandleLike, percent: number): void {
+      deps.getRuntime().ui._ui_set_fill_height_percent(toBigIntHandle(handle), percent);
+    },
+    ui_set_min_width(handle: AppHandleLike, value: number, unit: number): void {
+      deps.getRuntime().ui._ui_set_min_width(toBigIntHandle(handle), value, unit);
+    },
+    ui_set_max_width(handle: AppHandleLike, value: number, unit: number): void {
+      deps.getRuntime().ui._ui_set_max_width(toBigIntHandle(handle), value, unit);
+    },
+    ui_set_min_height(handle: AppHandleLike, value: number, unit: number): void {
+      deps.getRuntime().ui._ui_set_min_height(toBigIntHandle(handle), value, unit);
+    },
+    ui_set_max_height(handle: AppHandleLike, value: number, unit: number): void {
+      deps.getRuntime().ui._ui_set_max_height(toBigIntHandle(handle), value, unit);
+    },
     ui_set_flex_direction(handle: AppHandleLike, direction: number): void {
       deps.getRuntime().ui._ui_set_flex_direction(toBigIntHandle(handle), direction);
     },
@@ -145,6 +163,9 @@ export function createUiImportModule(deps: UiImportDeps) {
     },
     ui_set_align_items(handle: AppHandleLike, align: number): void {
       deps.getRuntime().ui._ui_set_align_items(toBigIntHandle(handle), align);
+    },
+    ui_set_align_self(handle: AppHandleLike, align: number): void {
+      deps.getRuntime().ui._ui_set_align_self(toBigIntHandle(handle), align);
     },
     ui_set_padding(handle: AppHandleLike, left: number, top: number, right: number, bottom: number): void {
       deps.getRuntime().ui._ui_set_padding(toBigIntHandle(handle), left, top, right, bottom);

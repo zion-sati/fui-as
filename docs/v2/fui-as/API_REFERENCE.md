@@ -450,6 +450,7 @@ smooth-scroll surfaces with browser smoke coverage.
 ## Layout/input/style enums
 
 - `AlignItems`
+- `AlignSelf`
 - `BorderStyle`
 - `CursorStyle`
 - `FlexDirection`
@@ -511,6 +512,8 @@ smooth-scroll surfaces with browser smoke coverage.
 `bindTheme(...)` is the custom-control convenience on top of `activeTheme`: it
 subscribes with an owner-bound handler, immediately applies the current theme,
 and returns the disposable `Action<Theme>` for the caller's normal cleanup path.
+`Theme.colors` includes `textOnAccent` for readable foreground content on
+accent-filled controls and custom surfaces.
 
 ## Continuous signals
 

@@ -9,6 +9,12 @@ const CallOp = Object.freeze({
   SetHeight: 4,
   SetFillWidth: 101,
   SetFillHeight: 102,
+  SetFillWidthPercent: 104,
+  SetFillHeightPercent: 105,
+  SetMinWidth: 106,
+  SetMaxWidth: 107,
+  SetMinHeight: 108,
+  SetMaxHeight: 109,
   SetBackgroundColor: 5,
   SetText: 6,
   SetTextStyleRuns: 84,
@@ -20,6 +26,7 @@ const CallOp = Object.freeze({
   SetFlexDirection: 10,
   SetJustifyContent: 11,
   SetAlignItems: 12,
+  SetAlignSelf: 103,
   SetPadding: 13,
   SetMargin: 88,
   SetClipToBounds: 14,
@@ -328,6 +335,24 @@ export default {
         ui_set_fill_height(handle, fill) {
           record(CallOp.SetFillHeight, toNumber(handle), fill ? 1 : 0);
         },
+        ui_set_fill_width_percent(handle, percent) {
+          record(CallOp.SetFillWidthPercent, toNumber(handle), percent);
+        },
+        ui_set_fill_height_percent(handle, percent) {
+          record(CallOp.SetFillHeightPercent, toNumber(handle), percent);
+        },
+        ui_set_min_width(handle, value, unit) {
+          record(CallOp.SetMinWidth, toNumber(handle), value, unit);
+        },
+        ui_set_max_width(handle, value, unit) {
+          record(CallOp.SetMaxWidth, toNumber(handle), value, unit);
+        },
+        ui_set_min_height(handle, value, unit) {
+          record(CallOp.SetMinHeight, toNumber(handle), value, unit);
+        },
+        ui_set_max_height(handle, value, unit) {
+          record(CallOp.SetMaxHeight, toNumber(handle), value, unit);
+        },
         ui_set_flex_direction(handle, direction) {
           record(CallOp.SetFlexDirection, toNumber(handle), direction);
         },
@@ -339,6 +364,9 @@ export default {
         },
         ui_set_align_items(handle, align) {
           record(CallOp.SetAlignItems, toNumber(handle), align);
+        },
+        ui_set_align_self(handle, align) {
+          record(CallOp.SetAlignSelf, toNumber(handle), align);
         },
         ui_set_padding(handle, top, right, bottom, left) {
           record(CallOp.SetPadding, toNumber(handle), top, right, bottom, left);

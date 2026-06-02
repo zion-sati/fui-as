@@ -9,6 +9,7 @@ This page shows what is theme-driven by default and what you can override explic
 - `setAccentColor(color)` — rebuilds current light/dark theme with a custom accent.
 - `activeTheme` — current effective theme signal.
 - `bindTheme(owner, handler)` — immediate owner-bound subscription helper for custom controls; returns the disposable listener for your usual cleanup path.
+- `theme.colors.textOnAccent` — readable foreground token for accent-filled controls and custom accent surfaces.
 
 Core elevation tokens: `theme.colors.dialogShadow` is the stronger modal shadow, while `theme.colors.panelShadow` is the softer non-modal panel shadow (dropdown/context menu/tooltip default).
 
@@ -22,7 +23,7 @@ Core elevation tokens: `theme.colors.dialogShadow` is the stronger modal shadow,
 
 | Control | Theme-driven defaults | Explicit style overrides | Theme-change behavior |
 |---|---|---|---|
-| `Button` | Accent/hover/pressed bg, border, radius, padding, font, text color | `bgColor`, `hoverBgColor`, `pressedBgColor`, `border*`, `cornerRadius`/`corners`, `padding`, `font*`, `textColor`, `dropShadow` | Overridden fields stay fixed; non-overridden fields track theme |
+| `Button` | Accent/hover/pressed bg, border, radius, padding, font, `textOnAccent` label color | `bgColor`, `hoverBgColor`, `pressedBgColor`, `border*`, `cornerRadius`/`corners`, `padding`, `font*`, `textColor`, `dropShadow` | Overridden fields stay fixed; non-overridden fields track theme |
 | `Dropdown` | Trigger surface/border/text/chevron, popup border/shadow/colors | `maxVisibleItems`, `popupWidth`, `popupPanelColor`, `popupPanelBackgroundBlur` | Popup panel color/blur overrides persist; other chrome tracks theme |
 | `ContextMenu` | Panel/item colors, typography, metrics, separator, shadow | `menuWidth`, `itemHeight`, `itemPadding`, `itemColor`, `itemHoverColor`, `itemTextColor`, `itemCornerRadius`, `itemFont*`, `separatorColor`, `panelColor`, `panelBorder`, `panelCornerRadius`, `panelShadow`, `panelBackgroundBlur`, `backdropColor`, `backgroundBlur` | Overridden fields persist; remaining fields track theme |
 | `Dialog` | Backdrop, card surface/border/radius/shadow, title/body text fonts and colors | `backdropColor`, `backgroundBlur`, `cardColor`, `cardBorder`, `cardCornerRadius`, `cardShadow` | Overridden backdrop/card fields persist; text style continues tracking theme fonts/colors |

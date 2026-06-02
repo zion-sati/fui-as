@@ -124,6 +124,21 @@ describe("Theme", () => {
     expect<u32>(dark.colors.focusRing).not.toBe(0);
   });
 
+  it("derives an accent foreground token that stays readable across themes", () => {
+    const accent = rgb(0x25, 0x63, 0xeb);
+    const light = generateTheme(false, accent);
+    const dark = generateTheme(true, accent);
+
+    expect<u32>(light.colors.textOnAccent).toBe(rgb(0xff, 0xff, 0xff));
+    expect<u32>(dark.colors.textOnAccent).toBe(rgb(0xff, 0xff, 0xff));
+  });
+
+  it("picks a darker accent foreground when the accent is very light", () => {
+    const theme = generateTheme(false, rgb(0xf8, 0xe7, 0x71));
+
+    expect<u32>(theme.colors.textOnAccent).toBe(rgb(0x00, 0x00, 0x00));
+  });
+
   it("derives panel shadow as a softer variant of dialog shadow", () => {
     const light = generateTheme(false, rgb(0x25, 0x63, 0xeb));
     const dark = generateTheme(true, rgb(0x25, 0x63, 0xeb));

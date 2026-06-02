@@ -10,6 +10,7 @@ import { warn } from "../core/Logger";
 import { throwNullArgument } from "../core/Errors";
 import { NodeTransitions } from "../core/Transitions";
 import {
+  AlignSelf,
   AlignItems,
   BorderStyle,
   FlexDirection,
@@ -39,10 +40,26 @@ export class FlexBoxProps {
   widthUnit: Unit = Unit.Pixel;
   hasWidth: bool = false;
   hasFillWidth: bool = false;
+  fillWidthPercentValue: f32 = 0.0;
+  hasFillWidthPercent: bool = false;
   heightValue: f32 = 0.0;
   heightUnit: Unit = Unit.Pixel;
   hasHeight: bool = false;
   hasFillHeight: bool = false;
+  fillHeightPercentValue: f32 = 0.0;
+  hasFillHeightPercent: bool = false;
+  minWidthValue: f32 = 0.0;
+  minWidthUnit: Unit = Unit.Auto;
+  hasMinWidth: bool = false;
+  maxWidthValue: f32 = 0.0;
+  maxWidthUnit: Unit = Unit.Auto;
+  hasMaxWidth: bool = false;
+  minHeightValue: f32 = 0.0;
+  minHeightUnit: Unit = Unit.Auto;
+  hasMinHeight: bool = false;
+  maxHeightValue: f32 = 0.0;
+  maxHeightUnit: Unit = Unit.Auto;
+  hasMaxHeight: bool = false;
   flexBasisValue: f32 = 0.0;
   hasFlexBasis: bool = false;
   backgroundColor: u32 = 0;
@@ -53,6 +70,8 @@ export class FlexBoxProps {
   hasJustifyContent: bool = false;
   alignItemsValue: AlignItems = AlignItems.Start;
   hasAlignItems: bool = false;
+  alignSelfValue: AlignSelf = AlignSelf.Auto;
+  hasAlignSelf: bool = false;
   paddingTop: f32 = 0.0;
   paddingRight: f32 = 0.0;
   paddingBottom: f32 = 0.0;
@@ -73,10 +92,26 @@ export class FlexBox extends Node {
   private widthUnit: Unit = Unit.Pixel;
   private hasWidth: bool = false;
   private hasFillWidth: bool = false;
+  private fillWidthPercentValue: f32 = 0.0;
+  private hasFillWidthPercent: bool = false;
   private heightValue: f32 = 0.0;
   private heightUnit: Unit = Unit.Pixel;
   private hasHeight: bool = false;
   private hasFillHeight: bool = false;
+  private fillHeightPercentValue: f32 = 0.0;
+  private hasFillHeightPercent: bool = false;
+  private minWidthValue: f32 = 0.0;
+  private minWidthUnit: Unit = Unit.Auto;
+  private hasMinWidth: bool = false;
+  private maxWidthValue: f32 = 0.0;
+  private maxWidthUnit: Unit = Unit.Auto;
+  private hasMaxWidth: bool = false;
+  private minHeightValue: f32 = 0.0;
+  private minHeightUnit: Unit = Unit.Auto;
+  private hasMinHeight: bool = false;
+  private maxHeightValue: f32 = 0.0;
+  private maxHeightUnit: Unit = Unit.Auto;
+  private hasMaxHeight: bool = false;
   private flexBasisValue: f32 = 0.0;
   private hasFlexBasis: bool = false;
   private backgroundColor: u32 = 0;
@@ -97,6 +132,8 @@ export class FlexBox extends Node {
   private hasJustifyContent: bool = false;
   private alignItemsValue: AlignItems = AlignItems.Start;
   private hasAlignItems: bool = false;
+  private alignSelfValue: AlignSelf = AlignSelf.Auto;
+  private hasAlignSelf: bool = false;
   private paddingTop: f32 = 0.0;
   private paddingRight: f32 = 0.0;
   private paddingBottom: f32 = 0.0;
@@ -150,6 +187,7 @@ export class FlexBox extends Node {
     this.widthUnit = unit;
     this.hasWidth = true;
     this.hasFillWidth = false;
+    this.hasFillWidthPercent = false;
     if (this.hasBuiltHandle()) {
       ui.setWidth(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
@@ -162,6 +200,7 @@ export class FlexBox extends Node {
     this.heightUnit = unit;
     this.hasHeight = true;
     this.hasFillHeight = false;
+    this.hasFillHeightPercent = false;
     if (this.hasBuiltHandle()) {
       ui.setHeight(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
@@ -170,7 +209,9 @@ export class FlexBox extends Node {
   }
 
   fillWidth(): this {
+    this.hasWidth = false;
     this.hasFillWidth = true;
+    this.hasFillWidthPercent = false;
     if (this.hasBuiltHandle()) {
       ui.setFillWidth(this.handle, true);
       this.notifyRetainedLayoutMutation();
@@ -179,9 +220,79 @@ export class FlexBox extends Node {
   }
 
   fillHeight(): this {
+    this.hasHeight = false;
     this.hasFillHeight = true;
+    this.hasFillHeightPercent = false;
     if (this.hasBuiltHandle()) {
       ui.setFillHeight(this.handle, true);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  fillWidthPercent(percent: f32): this {
+    this.hasWidth = false;
+    this.hasFillWidth = false;
+    this.hasFillWidthPercent = true;
+    this.fillWidthPercentValue = percent;
+    if (this.hasBuiltHandle()) {
+      ui.setFillWidthPercent(this.handle, percent);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  fillHeightPercent(percent: f32): this {
+    this.hasHeight = false;
+    this.hasFillHeight = false;
+    this.hasFillHeightPercent = true;
+    this.fillHeightPercentValue = percent;
+    if (this.hasBuiltHandle()) {
+      ui.setFillHeightPercent(this.handle, percent);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  minWidth(value: f32, unit: Unit = Unit.Pixel): this {
+    this.minWidthValue = value;
+    this.minWidthUnit = unit;
+    this.hasMinWidth = unit != Unit.Auto;
+    if (this.hasBuiltHandle()) {
+      ui.setMinWidth(this.handle, value, <u32>unit);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  maxWidth(value: f32, unit: Unit = Unit.Pixel): this {
+    this.maxWidthValue = value;
+    this.maxWidthUnit = unit;
+    this.hasMaxWidth = unit != Unit.Auto;
+    if (this.hasBuiltHandle()) {
+      ui.setMaxWidth(this.handle, value, <u32>unit);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  minHeight(value: f32, unit: Unit = Unit.Pixel): this {
+    this.minHeightValue = value;
+    this.minHeightUnit = unit;
+    this.hasMinHeight = unit != Unit.Auto;
+    if (this.hasBuiltHandle()) {
+      ui.setMinHeight(this.handle, value, <u32>unit);
+      this.notifyRetainedLayoutMutation();
+    }
+    return this;
+  }
+
+  maxHeight(value: f32, unit: Unit = Unit.Pixel): this {
+    this.maxHeightValue = value;
+    this.maxHeightUnit = unit;
+    this.hasMaxHeight = unit != Unit.Auto;
+    if (this.hasBuiltHandle()) {
+      ui.setMaxHeight(this.handle, value, <u32>unit);
       this.notifyRetainedLayoutMutation();
     }
     return this;
@@ -299,6 +410,16 @@ export class FlexBox extends Node {
     this.hasAlignItems = true;
     if (this.hasBuiltHandle()) {
       ui.setAlignItems(this.handle, <u32>align);
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
+  alignSelf(align: AlignSelf): this {
+    this.alignSelfValue = align;
+    this.hasAlignSelf = true;
+    if (this.hasBuiltHandle()) {
+      ui.setAlignSelf(this.handle, <u32>align);
       this.notifyRetainedMutation();
     }
     return this;
@@ -528,11 +649,29 @@ export class FlexBox extends Node {
     if (this.hasFillWidth) {
       ui.setFillWidth(this.handle, true);
     }
+    if (this.hasFillWidthPercent) {
+      ui.setFillWidthPercent(this.handle, this.fillWidthPercentValue);
+    }
     if (this.hasHeight) {
       ui.setHeight(this.handle, this.heightValue, <u32>this.heightUnit);
     }
     if (this.hasFillHeight) {
       ui.setFillHeight(this.handle, true);
+    }
+    if (this.hasFillHeightPercent) {
+      ui.setFillHeightPercent(this.handle, this.fillHeightPercentValue);
+    }
+    if (this.hasMinWidth) {
+      ui.setMinWidth(this.handle, this.minWidthValue, <u32>this.minWidthUnit);
+    }
+    if (this.hasMaxWidth) {
+      ui.setMaxWidth(this.handle, this.maxWidthValue, <u32>this.maxWidthUnit);
+    }
+    if (this.hasMinHeight) {
+      ui.setMinHeight(this.handle, this.minHeightValue, <u32>this.minHeightUnit);
+    }
+    if (this.hasMaxHeight) {
+      ui.setMaxHeight(this.handle, this.maxHeightValue, <u32>this.maxHeightUnit);
     }
     if (this.hasFlexDirection) {
       ui.setFlexDirection(this.handle, <u32>this.flexDirectionValue);
@@ -545,6 +684,9 @@ export class FlexBox extends Node {
     }
     if (this.hasAlignItems) {
       ui.setAlignItems(this.handle, <u32>this.alignItemsValue);
+    }
+    if (this.hasAlignSelf) {
+      ui.setAlignSelf(this.handle, <u32>this.alignSelfValue);
     }
     if (this.hasMargin) {
       ui.setMargin(this.handle, this.marginLeft, this.marginTop, this.marginRight, this.marginBottom);
@@ -570,11 +712,29 @@ export class FlexBox extends Node {
     if (props.hasFillWidth) {
       this.fillWidth();
     }
+    if (props.hasFillWidthPercent) {
+      this.fillWidthPercent(props.fillWidthPercentValue);
+    }
     if (props.hasHeight) {
       this.height(props.heightValue, props.heightUnit);
     }
     if (props.hasFillHeight) {
       this.fillHeight();
+    }
+    if (props.hasFillHeightPercent) {
+      this.fillHeightPercent(props.fillHeightPercentValue);
+    }
+    if (props.hasMinWidth) {
+      this.minWidth(props.minWidthValue, props.minWidthUnit);
+    }
+    if (props.hasMaxWidth) {
+      this.maxWidth(props.maxWidthValue, props.maxWidthUnit);
+    }
+    if (props.hasMinHeight) {
+      this.minHeight(props.minHeightValue, props.minHeightUnit);
+    }
+    if (props.hasMaxHeight) {
+      this.maxHeight(props.maxHeightValue, props.maxHeightUnit);
     }
     if (props.hasFlexBasis) {
       this.flexBasis(props.flexBasisValue);
@@ -590,6 +750,9 @@ export class FlexBox extends Node {
     }
     if (props.hasAlignItems) {
       this.alignItems(props.alignItemsValue);
+    }
+    if (props.hasAlignSelf) {
+      this.alignSelf(props.alignSelfValue);
     }
     if (props.hasPadding) {
       this.padding(props.paddingLeft, props.paddingTop, props.paddingRight, props.paddingBottom);

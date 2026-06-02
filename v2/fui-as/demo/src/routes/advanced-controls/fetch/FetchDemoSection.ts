@@ -29,7 +29,7 @@ const JSON_PLACEHOLDER_POST_BODY =
   '{"title":"EffinDom advanced-controls demo","body":"Posting through the shipped Fetch API.","userId":29}';
 
 function verticalSpacer(height: f32): FlexBox {
-  return new FlexBox().width(100.0, Unit.Percent).height(height, Unit.Pixel);
+  return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
 function startFetchGet(owner: FetchDemoSection): void {
@@ -81,7 +81,7 @@ export class FetchDemoSection {
         this.getButton,
         new FlexBox().width(12.0, Unit.Pixel).height(1.0, Unit.Pixel),
         this.postButton,
-      ).width(100.0, Unit.Percent),
+      ).fillWidth(),
       verticalSpacer(12.0),
       this.statusText,
       verticalSpacer(6.0),
@@ -90,7 +90,7 @@ export class FetchDemoSection {
       this.resultText,
       verticalSpacer(10.0),
       this.hintText,
-    ).width(100.0, Unit.Percent);
+    ).fillWidth();
     this.statusText.text("Fetch status: idle");
     this.requestText.text("Latest request: none");
     this.resultText.text("Latest result: none yet");

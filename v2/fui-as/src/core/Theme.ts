@@ -29,6 +29,7 @@ export class Colors {
     readonly surface: u32,
     readonly textPrimary: u32,
     readonly textMuted: u32,
+    readonly textOnAccent: u32,
     readonly accent: u32,
     readonly accentPressed: u32,
     readonly accentHovered: u32,
@@ -184,6 +185,14 @@ function normalizeAccentColor(color: u32): u32 {
   return normalized;
 }
 
+function pickAccentForeground(accent: u32): u32 {
+  const brightness =
+    (<f32>colorRed(accent) * 0.2126) +
+    (<f32>colorGreen(accent) * 0.7152) +
+    (<f32>colorBlue(accent) * 0.0722);
+  return brightness < 160.0 ? WHITE : BLACK;
+}
+
 function estimateThemeDark(theme: Theme): bool {
   const background = theme.colors.background;
   const luminance =
@@ -218,6 +227,7 @@ export function generateTheme(isDark: bool, accentColor: u32 = DEFAULT_ACCENT_CO
   const surface = isDark ? rgb(0x0f, 0x17, 0x28) : rgb(0xff, 0xff, 0xff);
   const textPrimary = isDark ? rgb(0xf8, 0xfa, 0xfc) : rgb(0x0f, 0x17, 0x2a);
   const textMuted = isDark ? rgb(0x94, 0xa3, 0xb8) : rgb(0x47, 0x55, 0x69);
+  const textOnAccent = pickAccentForeground(accent);
   const border = isDark ? rgb(0x24, 0x3b, 0x53) : rgb(0xcb, 0xd5, 0xe1);
   const accentHovered = isDark
     ? mixColor(accent, WHITE, 0.14)
@@ -250,6 +260,7 @@ export function generateTheme(isDark: bool, accentColor: u32 = DEFAULT_ACCENT_CO
       surface,
       textPrimary,
       textMuted,
+      textOnAccent,
       accent,
       accentPressed,
       accentHovered,
