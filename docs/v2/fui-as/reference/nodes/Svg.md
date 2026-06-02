@@ -18,6 +18,11 @@ When the root uses percentage sizing, FUI-AS falls back to the SVG `viewBox` so
 Rendered SVGs also honor the source document's `preserveAspectRatio` behavior inside
 the node's assigned layout box.
 
+Like `Image`, `Svg` also resolves `.width(0, Unit.Auto)` / `.height(0, Unit.Auto)`
+from the loaded asset's intrinsic size once the source is ready. If one axis stays
+pixel-sized and the other is `Unit.Auto`, the auto axis preserves the SVG's intrinsic
+aspect ratio.
+
 
 ## See also
 

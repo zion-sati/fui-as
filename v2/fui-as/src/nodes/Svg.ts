@@ -8,8 +8,9 @@ import {
   getSvgAssetWidth,
   releaseSvgAsset,
 } from "../core/Assets";
+import { Action, HandlerAction } from "../core/Action";
 import * as ui from "../bindings/ui";
-import { HandleValue, NodeType, SemanticRole } from "../core/ffi";
+import { HandleValue, NodeType, SemanticRole, Unit } from "../core/ffi";
 import { Signal } from "../core/Signal";
 import { FlexBox, FlexBoxProps } from "./FlexBox";
 
@@ -18,11 +19,20 @@ export class Svg extends FlexBox {
   private sourceUrlValue: string = "";
   private tintColorValue: u32 = 0;
   private ownedSvgAssetId: u32 = 0;
+  private requestedWidthValue: f32 = 0.0;
+  private requestedWidthUnit: Unit = Unit.Pixel;
+  private hasRequestedWidth: bool = false;
+  private requestedHeightValue: f32 = 0.0;
+  private requestedHeightUnit: Unit = Unit.Pixel;
+  private hasRequestedHeight: bool = false;
+  private assetStateAction: Action<AssetLoadState> | null = null;
+  private trackedSvgAssetId: u32 = 0;
 
   constructor(svgId: u32 = 0, tintColor: u32 = 0) {
     super();
     this.svgIdValue = svgId;
     this.tintColorValue = tintColor;
+    this.attachAssetStateListener();
   }
 
   static from(props: FlexBoxProps, svgId: u32 = 0, tintColor: u32 = 0): Svg {
@@ -42,6 +52,8 @@ export class Svg extends FlexBox {
     this.releaseOwnedSourceAsset();
     this.sourceUrlValue = "";
     this.svgIdValue = svgId;
+    this.attachAssetStateListener();
+    this.applyResolvedSizing();
     if (this.hasBuiltHandle()) {
       this.applySvgSource();
       this.notifyRetainedMutation();
@@ -60,6 +72,8 @@ export class Svg extends FlexBox {
     this.sourceUrlValue = url;
     this.svgIdValue = acquireSvgAsset(url);
     this.ownedSvgAssetId = this.svgIdValue;
+    this.attachAssetStateListener();
+    this.applyResolvedSizing();
     if (this.hasBuiltHandle()) {
       this.applySvgSource();
       this.notifyRetainedMutation();
@@ -71,10 +85,28 @@ export class Svg extends FlexBox {
     this.releaseOwnedSourceAsset();
     this.sourceUrlValue = "";
     this.svgIdValue = 0;
+    this.attachAssetStateListener();
+    this.applyResolvedSizing();
     if (this.hasBuiltHandle()) {
       this.applySvgSource();
       this.notifyRetainedMutation();
     }
+    return this;
+  }
+
+  width(value: f32, unit: Unit = Unit.Pixel): this {
+    this.requestedWidthValue = value;
+    this.requestedWidthUnit = unit;
+    this.hasRequestedWidth = true;
+    this.applyResolvedSizing();
+    return this;
+  }
+
+  height(value: f32, unit: Unit = Unit.Pixel): this {
+    this.requestedHeightValue = value;
+    this.requestedHeightUnit = unit;
+    this.hasRequestedHeight = true;
+    this.applyResolvedSizing();
     return this;
   }
 
@@ -95,11 +127,13 @@ export class Svg extends FlexBox {
 
   build(): u64 {
     this.buildStyledNode(NodeType.Svg, false);
+    this.applyResolvedSizing();
     this.applySvgSource();
     return this.handle;
   }
 
   dispose(): void {
+    this.detachAssetStateListener();
     this.releaseOwnedSourceAsset();
     super.dispose();
   }
@@ -130,6 +164,68 @@ export class Svg extends FlexBox {
 
   private applySvgSource(): void {
     ui.setSvg(this.handle, this.svgIdValue, this.tintColorValue);
+  }
+
+  private applyResolvedSizing(): void {
+    if (!this.hasRequestedWidth && !this.hasRequestedHeight) {
+      return;
+    }
+
+    const assetWidth = this.assetWidth();
+    const assetHeight = this.assetHeight();
+    const hasIntrinsicSize = assetWidth > 0.0 && assetHeight > 0.0;
+
+    if (this.hasRequestedWidth) {
+      let resolvedWidthValue = this.requestedWidthValue;
+      let resolvedWidthUnit = this.requestedWidthUnit;
+      if (this.requestedWidthUnit == Unit.Auto && hasIntrinsicSize) {
+        if (this.hasRequestedHeight && this.requestedHeightUnit == Unit.Pixel) {
+          resolvedWidthValue = this.requestedHeightValue * (assetWidth / assetHeight);
+        } else {
+          resolvedWidthValue = assetWidth;
+        }
+        resolvedWidthUnit = Unit.Pixel;
+      }
+      super.width(resolvedWidthValue, resolvedWidthUnit);
+    }
+
+    if (this.hasRequestedHeight) {
+      let resolvedHeightValue = this.requestedHeightValue;
+      let resolvedHeightUnit = this.requestedHeightUnit;
+      if (this.requestedHeightUnit == Unit.Auto && hasIntrinsicSize) {
+        if (this.hasRequestedWidth && this.requestedWidthUnit == Unit.Pixel) {
+          resolvedHeightValue = this.requestedWidthValue * (assetHeight / assetWidth);
+        } else {
+          resolvedHeightValue = assetHeight;
+        }
+        resolvedHeightUnit = Unit.Pixel;
+      }
+      super.height(resolvedHeightValue, resolvedHeightUnit);
+    }
+  }
+
+  private attachAssetStateListener(): void {
+    if (this.trackedSvgAssetId == this.svgIdValue) {
+      return;
+    }
+    this.detachAssetStateListener();
+    this.trackedSvgAssetId = this.svgIdValue;
+    if (this.svgIdValue == 0) {
+      return;
+    }
+    this.assetStateAction = getSvgAssetState(this.svgIdValue).addAction(
+      new HandlerAction<Svg, AssetLoadState>(this, (svg: Svg, _state: AssetLoadState): void => {
+        svg.applyResolvedSizing();
+      }),
+    );
+  }
+
+  private detachAssetStateListener(): void {
+    if (this.assetStateAction !== null) {
+      changetype<Action<AssetLoadState>>(this.assetStateAction).dispose();
+      this.assetStateAction = null;
+    }
+    this.trackedSvgAssetId = 0;
   }
 
   private releaseOwnedSourceAsset(): void {

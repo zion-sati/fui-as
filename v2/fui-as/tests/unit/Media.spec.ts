@@ -378,6 +378,48 @@ describe("Media nodes", () => {
     image.dispose();
   });
 
+  it("svg auto sizing resolves to intrinsic dimensions once the asset is ready", () => {
+    resetCalls();
+
+    const svg = Svg.load("/icons/intrinsic.svg")
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto);
+    const handle = svg.build();
+
+    let widthIndex = findLastCall(CALL_SET_WIDTH);
+    expect<i32>(widthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(widthIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(widthIndex, 1)).toBe(0.0);
+    expect<f64>(getCallArg(widthIndex, 2)).toBe(<f64>Unit.Auto);
+
+    let heightIndex = findLastCall(CALL_SET_HEIGHT);
+    expect<i32>(heightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(heightIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(heightIndex, 1)).toBe(0.0);
+    expect<f64>(getCallArg(heightIndex, 2)).toBe(<f64>Unit.Auto);
+
+    const svgIndex = findLastCall(CALL_SET_SVG);
+    expect<i32>(svgIndex).toBeGreaterThan(-1);
+    const svgId = <u32>getCallArg(svgIndex, 1);
+
+    resetCalls();
+    __fui_on_svg_loaded(svgId, 48.0, 36.0);
+
+    widthIndex = findLastCall(CALL_SET_WIDTH);
+    expect<i32>(widthIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(widthIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(widthIndex, 1)).toBe(48.0);
+    expect<f64>(getCallArg(widthIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    heightIndex = findLastCall(CALL_SET_HEIGHT);
+    expect<i32>(heightIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(heightIndex, 0)).toBe(<f64>handle);
+    expect<f64>(getCallArg(heightIndex, 1)).toBe(36.0);
+    expect<f64>(getCallArg(heightIndex, 2)).toBe(<f64>Unit.Pixel);
+
+    svg.dispose();
+  });
+
   it("asset failure callbacks remain non-fatal even with empty host errors", () => {
     resetCalls();
     setLogsEnabled(true);
