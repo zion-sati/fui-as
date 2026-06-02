@@ -25,11 +25,11 @@ export class Image extends FlexBox {
   private insetRight: f32 = 0.0;
   private insetBottom: f32 = 0.0;
   private requestedWidthValue: f32 = 0.0;
-  private requestedWidthUnit: Unit = Unit.Pixel;
-  private hasRequestedWidth: bool = false;
+  private requestedWidthUnit: Unit = Unit.Auto;
+  private hasRequestedWidth: bool = true;
   private requestedHeightValue: f32 = 0.0;
-  private requestedHeightUnit: Unit = Unit.Pixel;
-  private hasRequestedHeight: bool = false;
+  private requestedHeightUnit: Unit = Unit.Auto;
+  private hasRequestedHeight: bool = true;
   private assetStateAction: Action<AssetLoadState> | null = null;
   private trackedTextureAssetId: u32 = 0;
 

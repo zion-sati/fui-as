@@ -13,6 +13,8 @@ import { Image, ObjectFit } from "./Fui";
 URL-backed sources are ref-counted by URL in the runtime cache; swapping sources,
 clearing, or disposing releases the previous URL-backed ownership automatically.
 
+Images default both axes to `Unit.Auto`, so forgetting to set `width(...)` /
+`height(...)` still gives you intrinsic sizing once the asset is ready.
 `width(0.0, Unit.Auto)` and `height(0.0, Unit.Auto)` resolve from the loaded
 texture's intrinsic pixel dimensions. If both axes are `Auto`, the image uses its
 natural size once the asset is ready. If one axis is explicit pixels and the other

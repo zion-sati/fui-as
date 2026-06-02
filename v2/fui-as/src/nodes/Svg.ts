@@ -20,11 +20,11 @@ export class Svg extends FlexBox {
   private tintColorValue: u32 = 0;
   private ownedSvgAssetId: u32 = 0;
   private requestedWidthValue: f32 = 0.0;
-  private requestedWidthUnit: Unit = Unit.Pixel;
-  private hasRequestedWidth: bool = false;
+  private requestedWidthUnit: Unit = Unit.Auto;
+  private hasRequestedWidth: bool = true;
   private requestedHeightValue: f32 = 0.0;
-  private requestedHeightUnit: Unit = Unit.Pixel;
-  private hasRequestedHeight: bool = false;
+  private requestedHeightUnit: Unit = Unit.Auto;
+  private hasRequestedHeight: bool = true;
   private assetStateAction: Action<AssetLoadState> | null = null;
   private trackedSvgAssetId: u32 = 0;
 
