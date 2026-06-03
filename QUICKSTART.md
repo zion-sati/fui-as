@@ -12,7 +12,7 @@ FUI-AS is the AssemblyScript SDK for building Tier 3 applications on the EffinDo
 You need:
 
 - **Node.js 24+** and npm
-- **@effindomv2/runtime@0.1.6+** (the standalone runtime package)
+- **@effindomv2/runtime@0.1.7+** (the standalone runtime package)
 
 If building from this source directory standalone:
 
