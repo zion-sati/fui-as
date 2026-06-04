@@ -20,6 +20,8 @@ HOST_SERVICE_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-services.mjs"
 HOST_EVENT_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-events.mjs"
 RUNTIME_CONFIG_FILE="effindom-runtime-config.js"
 DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
+LOADING_OVERLAY_STYLES_FILE="${PACKAGE_DIR}/browser/loading-overlay-styles.html"
+LOADING_OVERLAY_BODY_FILE="${PACKAGE_DIR}/browser/loading-overlay-body.html"
 
 rm -rf "${OUT_DIR}"
 mkdir -p "${PACKAGE_DIR}/build" "${OUT_DIR}" "${DEMO_OUT_DIR}" "${WORKER_BUILD_DIR}"
@@ -159,6 +161,28 @@ window.__effindomRuntime = Object.assign({}, window.__effindomRuntime, {
   manifestUrl: '${manifest_url}',
 });
 EOF
+}
+
+render_html_with_loading_overlay() {
+  local source="$1"
+  local destination="$2"
+
+  SOURCE_HTML_PATH="${source}" \
+  DEST_HTML_PATH="${destination}" \
+  LOADING_OVERLAY_STYLES_PATH="${LOADING_OVERLAY_STYLES_FILE}" \
+  LOADING_OVERLAY_BODY_PATH="${LOADING_OVERLAY_BODY_FILE}" \
+    node --input-type=module <<'NODE'
+import { readFileSync, writeFileSync } from 'node:fs';
+const source = readFileSync(process.env.SOURCE_HTML_PATH, 'utf8');
+const styles = readFileSync(process.env.LOADING_OVERLAY_STYLES_PATH, 'utf8');
+const body = readFileSync(process.env.LOADING_OVERLAY_BODY_PATH, 'utf8');
+writeFileSync(
+  process.env.DEST_HTML_PATH,
+  source
+    .replace('{{LOADING_OVERLAY_STYLES}}', styles)
+    .replace('{{LOADING_OVERLAY_BODY}}', body),
+);
+NODE
 }
 
 copy_runtime_assets() {
@@ -312,14 +336,14 @@ npx esbuild "${PACKAGE_DIR}/demo/worker-host-services.ts" \
   --outfile="${WORKER_HOST_SERVICES_BUILD}" \
   --sourcemap
 
-cp "${SMOKE_FIXTURE_DIR}/index.html" "${OUT_DIR}/index.html"
-cp "${PACKAGE_DIR}/demo/index.html" "${DEMO_OUT_DIR}/index.html"
+render_html_with_loading_overlay "${SMOKE_FIXTURE_DIR}/index.html" "${OUT_DIR}/index.html"
+render_html_with_loading_overlay "${PACKAGE_DIR}/demo/index.html" "${DEMO_OUT_DIR}/index.html"
 cp "${PACKAGE_DIR}/demo/demo-texture.png" "${DEMO_OUT_DIR}/demo-texture.png"
 cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-secondary-texture.png"
 
 mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls"
-cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
-cp "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
+render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
+render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
 
 copy_runtime_assets "${OUT_DIR}"
 copy_runtime_assets "${DEMO_OUT_DIR}"

@@ -24,14 +24,37 @@ export type {
 } from './common-harness';
 
 export {
+  buildRoutedHarnessRoutes,
+  defineRoutedAppManifest,
+  renderRoutedPageHead,
+  resolveRouteManifest,
+  resolveRoutePath,
+  routeDef,
+  routeHead,
+} from './routed-app-conventions';
+
+export {
   startRoutedHarness,
 } from './routed-harness';
+
+export type {
+  RoutedAppHeadTag,
+  RoutedAppRoute,
+  RoutedAppRouteDefinition,
+  RoutedAppRouteManifest,
+  ResolvedRoutedAppRoute,
+  ResolvedRoutedAppRouteManifest,
+} from './routed-app-conventions';
 
 export type {
   RoutedHarnessConfig,
   RoutedHarnessManagerState,
   RoutedHarnessRoute,
 } from './routed-harness';
+
+export type {
+  RoutedHarnessRouteSpec,
+} from './routed-app-conventions';
 
 export {
   defineHostEvents,

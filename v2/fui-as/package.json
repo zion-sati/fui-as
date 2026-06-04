@@ -1,6 +1,6 @@
 {
   "name": "@effindomv2/fui-as",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "private": false,
   "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
   "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
@@ -37,6 +37,10 @@
       "types": "./browser/src/index.ts",
       "default": "./browser/src/index.ts"
     },
+    "./browser/routed-app-conventions": {
+      "types": "./browser/routed-app-conventions.ts",
+      "default": "./browser/routed-app-conventions.ts"
+    },
     "./browser/common-harness": {
       "types": "./browser/src/common-harness.ts",
       "default": "./browser/src/common-harness.ts"
@@ -60,6 +64,9 @@
   },
   "files": [
     "src",
+    "browser/routed-app-conventions.ts",
+    "browser/loading-overlay-styles.html",
+    "browser/loading-overlay-body.html",
     "browser/src",
     "scripts",
     "LICENSE.md",

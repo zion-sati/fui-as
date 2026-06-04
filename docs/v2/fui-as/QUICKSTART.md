@@ -67,6 +67,14 @@ npm create @effindomv2/fui-as-app@latest my-mvc-app -- --template mvc
 The MVC scaffold emits route entrypoints under `src/routes/HomeApp.ts` and
 `src/routes/SettingsApp.ts`, page MVC slices under `src/routes/home/**` and
 `src/routes/settings/**`, and shared route UI helpers under `src/routes/shared/**`.
+The single route manifest lives in `src/route-config.ts` and is consumed by the
+routed harness, runtime prep, smoke checks, and wasm build helper, so adding a
+page usually means updating one file instead of four.
+Route `title` drives the browser tab/window title for each shell, and the
+optional `routeHead("name", "content", ...)` helper from
+`@effindomv2/fui-as/browser/routed-app-conventions` can collect generic
+metadata pairs for description, Open Graph, Twitter, canonical, and other
+`<head>` tags when needed.
 Those controllers use `createManagedApplication(() => new Controller())` via the
 shared `ManagedApplicationController` base.
 

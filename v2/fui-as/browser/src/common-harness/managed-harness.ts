@@ -71,24 +71,8 @@ const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 const harnessUiChrome = new HarnessUiChrome();
 
-function setLoadingOverlay(state: 'loading' | 'error', title: string, detail: string): void {
-  harnessUiChrome.setLoadingOverlay(state, title, detail);
-}
-
-function hideLoadingOverlay(): void {
-  harnessUiChrome.hideLoadingOverlay();
-}
-
 function describeHarnessError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function reportHarnessErrorOverlay(title: string, detail: string, error: unknown): void {
-  console.error(error instanceof Error ? error.stack ?? error : error);
-  setLoadingOverlay('error', title, detail);
-  const windowWithHarnessError = window as Window & { __fuiAsError?: string; __fuiAsReady?: boolean };
-  windowWithHarnessError.__fuiAsReady = false;
-  windowWithHarnessError.__fuiAsError = detail;
 }
 
 function defaultRunHarnessApp(exports: HarnessExports): void {
@@ -118,23 +102,7 @@ function defaultOnReady(): void {
 function defaultOnError(error: unknown): void {
   const windowWithHarnessState = window as Window & { __fuiAsReady?: boolean; __fuiAsError?: string };
   windowWithHarnessState.__fuiAsReady = false;
-  windowWithHarnessState.__fuiAsError = describeHarnessError(error);
-}
-
-function setUrlPreviewText(text: string): void {
-  harnessUiChrome.setUrlPreviewText(text);
-}
-
-function detectPlatformFamily(): number {
-  return harnessUiChrome.detectPlatformFamily();
-}
-
-function detectCoarsePointer(): boolean {
-  return harnessUiChrome.detectCoarsePointer();
-}
-
-function getCanvasSizeSource(canvas: HTMLCanvasElement): HTMLElement | HTMLCanvasElement {
-  return harnessUiChrome.getCanvasSizeSource(canvas);
+  windowWithHarnessState.__fuiAsError = error instanceof Error ? error.message : String(error);
 }
 
 export function startHarness<Exports extends HarnessExports>(options: HarnessOptions<Exports>): void {
@@ -158,16 +126,59 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
   let cleanup = () => {
     delete window.__fui_debug;
   };
-  setLoadingOverlay(
-    'loading',
-    'Teaching the pixels their lines...',
-    'The runtime orchestra is tuning up behind the canvas.',
-  );
+  const loadingOverlayText = harnessUiChrome.getLoadingOverlayText();
+  let loadingOverlayTitle = loadingOverlayText.title;
+  let loadingOverlayDetail = loadingOverlayText.detail;
+  let loadingOverlayVisible = false;
+  let loadingOverlayTimer: number | null = null;
+
+  function clearLoadingOverlayTimer(): void {
+    if (loadingOverlayTimer === null) {
+      return;
+    }
+    window.clearTimeout(loadingOverlayTimer);
+    loadingOverlayTimer = null;
+  }
+
+  function scheduleLoadingOverlay(): void {
+    if (loadingOverlayVisible || loadingOverlayTimer !== null) {
+      return;
+    }
+    loadingOverlayTimer = window.setTimeout(() => {
+      loadingOverlayTimer = null;
+      loadingOverlayVisible = true;
+      harnessUiChrome.setLoadingOverlay('loading', loadingOverlayTitle, loadingOverlayDetail);
+    }, 1000);
+  }
+
+  function updateLoadingOverlay(detail: string): void {
+    loadingOverlayDetail = detail;
+    if (loadingOverlayVisible) {
+      harnessUiChrome.setLoadingOverlay('loading', loadingOverlayTitle, loadingOverlayDetail);
+      return;
+    }
+    scheduleLoadingOverlay();
+  }
+
+  function finishLoadingOverlay(): void {
+    clearLoadingOverlayTimer();
+    loadingOverlayVisible = false;
+    harnessUiChrome.hideLoadingOverlay();
+  }
+
+  function failLoadingOverlay(detail: string): void {
+    clearLoadingOverlayTimer();
+    loadingOverlayVisible = true;
+    harnessUiChrome.setLoadingOverlay('error', loadingOverlayTitle, detail);
+  }
+
   const bridge = window.EffinDomBrowserBridge;
   if (bridge === undefined) {
+    failLoadingOverlay('EffinDomBrowserBridge is unavailable.');
     throw new Error('EffinDomBrowserBridge is unavailable.');
   }
   if (typeof Worker !== 'function') {
+    failLoadingOverlay('FUI-AS requires browser Worker support.');
     throw new Error('FUI-AS requires browser Worker support.');
   }
   const bridgeState = bridge;
@@ -195,7 +206,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       offsets: number[];
       colors: number[];
     }>();
-    setUrlPreviewText('');
+    harnessUiChrome.setUrlPreviewText('');
 
     function getCurrentSession(): HarnessAppSession {
       if (currentSession === null) {
@@ -761,8 +772,12 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
 
     function handleSameOriginNavigationFailure(target: URL, mode: HarnessNavigationMode, error: unknown): void {
       const route = toAppRoute(target);
-      const detail = `Failed to load ${mode === 'pop' ? 'history route' : 'route'} ${route}: ${describeHarnessError(error)}`;
-      reportHarnessErrorOverlay('The render raccoons chewed through a cable.', detail, error);
+      const detail = `Failed to load ${mode === 'pop' ? 'history route' : 'route'} ${route}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(error instanceof Error ? error.stack ?? error : error);
+      failLoadingOverlay(detail);
+      const windowWithHarnessError = window as Window & { __fuiAsError?: string; __fuiAsReady?: boolean };
+      windowWithHarnessError.__fuiAsReady = false;
+      windowWithHarnessError.__fuiAsError = detail;
       options.onError?.(error);
     }
 
@@ -1041,7 +1056,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
         session.exports.__fui_hide_active_context_menu();
       }
       runtime.clearPointerHover();
-      setUrlPreviewText('');
+      harnessUiChrome.setUrlPreviewText('');
     };
     const handleWindowBlur = () => {
       dismissTransientUi();
@@ -1120,7 +1135,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
     };
     registerExternalDragTarget(runtime.canvas);
     registerExternalDragTarget(runtime.canvas.parentElement);
-    registerExternalDragTarget(getCanvasSizeSource(runtime.canvas));
+    registerExternalDragTarget(harnessUiChrome.getCanvasSizeSource(runtime.canvas));
     window.addEventListener('blur', handleWindowBlur);
     runtime.canvas.addEventListener('blur', handleCanvasBlur);
     for (let index = 0; index < externalDragTargets.length; index += 1) {
@@ -1135,7 +1150,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
 
     cleanup = () => {
       workerManager.terminateAll();
-      setUrlPreviewText('');
+      harnessUiChrome.setUrlPreviewText('');
       window.removeEventListener('resize', handleViewportChange);
       darkModeQuery.removeEventListener('change', handleDarkModeChange);
       window.removeEventListener('popstate', handlePopState);
@@ -1285,7 +1300,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       runtime.setCapturedPointerHandle(null);
       runtime.clearPointerHover();
       runtime.canvas.style.cursor = 'default';
-      setUrlPreviewText('');
+      harnessUiChrome.setUrlPreviewText('');
       runtime.core._ed_clear_focus_state?.();
       runtime.core._ed_clear_text_input_state?.();
       runtime.core._ed_reset_scene();
@@ -1315,7 +1330,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       runtime.setAppFrameHandler(null);
       runtime.setCapturedPointerHandle(null);
       runtime.clearPointerHover();
-      setUrlPreviewText('');
+      harnessUiChrome.setUrlPreviewText('');
       latestCommandWords = [];
       latestRootHandle = null;
       updateState();
@@ -1330,11 +1345,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       loadOptions: HarnessAppOptions<Exports>,
     ): Promise<HarnessContext<Exports>> {
       if (loadOptions.showLoadingOverlay !== false) {
-        setLoadingOverlay(
-          'loading',
-          'Winding up the tiny widget clockwork...',
-          `Loading ${loadOptions.wasmPath}`,
-        );
+        updateLoadingOverlay(`Loading ${loadOptions.wasmPath}`);
       }
       await unloadApp();
       const restoredSnapshot = await queuePersistedUiStateWork(() => {
@@ -1404,7 +1415,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       await queuePersistedUiStateWork(() => ensureCurrentHistoryEntrySnapshot(`loading ${loadOptions.wasmPath}`));
       lastHandledUrlHref = window.location.href;
       updateState();
-      hideLoadingOverlay();
+      finishLoadingOverlay();
       return context;
     }
 
@@ -1424,12 +1435,12 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
     await options.onReady?.(controller);
   }).catch((error: unknown) => {
     cleanup();
-    const message = describeHarnessError(error);
-    reportHarnessErrorOverlay(
-      'The render raccoons chewed through a cable.',
-      message,
-      error,
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(error instanceof Error ? error.stack ?? error : error);
+    failLoadingOverlay(message);
+    const windowWithHarnessError = window as Window & { __fuiAsError?: string; __fuiAsReady?: boolean };
+    windowWithHarnessError.__fuiAsReady = false;
+    windowWithHarnessError.__fuiAsError = message;
     options.onError?.(error);
     throw error;
   });

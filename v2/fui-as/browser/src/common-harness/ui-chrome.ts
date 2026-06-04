@@ -94,6 +94,21 @@ export function waitForFrame(): Promise<void> {
 }
 
 export class HarnessUiChrome {
+  getLoadingOverlayText(): { title: string; detail: string } {
+    const overlay = document.getElementById(LOADING_OVERLAY_ID);
+    const titleNode = document.getElementById(LOADING_TITLE_ID);
+    const detailNode = document.getElementById(LOADING_DETAIL_ID);
+    const title = titleNode instanceof HTMLElement ? titleNode.textContent ?? '' : '';
+    const detail = detailNode instanceof HTMLElement ? detailNode.textContent ?? '' : '';
+    if (overlay instanceof HTMLElement && title.length > 0 && detail.length > 0) {
+      return { title, detail };
+    }
+    return {
+      title: 'Loading...',
+      detail: 'The runtime is starting up.',
+    };
+  }
+
   setLoadingOverlay(state: 'loading' | 'error', title: string, detail: string): void {
     const overlay = document.getElementById(LOADING_OVERLAY_ID);
     const titleNode = document.getElementById(LOADING_TITLE_ID);

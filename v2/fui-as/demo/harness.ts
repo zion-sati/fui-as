@@ -214,9 +214,6 @@ startRoutedHarness<DemoRouteExports, DemoRoute>({
   hostServices: demoHostServices,
   workerHostServices,
   recreateRuntimeOnWarmRouteSwap: true,
-  showLoadingOverlay(isWarmRouteSwap): boolean {
-    return !isWarmRouteSwap;
-  },
   onRouteReady(state, route): void {
     syncManagerState(state, route);
   },

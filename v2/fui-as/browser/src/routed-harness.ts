@@ -10,6 +10,7 @@ import {
 import type { HostEventsDefinition } from './host-events';
 import type { HostServicesDefinition } from './host-services';
 import type { WorkerHostServicesBundleConfig } from './worker-types';
+import type { RoutedHarnessRouteSpec } from './routed-app-conventions';
 
 type NavigationMode = 'push' | 'replace' | 'pop';
 
@@ -20,12 +21,9 @@ declare global {
   }
 }
 
-export interface RoutedHarnessRoute {
-  readonly routePath: string;
+export type RoutedHarnessRoute = RoutedHarnessRouteSpec & {
   readonly matchPath?: string;
-  readonly wasmPath: string;
-  readonly title: string;
-}
+};
 
 export interface RoutedHarnessManagerState {
   readonly shellId: string;
@@ -169,9 +167,7 @@ export function startRoutedHarness<
       },
     };
     const showLoadingOverlay = config.showLoadingOverlay?.(isWarmRouteSwap, route);
-    if (showLoadingOverlay !== undefined) {
-      appOptions.showLoadingOverlay = showLoadingOverlay;
-    }
+    appOptions.showLoadingOverlay = showLoadingOverlay ?? !isWarmRouteSwap;
 
     await controller.loadApp(appOptions);
     routeLoads[route.routePath] = (routeLoads[route.routePath] ?? 0) + 1;
