@@ -404,7 +404,7 @@ export class AdvancedControlsView {
       verticalSpacer(8.0),
       this.neverHorizontalToggle,
     )
-      .fillWidth();
+      .width(0.0, Unit.Auto);
 
     const policyColumn = Column(
       this.verticalPolicyGroup,
@@ -417,7 +417,7 @@ export class AdvancedControlsView {
       verticalSpacer(12.0),
       this.visibilityDropdown,
     )
-      .fillWidth();
+      .width(0.0, Unit.Auto);
 
     const body = Column(
       this.textArea,

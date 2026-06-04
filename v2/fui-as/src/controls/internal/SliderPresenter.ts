@@ -2,6 +2,7 @@ import { BorderStyle, Orientation, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
 import { SliderSizing } from "../ControlSizing";
+import { SliderColors } from "../SliderColors";
 
 function clamp(value: f32, min: f32, max: f32): f32 {
   if (value < min) {
@@ -76,7 +77,7 @@ export abstract class SliderPresenter {
   }
 
   abstract layout(state: SliderVisualState, length: f32): void;
-  abstract apply(theme: Theme, state: SliderVisualState): void;
+  abstract apply(theme: Theme, state: SliderVisualState, colors?: SliderColors | null): void;
 }
 
 export abstract class SliderTemplate {
@@ -163,7 +164,7 @@ class DefaultSliderPresenter extends SliderPresenter {
     );
   }
 
-  apply(theme: Theme, state: SliderVisualState): void {
+  apply(theme: Theme, state: SliderVisualState, colors: SliderColors | null = null): void {
     const accent = state.dragging
       ? theme.colors.accentPressed
       : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);
@@ -172,14 +173,17 @@ class DefaultSliderPresenter extends SliderPresenter {
     const trackThickness = resolveTrackThickness(metrics);
     const trackRadius = trackThickness * 0.5;
     this.trackNode.cornerRadius(trackRadius);
-    this.trackNode.bgColor(theme.colors.scrollbarTrack);
+    const trackColor = colors !== null && colors.hasTrack ? colors.trackColor : theme.colors.scrollbarTrack;
+    this.trackNode.bgColor(trackColor);
     this.fillNode.cornerRadius(trackRadius);
-    this.fillNode.bgColor(accent);
+    const fillColor = colors !== null && colors.hasFill ? colors.fillColor : accent;
+    this.fillNode.bgColor(fillColor);
     this.thumbNode
       .width(thumbSize, Unit.Pixel)
       .height(thumbSize, Unit.Pixel)
       .cornerRadius(thumbSize * 0.5);
-    this.thumbNode.bgColor(accent);
+    const thumbColor = colors !== null && colors.hasThumb ? colors.thumbColor : accent;
+    this.thumbNode.bgColor(thumbColor);
     this.thumbNode.border(1.0, theme.colors.surface, BorderStyle.Solid);
   }
 }

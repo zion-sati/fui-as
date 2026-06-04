@@ -9,6 +9,7 @@ import {
   SliderPresenterMetrics,
   SliderTemplate,
   SliderVisualState,
+  SliderColors,
   Theme,
   Unit,
 } from "../../src/Fui";
@@ -102,7 +103,7 @@ class TrackingSliderPresenter extends SliderPresenter {
     );
   }
 
-  apply(theme: Theme, state: SliderVisualState): void {
+  apply(theme: Theme, state: SliderVisualState, _colors: SliderColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     const accent = state.dragging ? theme.colors.accentPressed : theme.colors.accent;

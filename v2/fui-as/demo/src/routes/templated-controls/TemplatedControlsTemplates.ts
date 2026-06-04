@@ -12,6 +12,7 @@ import {
   DropdownChevronTemplate,
   DropdownChevronVisualState,
   DropdownFieldPresenter,
+  DropdownColors,
   DropdownFieldTemplate,
   DropdownFieldVisualState,
   DropdownOptionRowMetrics,
@@ -28,6 +29,7 @@ import {
   RadioIndicatorVisualState,
   SemanticCheckedState,
   SliderPresenter,
+  SliderColors,
   SliderPresenterMetrics,
   SliderTemplate,
   SliderVisualState,
@@ -38,6 +40,7 @@ import {
   Theme,
   Text,
   TextInputPresenter,
+  TextInputColors,
   TextInputTemplate,
   TextInputVisualState,
   TextVerticalAlign,
@@ -287,7 +290,7 @@ class HouseSliderPresenter extends SliderPresenter {
     );
   }
 
-  apply(theme: Theme, state: SliderVisualState): void {
+  apply(theme: Theme, state: SliderVisualState, colors: SliderColors | null): void {
     const accent = state.dragging ? theme.colors.accentPressed : resolveAccent(theme, state.hovered, false);
     this.trackNode
       .cornerRadius(4.0)
@@ -335,7 +338,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
     super(root, valueHost, valueNode, chevronHost);
   }
 
-  apply(theme: Theme, state: DropdownFieldVisualState): void {
+  apply(theme: Theme, state: DropdownFieldVisualState, colors: DropdownColors | null): void {
     const accent = state.open || state.focused ? theme.colors.accent : theme.colors.border;
     this.root
       .flexDirection(FlexDirection.Row)
@@ -413,7 +416,7 @@ class HouseDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
     super(root, labelNode, new DropdownOptionRowMetrics(38.0));
   }
 
-  apply(theme: Theme, state: DropdownOptionRowVisualState): void {
+  apply(theme: Theme, state: DropdownOptionRowVisualState, colors: DropdownColors | null): void {
     this.root
       .padding(12.0, 8.0, 12.0, 8.0)
       .cornerRadius(12.0)
@@ -483,7 +486,7 @@ class HouseTextInputPresenter extends TextInputPresenter {
     super();
   }
 
-  apply(theme: Theme, state: TextInputVisualState): void {
+  apply(theme: Theme, state: TextInputVisualState, colors: TextInputColors | null): void {
     const insetX: f32 = 14.0;
     const insetY: f32 = state.multiline ? 12.0 : 10.0;
     this.host

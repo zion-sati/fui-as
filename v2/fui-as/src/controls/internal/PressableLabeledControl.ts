@@ -16,6 +16,7 @@ import {
 } from "../../core/ffi";
 import { Theme, activeTheme } from "../../core/Theme";
 import { FlexBox, TextCore } from "../../nodes";
+import { LabeledControlColors } from "../LabeledControlColors";
 
 const TRANSPARENT: u32 = rgba(0x00, 0x00, 0x00, 0x00);
 
@@ -31,6 +32,7 @@ export class PressableLabeledControl extends FlexBox {
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private disposed: bool = false;
   private labelFontSizeOverride: f32 = 0.0;
+  private colorsValue: LabeledControlColors | null = null;
   protected hoveredState: bool = false;
   protected pressedState: bool = false;
   protected focusedState: bool = false;
@@ -177,6 +179,12 @@ export class PressableLabeledControl extends FlexBox {
     this.syncBaseTheme(activeTheme.value);
   }
 
+  colors(colors: LabeledControlColors | null): this {
+    this.colorsValue = colors;
+    this.syncBaseTheme(activeTheme.value);
+    return this;
+  }
+
   protected syncBaseTheme(theme: Theme): void {
     this.cursor(this.isEnabled ? CursorStyle.Pointer : CursorStyle.Default);
     this.cornerRadius(theme.spacing.sm);
@@ -192,7 +200,22 @@ export class PressableLabeledControl extends FlexBox {
       theme.fonts.body,
       this.labelFontSizeOverride > 0.0 ? this.labelFontSizeOverride : theme.fonts.sizeBody,
     );
-    this.labelNode.textColor(this.isEnabled ? theme.colors.textPrimary : theme.colors.textMuted);
+    const colors = this.colorsValue;
+    let labelColor: u32;
+    if (this.isEnabled) {
+      if (colors !== null && colors.hasTextPrimary) {
+        labelColor = colors.textPrimaryColor;
+      } else {
+        labelColor = theme.colors.textPrimary;
+      }
+    } else {
+      if (colors !== null && colors.hasTextMuted) {
+        labelColor = colors.textMutedColor;
+      } else {
+        labelColor = theme.colors.textMuted;
+      }
+    }
+    this.labelNode.textColor(labelColor);
     this.syncFocusChrome(theme);
   }
 

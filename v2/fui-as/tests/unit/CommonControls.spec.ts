@@ -22,6 +22,8 @@ import {
   SliderSizing,
   SliderTemplate,
   SliderVisualState,
+  SliderColors,
+  DropdownColors,
   Switch,
   TextArea,
   TextInput,
@@ -179,7 +181,7 @@ class FixedSliderPresenter extends SliderPresenter {
       .height(25.0, Unit.Pixel);
   }
 
-  apply(_theme: Theme, _state: SliderVisualState): void {}
+  apply(_theme: Theme, _state: SliderVisualState, _colors: SliderColors | null = null): void {}
 }
 
 class FixedSliderTemplate extends SliderTemplate {
@@ -210,7 +212,7 @@ class FixedDropdownFieldPresenter extends DropdownFieldPresenter {
     super(root, valueHost, valueNode, chevronHost, new DropdownFieldMetrics(44.0, 18.0, 19.0, 6.0, 6.0, 6.0, 6.0));
   }
 
-  apply(theme: Theme, _state: DropdownFieldVisualState): void {
+  apply(theme: Theme, _state: DropdownFieldVisualState, _colors: DropdownColors | null = null): void {
     this.root.height(44.0, Unit.Pixel);
     this.valueNode.font(theme.fonts.body, 18.0);
     this.chevronHost

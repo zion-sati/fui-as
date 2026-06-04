@@ -9,6 +9,7 @@ import {
 import { Theme } from "../../core/Theme";
 import { FlexBox, Text } from "../../nodes";
 import { DropdownSizing } from "../ControlSizing";
+import { DropdownColors } from "../DropdownColors";
 
 const DEFAULT_CHEVRON_BOX_SIZE: f32 = 16.0;
 const DEFAULT_FIELD_PADDING_X: f32 = 16.0;
@@ -98,7 +99,7 @@ export abstract class DropdownFieldPresenter {
     return this.metricsValue;
   }
 
-  abstract apply(theme: Theme, state: DropdownFieldVisualState): void;
+  abstract apply(theme: Theme, state: DropdownFieldVisualState, colors?: DropdownColors | null): void;
 }
 
 export abstract class DropdownFieldTemplate {
@@ -131,26 +132,31 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
     super(root, valueHost, valueNode, chevronHost, metrics);
   }
 
-  apply(theme: Theme, state: DropdownFieldVisualState): void {
+  apply(theme: Theme, state: DropdownFieldVisualState, colors: DropdownColors | null = null): void {
     const metrics = this.metrics;
     const contentHeight = <f32>Math.max(
       metrics.fontSize,
       metrics.height - metrics.paddingTop - metrics.paddingBottom,
     );
+    const bg = colors !== null && colors.hasBackground ? colors.backgroundColor : (state.pressed && state.enabled ? theme.colors.background : theme.colors.surface);
+    const borderColor = colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border;
     this.root
       .flexDirection(FlexDirection.Row)
       .alignItems(AlignItems.Center)
       .height(metrics.height, Unit.Pixel)
       .cornerRadius(theme.spacing.sm)
-      .border(2.0, theme.colors.border, BorderStyle.Solid)
+      .border(2.0, borderColor, BorderStyle.Solid)
       .padding(metrics.paddingLeft, metrics.paddingTop, metrics.paddingRight, metrics.paddingBottom)
-      .bgColor(state.pressed && state.enabled ? theme.colors.background : theme.colors.surface);
+      .bgColor(bg);
     this.valueHost
       .fillSize();
+    const textColor = !state.enabled
+      ? theme.colors.textMuted
+      : (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary);
     this.valueNode
       .font(theme.fonts.body, metrics.fontSize)
       .lineHeight(contentHeight)
-      .textColor(state.enabled ? theme.colors.textPrimary : theme.colors.textMuted);
+      .textColor(textColor);
     this.chevronHost
       .width(metrics.chevronBoxSize, Unit.Pixel)
       .height(metrics.chevronBoxSize, Unit.Pixel)

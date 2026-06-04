@@ -2,6 +2,7 @@ import { BorderStyle, CursorStyle, Unit } from "../../core/ffi";
 import { Node } from "../../core/Node";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
+import { TextInputColors } from "../TextInputColors";
 
 export class TextInputVisualState {
   constructor(
@@ -35,7 +36,7 @@ export abstract class TextInputPresenter {
     return changetype<FlexBox>(this.placeholderHostValue);
   }
 
-  abstract apply(theme: Theme, state: TextInputVisualState): void;
+  abstract apply(theme: Theme, state: TextInputVisualState, colors?: TextInputColors | null): void;
 }
 
 export abstract class TextInputTemplate {
@@ -43,15 +44,17 @@ export abstract class TextInputTemplate {
 }
 
 class DefaultTextInputPresenter extends TextInputPresenter {
-  apply(theme: Theme, state: TextInputVisualState): void {
+  apply(theme: Theme, state: TextInputVisualState, colors: TextInputColors | null = null): void {
     const horizontalPadding = theme.spacing.md;
     const verticalPadding = theme.spacing.sm;
     const editableCursor = state.enabled ? CursorStyle.Text : CursorStyle.Default;
     const shellCursor = !state.multiline && state.enabled ? CursorStyle.Text : CursorStyle.Default;
+    const bg = colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface;
+    const borderColor = colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border;
     this.host
-      .bgColor(theme.colors.surface)
+      .bgColor(bg)
       .cornerRadius(theme.spacing.sm)
-      .border(1.0, theme.colors.border, BorderStyle.Solid)
+      .border(1.0, borderColor, BorderStyle.Solid)
       .padding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
       .cursor(shellCursor);
     this.host.opacity(state.enabled ? 1.0 : 0.6);

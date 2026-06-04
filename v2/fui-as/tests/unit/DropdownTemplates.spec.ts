@@ -13,6 +13,7 @@ import {
   DropdownOptionRowPresenter,
   DropdownOptionRowTemplate,
   DropdownOptionRowVisualState,
+  DropdownColors,
   FlexDirection,
   FlexBox,
   KeyEventType,
@@ -83,7 +84,7 @@ class TrackingDropdownFieldPresenter extends DropdownFieldPresenter {
     super(root, valueHost, valueNode, chevronHost);
   }
 
-  apply(theme: Theme, state: DropdownFieldVisualState): void {
+  apply(theme: Theme, state: DropdownFieldVisualState, _colors: DropdownColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     this.root
@@ -175,7 +176,7 @@ class TrackingDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
     super(root, labelNode, new DropdownOptionRowMetrics(40.0));
   }
 
-  apply(theme: Theme, state: DropdownOptionRowVisualState): void {
+  apply(theme: Theme, state: DropdownOptionRowVisualState, _colors: DropdownColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     this.root

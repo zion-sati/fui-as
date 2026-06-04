@@ -30,6 +30,7 @@ import {
   TextInputPresenter,
   TextInputTemplate,
   TextInputVisualState,
+  TextInputColors,
   Theme,
   Unit,
 } from "../../src/Fui";
@@ -262,7 +263,7 @@ class TrackingTextInputPresenter extends TextInputPresenter {
     super();
   }
 
-  apply(theme: Theme, state: TextInputVisualState): void {
+  apply(theme: Theme, state: TextInputVisualState, _colors: TextInputColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     this.host

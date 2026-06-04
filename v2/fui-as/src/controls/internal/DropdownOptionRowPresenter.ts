@@ -2,6 +2,7 @@ import { AlignItems, TextVerticalAlign } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox, Text } from "../../nodes";
 import { DropdownSizing } from "../ControlSizing";
+import { DropdownColors } from "../DropdownColors";
 
 export class DropdownOptionRowMetrics {
   constructor(
@@ -55,7 +56,7 @@ export abstract class DropdownOptionRowPresenter {
     return this.metricsValue;
   }
 
-  abstract apply(theme: Theme, state: DropdownOptionRowVisualState): void;
+  abstract apply(theme: Theme, state: DropdownOptionRowVisualState, colors?: DropdownColors | null): void;
 }
 
 export abstract class DropdownOptionRowTemplate {
@@ -79,19 +80,20 @@ class DefaultDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
     super(root, labelNode, metrics);
   }
 
-  apply(theme: Theme, state: DropdownOptionRowVisualState): void {
+  apply(theme: Theme, state: DropdownOptionRowVisualState, colors: DropdownColors | null = null): void {
     const metrics = this.metrics;
     this.root
       .padding(metrics.paddingLeft, 0.0, metrics.paddingRight, 0.0)
       .cornerRadius(theme.spacing.xs)
       .bgColor(state.highlighted ? theme.contextMenu.item.hoverBackground : 0x00000000);
+    const labelColor = !state.enabled
+      ? theme.colors.textMuted
+      : (state.selected
+         ? (colors !== null && colors.hasAccent ? colors.accentColor : theme.colors.accent)
+         : (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary));
     this.labelNode
       .font(theme.fonts.body, metrics.fontSize)
-      .textColor(
-        !state.enabled
-          ? theme.colors.textMuted
-          : (state.selected ? theme.colors.accent : theme.colors.textPrimary),
-      );
+      .textColor(labelColor);
   }
 }
 

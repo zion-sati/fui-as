@@ -21,6 +21,7 @@ import { Node } from "../core/Node";
 import { FlexBox } from "../nodes";
 import { bind1 } from "../core/bind";
 import { SliderSizing } from "./ControlSizing";
+import { SliderColors } from "./SliderColors";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
   createDefaultSliderPresenter,
@@ -79,6 +80,7 @@ export class Slider extends FlexBox implements DragGestureHost {
   private sliderPresenter: SliderPresenter = createSliderPresenter(null, null);
   private templateOverride: SliderTemplate | null = null;
   private sizingValue: SliderSizing | null = null;
+  private colorsValue: SliderColors | null = null;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private readonly dragGesture!: DragGesture;
   private changedCallback: ((value: f32) => void) | null = null;
@@ -186,6 +188,12 @@ export class Slider extends FlexBox implements DragGestureHost {
     if (this.lengthValue <= thumbSize) {
       this.lengthValue = thumbSize + 1.0;
     }
+    this.syncPresentation();
+    return this;
+  }
+
+  colors(colors: SliderColors | null): this {
+    this.colorsValue = colors;
     this.syncPresentation();
     return this;
   }
@@ -398,7 +406,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     );
     this.padding(SLIDER_PADDING, SLIDER_PADDING, SLIDER_PADDING, SLIDER_PADDING);
     this.opacity(this.isEnabled ? 1.0 : 0.6);
-    this.sliderPresenter.apply(theme, state);
+    this.sliderPresenter.apply(theme, state, this.colorsValue);
   }
 
   private syncVisualState(): void {

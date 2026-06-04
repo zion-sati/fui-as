@@ -17,6 +17,7 @@ import {
   DropdownFieldTemplate,
   DropdownFieldVisualState,
   DropdownItem,
+  DropdownColors,
   FlexBox,
   Node,
   PressableIndicatorMetrics,
@@ -27,6 +28,7 @@ import {
   TextInputPresenter,
   TextInputTemplate,
   TextInputVisualState,
+  TextInputColors,
   Unit,
 } from "../../src/Fui";
 import {
@@ -111,7 +113,7 @@ class AppDefaultDropdownFieldPresenter extends DropdownFieldPresenter {
     super(root, valueHost, valueNode, chevronHost);
   }
 
-  apply(theme: Theme, state: DropdownFieldVisualState): void {
+  apply(theme: Theme, state: DropdownFieldVisualState, _colors: DropdownColors | null = null): void {
     this.root
       .cornerRadius(14.0)
       .border(2.0, theme.colors.accent, BorderStyle.Solid)
@@ -194,7 +196,7 @@ class AppDefaultTextInputPresenter extends TextInputPresenter {
     super();
   }
 
-  apply(theme: Theme, state: TextInputVisualState): void {
+  apply(theme: Theme, state: TextInputVisualState, _colors: TextInputColors | null = null): void {
     this.lastState = state;
     this.host
       .cornerRadius(state.multiline ? 18.0 : 14.0)

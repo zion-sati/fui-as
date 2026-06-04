@@ -23,6 +23,7 @@ import { registerScrollHook } from "../core/ScrollHooks";
 import { FlexBox, Portal, ScrollBarVisibility, ScrollBox, ScrollView } from "../nodes";
 import { bind2 } from "../core/bind";
 import { DropdownSizing } from "./ControlSizing";
+import { DropdownColors } from "./DropdownColors";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
   createDefaultDropdownChevronPresenter,
@@ -158,10 +159,10 @@ class DropdownOptionNode extends FlexBox {
     return this.presenter.metrics.height;
   }
 
-  applyTheme(theme: Theme, highlighted: bool, selected: bool, enabled: bool): void {
+  applyTheme(theme: Theme, highlighted: bool, selected: bool, enabled: bool, colors: DropdownColors | null): void {
     this.semanticSelected(selected);
     this.semanticDisabled(!enabled);
-    this.presenter.apply(theme, new DropdownOptionRowVisualState(highlighted, selected, enabled));
+    this.presenter.apply(theme, new DropdownOptionRowVisualState(highlighted, selected, enabled), colors);
   }
 
   _handlePointerEvent(eventType: PointerEventType, x: f32, y: f32, modifiers: u32 = 0): void {
@@ -193,6 +194,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   private chevronTemplateValue: DropdownChevronTemplate | null = null;
   private optionRowTemplateValue: DropdownOptionRowTemplate | null = null;
   private sizingValue: DropdownSizing | null = null;
+  private colorsValue: DropdownColors | null = null;
   private fieldPresenter: DropdownFieldPresenter;
   private chevronPresenter: DropdownChevronPresenter;
   private readonly popupRoot: Portal;
@@ -371,6 +373,12 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       this.refreshPanelLayout();
     }
     this.syncValueLabel();
+    this.handleThemeChanged();
+    return this;
+  }
+
+  colors(colors: DropdownColors | null): this {
+    this.colorsValue = colors;
     this.handleThemeChanged();
     return this;
   }
@@ -768,6 +776,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
         index == this.highlightedIndexValue,
         index == this.selectedIndexValue,
         this.isEnabled,
+        this.colorsValue,
       );
     }
   }
@@ -904,6 +913,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
           ? unchecked(this.itemsValue[this.selectedIndexValue]).label
           : "",
       ),
+      this.colorsValue,
     );
     this.chevronPresenter.apply(
       theme,

@@ -22,6 +22,7 @@ import { bind1, bind2 } from "../../core/bind";
 import { ScrollState } from "../../nodes/ScrollState";
 import { ScrollView } from "../../nodes/ScrollView";
 import { getControlTemplates } from "../ControlTemplateSet";
+import { TextInputColors } from "../TextInputColors";
 import {
   defaultTextInputTemplate,
   TextInputPresenter,
@@ -179,6 +180,7 @@ export class TextInputCore extends FlexBox {
   private focusChangedListener: ((focused: bool) => void) | null = null;
   private textInputFocusChangedBinding: Callback1<bool> | null = null;
   private templateValue: TextInputTemplate | null = null;
+  private colorsValue: TextInputColors | null = null;
 
   constructor(profile: TextInputProfile, text: string = "") {
     super();
@@ -252,6 +254,12 @@ export class TextInputCore extends FlexBox {
     this.templateValue = template;
     this.presenter = this.createPresenter(template);
     this.presenter.bind(this, this.editorHostNode(), this.placeholderHost);
+    this.syncThemeState(activeTheme.value);
+    return this;
+  }
+
+  colors(colors: TextInputColors | null): this {
+    this.colorsValue = colors;
     this.syncThemeState(activeTheme.value);
     return this;
   }
@@ -461,30 +469,49 @@ export class TextInputCore extends FlexBox {
     const resolvedFontSize = this.hasFontSizeOverride ? this.fontSizeOverride : theme.fonts.sizeBody;
     const lineHeight = resolvedFontSize + theme.spacing.sm;
     const editableCursor = this.isEnabled ? CursorStyle.Text : CursorStyle.Default;
-    this.presenter.apply(theme, this.createVisualState());
+    this.presenter.apply(theme, this.createVisualState(), this.colorsValue);
 
     const textVerticalAlign = this.profile.multiline ? TextVerticalAlign.Top : TextVerticalAlign.Center;
+
+    const colors = this.colorsValue;
+    let resolvedTextColor: u32;
+    if (this.isEnabled) {
+      if (colors !== null && colors.hasTextPrimary) {
+        resolvedTextColor = colors.textPrimaryColor;
+      } else {
+        resolvedTextColor = theme.colors.textPrimary;
+      }
+    } else {
+      if (colors !== null && colors.hasTextMuted) {
+        resolvedTextColor = colors.textMutedColor;
+      } else {
+        resolvedTextColor = theme.colors.textMuted;
+      }
+    }
+    const resolvedCaretColor = colors !== null && colors.hasCaret ? colors.caretColor : theme.colors.accent;
+
     this.editorText
       .width(this.shouldEditorTrackViewportWidth() ? 100.0 : 0.0, this.shouldEditorTrackViewportWidth() ? Unit.Percent : Unit.Auto)
       .height(this.profile.multiline ? 0.0 : lineHeight, this.profile.multiline ? Unit.Auto : Unit.Pixel)
       .fontFamily(resolvedFontFamily)
       .fontSize(resolvedFontSize)
       .verticalAlign(textVerticalAlign)
-      .textColor(this.isEnabled ? theme.colors.textPrimary : theme.colors.textMuted)
-      .caretColor(theme.colors.accent);
+      .textColor(resolvedTextColor)
+      .caretColor(resolvedCaretColor);
     this.syncEditorWrapping();
 
     this.placeholderHost
       .width(100.0, Unit.Percent)
       .height(this.profile.multiline ? 0.0 : lineHeight, this.profile.multiline ? Unit.Auto : Unit.Pixel)
       .cursor(editableCursor);
+    const resolvedPlaceholderColor = colors !== null && colors.hasPlaceholder ? colors.placeholderColor : theme.colors.textMuted;
     this.placeholderText
       .width(100.0, Unit.Percent)
       .height(this.profile.multiline ? 0.0 : lineHeight, this.profile.multiline ? Unit.Auto : Unit.Pixel)
       .fontFamily(resolvedFontFamily)
       .fontSize(resolvedFontSize)
       .verticalAlign(textVerticalAlign)
-      .textColor(theme.colors.textMuted);
+      .textColor(resolvedPlaceholderColor);
     const scrollBox = this.editorScrollBox;
     if (scrollBox !== null) {
       scrollBox.cursor(CursorStyle.Default);
@@ -492,6 +519,14 @@ export class TextInputCore extends FlexBox {
       scrollBox.fillSize();
       this.syncScrollChromeState();
     }
+
+    if (colors !== null && colors.hasBackground) {
+      this.bgColor(colors.backgroundColor);
+    }
+    if (colors !== null && colors.hasBorder) {
+      this.border(1.0, colors.borderColor, BorderStyle.Solid);
+    }
+
     this.syncFocusChrome(theme);
   }
 

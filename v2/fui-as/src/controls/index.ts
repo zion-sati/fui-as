@@ -1,6 +1,10 @@
 export { Button } from "./Button";
 export { Checkbox } from "./Checkbox";
 export { DropdownSizing, LabeledControlSizing, SliderSizing } from "./ControlSizing";
+export { LabeledControlColors } from "./LabeledControlColors";
+export { TextInputColors } from "./TextInputColors";
+export { DropdownColors } from "./DropdownColors";
+export { SliderColors } from "./SliderColors";
 export { ContextMenu, MenuItem } from "./ContextMenu";
 export { Dialog } from "./Dialog";
 export { Dropdown, DropdownItem } from "./Dropdown";
