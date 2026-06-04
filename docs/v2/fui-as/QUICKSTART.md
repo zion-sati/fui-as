@@ -95,6 +95,9 @@ Use only the public barrels when authoring apps, demos, or custom controls:
 - `./FuiWorker` - worker-side compatibility barrel.
 - `./FuiExports` / `./FuiWorkerExports` - runtime ABI export barrels for entrypoints.
 
+For flex layouts, `AlignItems.None` leaves the parent from forcing a cross-axis
+alignment value so children can rely on their own `alignSelf(...)` settings.
+
 Do **not** import from internal paths like `src/core/*`, `src/bindings/*`, or
 `src/host-services/*` in app/demo code.
 

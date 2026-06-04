@@ -167,6 +167,28 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_CLIP_TO_BOUNDS)).toBeGreaterThan(-1);
   });
 
+  it("lets a parent opt out of cross-axis alignment with none", () => {
+    resetCalls();
+
+    const child = new FlexBox()
+      .width(40.0, Unit.Pixel)
+      .height(20.0, Unit.Pixel)
+      .alignSelf(AlignSelf.End);
+    const box = new FlexBox()
+      .width(200.0, Unit.Pixel)
+      .height(100.0, Unit.Pixel)
+      .flexDirection(FlexDirection.Row)
+      .alignItems(AlignItems.None)
+      .child(child);
+
+    box.build();
+
+    const alignItemsIndex = findCall(CALL_SET_ALIGN_ITEMS);
+    expect<i32>(alignItemsIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(alignItemsIndex, 1)).toBe(<f64>AlignItems.None);
+    expect<bool>(hasHandleArg(CALL_SET_ALIGN_SELF, child.builtHandle, 1, <f64>AlignSelf.End)).toBe(true);
+  });
+
   it("exposes fill sizing helpers", () => {
     resetCalls();
 

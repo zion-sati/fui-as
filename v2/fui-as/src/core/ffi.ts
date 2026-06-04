@@ -58,6 +58,7 @@ export enum AlignItems {
   Center = 2,
   End = 3,
   Stretch = 4,
+  None = 5,
 }
 
 export enum AlignSelf {
