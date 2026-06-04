@@ -338,6 +338,7 @@ npx esbuild "${PACKAGE_DIR}/demo/worker-host-services.ts" \
 
 render_html_with_loading_overlay "${SMOKE_FIXTURE_DIR}/index.html" "${OUT_DIR}/index.html"
 render_html_with_loading_overlay "${PACKAGE_DIR}/demo/index.html" "${DEMO_OUT_DIR}/index.html"
+cp "${PACKAGE_DIR}/browser/favicon.ico" "${REPO_ROOT}/public/favicon.ico"
 cp "${PACKAGE_DIR}/demo/demo-texture.png" "${DEMO_OUT_DIR}/demo-texture.png"
 cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-secondary-texture.png"
 
