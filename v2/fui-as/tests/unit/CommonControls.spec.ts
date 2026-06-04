@@ -29,9 +29,10 @@ import {
 import { Application } from "../../src/core/Application";
 import { Node } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
-import { AlignSelf, CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
+import { AlignItems, AlignSelf, CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
 import { rgb } from "../../src/color";
+import { clearControlTemplates } from "../../src/controls/ControlTemplateSet";
 import { __fui_on_selection_changed, __fui_on_text_changed, __fui_on_text_replaced, __fui_text_buffer } from "../../src/core/event_exports";
 import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
 import {
@@ -245,6 +246,7 @@ function handleTextInputFocusChanged(_focused: bool): void {
 describe("Common controls", () => {
   afterEach(() => {
     Application.unmount();
+    clearControlTemplates();
     resetTheme();
   });
 
@@ -306,9 +308,26 @@ describe("Common controls", () => {
     const colorCall = findCall(CALL_SET_TEXT_COLOR);
     expect<bool>(colorCall >= 0).toBe(true);
     expect<u32>(<u32>getCallArg(colorCall, 1)).toBe(activeTheme.value.colors.textOnAccent);
-    const alignSelfCall = lastCallIndexForHandle(CALL_SET_ALIGN_SELF, button.builtHandle);
-    expect<bool>(alignSelfCall >= 0).toBe(true);
-    expect<u32>(<u32>getCallArg(alignSelfCall, 1)).toBe(<u32>AlignSelf.Start);
+  });
+
+  it("lets a container choose alignSelf(start) for a button", () => {
+    resetCalls();
+
+    const button = new Button("Launch");
+    const wrapper = new FlexBox()
+      .flexDirection(FlexDirection.Row)
+      .alignItems(AlignItems.Center)
+      .alignSelf(AlignSelf.Start)
+      .child(button);
+
+    wrapper.build();
+
+    const wrapperAlignSelfCall = lastCallIndexForHandle(CALL_SET_ALIGN_SELF, wrapper.builtHandle);
+    expect<bool>(wrapperAlignSelfCall >= 0).toBe(true);
+    expect<u32>(<u32>getCallArg(wrapperAlignSelfCall, 1)).toBe(<u32>AlignSelf.Start);
+
+    const buttonAlignSelfCall = lastCallIndexForHandle(CALL_SET_ALIGN_SELF, button.builtHandle);
+    expect<i32>(buttonAlignSelfCall).toBe(-1);
   });
 
   it("checkbox tri-state cycles false to true to mixed to false on space", () => {

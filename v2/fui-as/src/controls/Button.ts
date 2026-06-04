@@ -1,6 +1,5 @@
 import * as ui from "../bindings/ui";
 import {
-  AlignSelf,
   AlignItems,
   BorderStyle,
   CursorStyle,
@@ -152,7 +151,6 @@ export class Button extends FlexBox {
     this.flexDirection(FlexDirection.Row);
     this.justifyContent(JustifyContent.Center);
     this.alignItems(AlignItems.Center);
-    this.alignSelf(AlignSelf.Start);
     this.syncThemeState(activeTheme.value);
     this.applyBackground();
   }
