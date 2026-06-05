@@ -21,3 +21,9 @@ export declare function fui_worker_request_yield(): void;
 
 @external("fui_worker_host", "fui_worker_request_yield_delay")
 export declare function fui_worker_request_yield_delay(delayMs: i32): void;
+
+@external("fui_worker_host", "fui_file_read_chunk")
+export declare function fui_file_read_chunk(offsetLow: i32, offsetHigh: i32, length: i32): i32;
+
+@external("fui_worker_host", "fui_file_worker_write_chunk")
+export declare function fui_file_worker_write_chunk(ptr: usize, len: i32): void;

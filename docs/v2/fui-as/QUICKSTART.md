@@ -138,6 +138,7 @@ import {
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
   FlexBox,
+  LabeledControlColors,
   PressableIndicatorMetrics,
   Theme,
   Unit,
@@ -159,7 +160,7 @@ class CapsuleCheckboxPresenter extends CheckboxIndicatorPresenter {
     root.child(this.fillNode);
   }
 
-  apply(theme: Theme, state: CheckboxIndicatorVisualState): void {
+  apply(theme: Theme, state: CheckboxIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     const accent = state.pressed ? theme.colors.accentPressed : theme.colors.accent;
     this.root.cornerRadius(12.0);
     this.root.border(2.0, accent, BorderStyle.Solid);

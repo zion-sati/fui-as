@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { ButtonColors } from "./ButtonColors";
 export { Checkbox } from "./Checkbox";
 export { DropdownSizing, LabeledControlSizing, SliderSizing } from "./ControlSizing";
 export { LabeledControlColors } from "./LabeledControlColors";

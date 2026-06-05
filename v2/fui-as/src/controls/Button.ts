@@ -20,6 +20,7 @@ import { Signal } from "../core/Signal";
 import { Theme, activeTheme } from "../core/Theme";
 import { FontFamily, FontStyle, FontWeight } from "../core/Typography";
 import { FlexBox, TextCore } from "../nodes";
+import { ButtonColors } from "./ButtonColors";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
   ButtonPresenter,
@@ -119,6 +120,7 @@ export class Button extends FlexBox {
   private shadowOffsetYValue: f32 = 0.0;
   private shadowBlurValue: f32 = 0.0;
   private shadowSpreadValue: f32 = 0.0;
+  private colorsValue: ButtonColors | null = null;
   private templateValue: ButtonTemplate | null = null;
   private presenterNeedsRefresh: bool = false;
 
@@ -199,6 +201,12 @@ export class Button extends FlexBox {
   template(template: ButtonTemplate | null): this {
     this.templateValue = template;
     this.replacePresenter(this.createPresenter(template));
+    this.handleThemeSignalChanged();
+    return this;
+  }
+
+  colors(colors: ButtonColors | null): this {
+    this.colorsValue = colors;
     this.handleThemeSignalChanged();
     return this;
   }
@@ -499,14 +507,31 @@ export class Button extends FlexBox {
   }
 
   private syncThemeState(theme: Theme): void {
+    const colors = this.colorsValue;
     if (!this.backgroundOverridden) {
-      this.normalBackgroundColorValue = theme.colors.accent;
+      this.normalBackgroundColorValue = colors !== null && colors.hasBackground
+        ? colors.backgroundColor
+        : theme.colors.accent;
     }
     if (!this.hoverBackgroundOverridden) {
-      this.hoverBackgroundColorValue = theme.colors.accentHovered;
+      if (colors !== null && colors.hasBackgroundHover) {
+        this.hoverBackgroundColorValue = colors.backgroundHoverColor;
+      } else if (colors !== null && colors.hasBackground) {
+        this.hoverBackgroundColorValue = colors.backgroundColor;
+      } else {
+        this.hoverBackgroundColorValue = theme.colors.accentHovered;
+      }
     }
     if (!this.pressedBackgroundOverridden) {
-      this.pressedBackgroundColorValue = theme.colors.accentPressed;
+      if (colors !== null && colors.hasBackgroundPressed) {
+        this.pressedBackgroundColorValue = colors.backgroundPressedColor;
+      } else if (colors !== null && colors.hasBackgroundHover) {
+        this.pressedBackgroundColorValue = colors.backgroundHoverColor;
+      } else if (colors !== null && colors.hasBackground) {
+        this.pressedBackgroundColorValue = colors.backgroundColor;
+      } else {
+        this.pressedBackgroundColorValue = theme.colors.accentPressed;
+      }
     }
     if (!this.cornerRadiusOverridden) {
       this.focusCornerTopLeft = theme.spacing.sm;
@@ -516,7 +541,9 @@ export class Button extends FlexBox {
     }
     if (!this.borderOverridden) {
       this.borderWidthValue = 1.0;
-      this.borderColorValue = theme.colors.border;
+      this.borderColorValue = colors !== null && colors.hasBorder
+        ? colors.borderColor
+        : theme.colors.border;
       this.borderStyleValue = BorderStyle.Solid;
       this.borderDashedValue = false;
     }
@@ -543,7 +570,13 @@ export class Button extends FlexBox {
       this.fontSizeValue = theme.fonts.sizeBody;
     }
     if (!this.textColorOverridden) {
-      this.textColorValue = theme.colors.textOnAccent;
+      if (!this.isEnabled && colors !== null && colors.hasTextMuted) {
+        this.textColorValue = colors.textMutedColor;
+      } else if (colors !== null && colors.hasTextPrimary) {
+        this.textColorValue = colors.textPrimaryColor;
+      } else {
+        this.textColorValue = theme.colors.textOnAccent;
+      }
     }
     const presenterHostState = new ButtonPresenterHostState(
       this.backgroundOverridden,
@@ -572,7 +605,7 @@ export class Button extends FlexBox {
       this.paddingRightValue,
       this.paddingBottomValue,
     );
-    this.presenter.apply(theme, this.createVisualState());
+    this.presenter.apply(theme, this.createVisualState(), this.colorsValue);
     this.backgroundOverridden = presenterHostState.backgroundOverridden;
     this.normalBackgroundColorValue = presenterHostState.normalBackgroundColorValue;
     this.cornerRadiusOverridden = presenterHostState.cornerRadiusOverridden;

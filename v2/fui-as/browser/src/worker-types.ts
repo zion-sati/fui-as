@@ -17,6 +17,16 @@ export interface WorkerBootstrapStartMessage {
   readonly workerHostServices?: WorkerHostServicesBundleConfig;
 }
 
+export interface WorkerBootstrapFileProcessStartMessage {
+  readonly type: "start-file-process";
+  readonly workerId: number;
+  readonly file: File;
+  readonly wasmUrl: string;
+  readonly entryName: string;
+  readonly chunkSize: number;
+  readonly workerHostServices?: WorkerHostServicesBundleConfig;
+}
+
 export interface WorkerBootstrapCancelMessage {
   readonly type: "cancel";
   readonly workerId: number;
@@ -24,6 +34,7 @@ export interface WorkerBootstrapCancelMessage {
 
 export type WorkerBootstrapInboundMessage =
   | WorkerBootstrapStartMessage
+  | WorkerBootstrapFileProcessStartMessage
   | WorkerBootstrapCancelMessage;
 
 export interface WorkerBootstrapProgressMessage {
@@ -38,6 +49,12 @@ export interface WorkerBootstrapCompleteMessage {
   readonly text: string;
 }
 
+export interface WorkerBootstrapFileProcessChunkMessage {
+  readonly type: "file-process-chunk";
+  readonly workerId: number;
+  readonly bytes: ArrayBuffer;
+}
+
 export interface WorkerBootstrapErrorMessage {
   readonly type: "error";
   readonly workerId: number;
@@ -47,4 +64,5 @@ export interface WorkerBootstrapErrorMessage {
 export type WorkerBootstrapOutboundMessage =
   | WorkerBootstrapProgressMessage
   | WorkerBootstrapCompleteMessage
+  | WorkerBootstrapFileProcessChunkMessage
   | WorkerBootstrapErrorMessage;

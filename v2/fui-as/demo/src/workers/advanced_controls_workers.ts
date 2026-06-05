@@ -91,6 +91,46 @@ class LargestPrimeCalculatorJob extends WorkerJob {
 // The in-flight worker state itself lives on the WorkerJob instance fields above.
 let largestPrimeCalculatorJob: LargestPrimeCalculatorJob | null = null;
 
+// -- File Processor Worker (DJB2 hash + passthrough write) --
+
+import {
+  __fui_worker_text_buffer,
+} from "../../../src/FuiWorkerExports";
+import {
+  fui_file_read_chunk,
+  fui_file_worker_write_chunk,
+  Worker as WorkerRuntime,
+} from "../../../src/FuiWorker";
+
+export function fileProcessorWorker(): void {
+  const READ_CHUNK_SIZE: i32 = 65536;
+  const bufPtr = __fui_worker_text_buffer();
+
+  let offset: u64 = 0;
+  let hash: u32 = 5381;
+
+  while (true) {
+    const offsetLow = i32(offset & 0xFFFFFFFF);
+    const offsetHigh = i32((offset >> 32) & 0xFFFFFFFF);
+
+    const bytesRead = fui_file_read_chunk(offsetLow, offsetHigh, READ_CHUNK_SIZE);
+    if (bytesRead <= 0) {
+      break;
+    }
+
+    for (let i: i32 = 0; i < bytesRead; i++) {
+      hash = ((hash << 5) + hash) + u32(load<u8>(bufPtr + i));
+    }
+
+    fui_file_worker_write_chunk(bufPtr, bytesRead);
+    offset += u64(bytesRead);
+
+    WorkerRuntime.reportProgress(offset.toString());
+  }
+
+  WorkerRuntime.complete(hash.toString());
+}
+
 export function largestPrimeCalculatorWorker(): void {
   let activeJob = largestPrimeCalculatorJob;
   if (activeJob === null) {

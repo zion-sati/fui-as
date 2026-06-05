@@ -2,6 +2,7 @@ import { BorderStyle, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
 import { LabeledControlSizing } from "../ControlSizing";
+import { LabeledControlColors } from "../LabeledControlColors";
 import {
   PressableIndicatorMetrics,
   PressableIndicatorPresenter,
@@ -25,7 +26,7 @@ export abstract class RadioIndicatorPresenter extends PressableIndicatorPresente
     super(root, metrics);
   }
 
-  abstract apply(theme: Theme, state: RadioIndicatorVisualState): void;
+  abstract apply(theme: Theme, state: RadioIndicatorVisualState, colors?: LabeledControlColors | null): void;
 }
 
 export abstract class RadioIndicatorTemplate {
@@ -88,14 +89,17 @@ class DefaultRadioIndicatorPresenter extends RadioIndicatorPresenter {
     root.child(dotNode);
   }
 
-  apply(theme: Theme, state: RadioIndicatorVisualState): void {
+  apply(theme: Theme, state: RadioIndicatorVisualState, colors: LabeledControlColors | null = null): void {
     const geometry = this.geometry;
+    const accent = colors !== null && colors.hasAccent
+      ? colors.accentColor
+      : (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent));
     const outerColor = state.checked
-      ? (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent))
-      : theme.colors.border;
+      ? accent
+      : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border);
     this.root.cornerRadius(geometry.indicatorSize * 0.5);
     this.root.border(geometry.borderWidth, outerColor, BorderStyle.Solid);
-    this.root.bgColor(theme.colors.surface);
+    this.root.bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
     this.dotNode
       .cornerRadius(geometry.dotSize * 0.5)
       .position(dotInset(geometry), dotInset(geometry))

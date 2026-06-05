@@ -1,6 +1,7 @@
 import { BorderStyle, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
+import { LabeledControlColors } from "../LabeledControlColors";
 import {
   PressableIndicatorMetrics,
   PressableIndicatorPresenter,
@@ -24,7 +25,7 @@ export abstract class SwitchIndicatorPresenter extends PressableIndicatorPresent
     super(root, metrics);
   }
 
-  abstract apply(theme: Theme, state: SwitchIndicatorVisualState): void;
+  abstract apply(theme: Theme, state: SwitchIndicatorVisualState, colors?: LabeledControlColors | null): void;
 }
 
 export abstract class SwitchIndicatorTemplate {
@@ -49,17 +50,25 @@ class DefaultSwitchIndicatorPresenter extends SwitchIndicatorPresenter {
     root.alignItems(1).child(thumbNode);
   }
 
-  apply(theme: Theme, state: SwitchIndicatorVisualState): void {
+  apply(theme: Theme, state: SwitchIndicatorVisualState, colors: LabeledControlColors | null = null): void {
+    const accent = colors !== null && colors.hasAccent
+      ? colors.accentColor
+      : (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent));
     const trackColor = state.checked
-      ? (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent))
-      : (state.hovered ? theme.colors.background : theme.colors.surface);
+      ? accent
+      : (colors !== null && colors.hasBackground
+        ? colors.backgroundColor
+        : (state.hovered ? theme.colors.background : theme.colors.surface));
+    const borderColor = colors !== null && colors.hasBorder
+      ? colors.borderColor
+      : (state.checked ? trackColor : theme.colors.border);
     this.root.cornerRadius(13.0);
-    this.root.border(1.0, state.checked ? trackColor : theme.colors.border, BorderStyle.Solid);
+    this.root.border(1.0, borderColor, BorderStyle.Solid);
     this.root.bgColor(trackColor);
     this.thumbNode.position(state.checked ? 21.0 : 3.0, 2.0);
     this.thumbNode.cornerRadius(10.0);
-    this.thumbNode.bgColor(theme.colors.surface);
-    this.thumbNode.border(1.0, state.checked ? trackColor : theme.colors.border, BorderStyle.Solid);
+    this.thumbNode.bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
+    this.thumbNode.border(1.0, borderColor, BorderStyle.Solid);
   }
 }
 

@@ -1,6 +1,7 @@
 import {
   AlignItems,
   BorderStyle,
+  ButtonColors,
   ButtonPresenter,
   ButtonTemplate,
   ButtonVisualState,
@@ -22,6 +23,7 @@ import {
   FlexBox,
   FlexDirection,
   JustifyContent,
+  LabeledControlColors,
   Orientation,
   PressableIndicatorMetrics,
   RadioIndicatorPresenter,
@@ -77,18 +79,18 @@ class HouseCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
     root.child(fillNode);
   }
 
-  apply(theme: Theme, state: CheckboxIndicatorVisualState): void {
-    const accent = resolveAccent(theme, state.hovered, state.pressed);
+  apply(theme: Theme, state: CheckboxIndicatorVisualState, colors: LabeledControlColors | null = null): void {
+    const accent = colors !== null && colors.hasAccent ? colors.accentColor : resolveAccent(theme, state.hovered, state.pressed);
     const checked = state.checkedState != SemanticCheckedState.False;
     this.root
       .cornerRadius(8.0)
-      .border(2.0, checked ? accent : theme.colors.border, BorderStyle.Solid)
-      .bgColor(checked ? accent : theme.colors.surface);
+      .border(2.0, checked ? accent : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border), BorderStyle.Solid)
+      .bgColor(checked ? accent : (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface));
     this.fillNode
       .cornerRadius(state.checkedState == SemanticCheckedState.Mixed ? 3.0 : 6.0)
       .width(state.checkedState == SemanticCheckedState.Mixed ? 14.0 : 12.0, Unit.Pixel)
       .height(state.checkedState == SemanticCheckedState.Mixed ? 6.0 : 12.0, Unit.Pixel)
-      .bgColor(theme.colors.surface)
+      .bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface)
       .opacity(checked ? 1.0 : 0.0);
   }
 }
@@ -116,13 +118,13 @@ class LocalOverrideCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter
     root.child(stripeNode);
   }
 
-  apply(theme: Theme, state: CheckboxIndicatorVisualState): void {
-    const accent = resolveAccent(theme, state.hovered, state.pressed);
+  apply(theme: Theme, state: CheckboxIndicatorVisualState, colors: LabeledControlColors | null = null): void {
+    const accent = colors !== null && colors.hasAccent ? colors.accentColor : resolveAccent(theme, state.hovered, state.pressed);
     const checked = state.checkedState != SemanticCheckedState.False;
     this.root
       .cornerRadius(4.0)
       .border(2.0, accent, BorderStyle.Solid)
-      .bgColor(checked ? theme.colors.background : theme.colors.surface);
+      .bgColor(checked ? (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.background) : (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface));
     this.stripeNode
       .cornerRadius(state.checkedState == SemanticCheckedState.Mixed ? 2.0 : 5.0)
       .width(state.checkedState == SemanticCheckedState.Mixed ? 14.0 : 10.0, Unit.Pixel)
@@ -155,13 +157,13 @@ class HouseRadioIndicatorPresenter extends RadioIndicatorPresenter {
     root.child(dotNode);
   }
 
-  apply(theme: Theme, state: RadioIndicatorVisualState): void {
-    const accent = resolveAccent(theme, state.hovered, state.pressed);
-    const borderColor = state.checked ? accent : theme.colors.border;
+  apply(theme: Theme, state: RadioIndicatorVisualState, colors: LabeledControlColors | null = null): void {
+    const accent = colors !== null && colors.hasAccent ? colors.accentColor : resolveAccent(theme, state.hovered, state.pressed);
+    const borderColor = state.checked ? accent : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border);
     this.root
       .cornerRadius(12.0)
       .border(2.0, borderColor, BorderStyle.Solid)
-      .bgColor(theme.colors.surface);
+      .bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
     this.dotNode
       .cornerRadius(5.0)
       .bgColor(accent)
@@ -193,18 +195,20 @@ class HouseSwitchIndicatorPresenter extends SwitchIndicatorPresenter {
     root.child(thumbNode);
   }
 
-  apply(theme: Theme, state: SwitchIndicatorVisualState): void {
-    const accent = resolveAccent(theme, state.hovered, state.pressed);
-    const trackColor = state.checked ? accent : theme.colors.surface;
+  apply(theme: Theme, state: SwitchIndicatorVisualState, colors: LabeledControlColors | null = null): void {
+    const accent = colors !== null && colors.hasAccent ? colors.accentColor : resolveAccent(theme, state.hovered, state.pressed);
+    const background = colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface;
+    const border = colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border;
+    const trackColor = state.checked ? accent : background;
     this.root
       .cornerRadius(15.0)
-      .border(2.0, state.checked ? accent : theme.colors.border, BorderStyle.Solid)
+      .border(2.0, state.checked ? accent : border, BorderStyle.Solid)
       .bgColor(trackColor);
     this.thumbNode
       .position(state.checked ? 26.0 : 4.0, 4.0)
       .cornerRadius(11.0)
-      .bgColor(state.checked ? theme.colors.surface : theme.colors.background)
-      .border(1.0, state.checked ? accent : theme.colors.border, BorderStyle.Solid);
+      .bgColor(state.checked ? background : theme.colors.background)
+      .border(1.0, state.checked ? accent : border, BorderStyle.Solid);
   }
 }
 
@@ -291,17 +295,19 @@ class HouseSliderPresenter extends SliderPresenter {
   }
 
   apply(theme: Theme, state: SliderVisualState, colors: SliderColors | null): void {
-    const accent = state.dragging ? theme.colors.accentPressed : resolveAccent(theme, state.hovered, false);
+    const accent = colors !== null && colors.hasFill
+      ? colors.fillColor
+      : (state.dragging ? theme.colors.accentPressed : resolveAccent(theme, state.hovered, false));
     this.trackNode
       .cornerRadius(4.0)
-      .bgColor(theme.colors.background)
+      .bgColor(colors !== null && colors.hasTrack ? colors.trackColor : theme.colors.background)
       .border(1.0, theme.colors.border, BorderStyle.Solid);
     this.fillNode
       .cornerRadius(4.0)
       .bgColor(accent);
     this.thumbNode
       .cornerRadius(11.0)
-      .bgColor(theme.colors.surface)
+      .bgColor(colors !== null && colors.hasThumb ? colors.thumbColor : theme.colors.surface)
       .border(2.0, accent, BorderStyle.Solid);
   }
 }
@@ -339,26 +345,35 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
   }
 
   apply(theme: Theme, state: DropdownFieldVisualState, colors: DropdownColors | null): void {
-    const accent = state.open || state.focused ? theme.colors.accent : theme.colors.border;
+    const accentBase = colors !== null && colors.hasAccent ? colors.accentColor : theme.colors.accent;
+    const accent = state.open || state.focused ? accentBase : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border);
     this.root
       .flexDirection(FlexDirection.Row)
       .alignItems(AlignItems.Center)
       .cornerRadius(16.0)
       .border(2.0, accent, BorderStyle.Solid)
       .padding(14.0, 10.0, 14.0, 10.0)
-      .bgColor(state.open ? theme.colors.background : theme.colors.surface);
+      .bgColor(
+        colors !== null && colors.hasBackground
+          ? colors.backgroundColor
+          : (state.open ? theme.colors.background : theme.colors.surface),
+      );
     this.valueHost
       .fillWidth();
     this.valueNode
       .font(theme.fonts.body, theme.fonts.sizeBody)
-      .textColor(state.enabled ? theme.colors.textPrimary : theme.colors.textMuted);
+      .textColor(
+        state.enabled
+          ? (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary)
+          : theme.colors.textMuted,
+      );
     this.chevronHost
       .width(28.0, Unit.Pixel)
       .height(28.0, Unit.Pixel)
       .cornerRadius(14.0)
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center)
-      .bgColor(state.enabled ? accent : theme.colors.border);
+      .bgColor(state.enabled ? accentBase : theme.colors.border);
   }
 }
 
@@ -417,17 +432,20 @@ class HouseDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
   }
 
   apply(theme: Theme, state: DropdownOptionRowVisualState, colors: DropdownColors | null): void {
+    const accent = colors !== null && colors.hasAccent ? colors.accentColor : theme.colors.accent;
+    const accentPressed = colors !== null && colors.hasAccent ? colors.accentColor : theme.colors.accentPressed;
+    const rowBackground = colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.background;
     this.root
       .padding(12.0, 8.0, 12.0, 8.0)
       .cornerRadius(12.0)
       .bgColor(
         state.selected
-          ? theme.colors.accent
-          : (state.highlighted ? theme.colors.background : 0x00000000),
+          ? accent
+          : (state.highlighted ? rowBackground : 0x00000000),
       )
       .border(
         state.selected || state.highlighted ? 1.0 : 0.0,
-        state.selected ? theme.colors.accentPressed : theme.colors.border,
+        state.selected ? accentPressed : theme.colors.border,
         BorderStyle.Solid,
       );
     this.labelNode
@@ -435,7 +453,9 @@ class HouseDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
       .textColor(
         !state.enabled
           ? theme.colors.textMuted
-          : (state.selected ? theme.colors.surface : theme.colors.textPrimary),
+          : (state.selected
+            ? theme.colors.surface
+            : (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary)),
       );
   }
 }
@@ -459,19 +479,26 @@ class HouseButtonPresenter extends ButtonPresenter {
     super(contentRoot, labelNode);
   }
 
-  apply(theme: Theme, state: ButtonVisualState): void {
+  apply(theme: Theme, state: ButtonVisualState, colors: ButtonColors | null = null): void {
     const accent = resolveAccent(theme, state.hovered, state.pressed);
+    const border = colors !== null && colors.hasBorder ? colors.borderColor : accent;
+    const textColor = !state.enabled && colors !== null && colors.hasTextMuted
+      ? colors.textMutedColor
+      : (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : (state.enabled ? accent : theme.colors.textMuted));
+    const background = state.enabled
+      ? (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface)
+      : (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.background);
     this.host
       .cornerRadius(18.0)
-      .border(2.0, state.focused ? theme.colors.accent : accent, BorderStyle.Solid)
+      .border(2.0, state.focused ? theme.colors.accent : border, BorderStyle.Solid)
       .padding(16.0, 10.0, 16.0, 10.0)
-      .bgColor(state.enabled ? theme.colors.surface : theme.colors.background);
+      .bgColor(background);
     this.contentRoot
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center);
     this.labelNode
       .font(theme.fonts.body, theme.fonts.sizeBody)
-      .textColor(state.enabled ? accent : theme.colors.textMuted);
+      .textColor(textColor);
   }
 }
 
@@ -491,9 +518,9 @@ class HouseTextInputPresenter extends TextInputPresenter {
     const insetY: f32 = state.multiline ? 12.0 : 10.0;
     this.host
       .cornerRadius(this.multiline ? 20.0 : 16.0)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.accent, BorderStyle.Solid)
       .padding(insetX, insetY, insetX, insetY)
-      .bgColor(theme.colors.surface);
+      .bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
     this.placeholderHost
       .position(insetX, insetY)
       .fillWidth();

@@ -3,6 +3,7 @@ import { EventRouter } from "../../src/core/EventRouter";
 import { KeyEventType, PointerEventType, SemanticRole, Unit } from "../../src/core/ffi";
 import { activeTheme, defaultDarkTheme, Theme } from "../../src/core/Theme";
 import { FlexBox } from "../../src/nodes";
+import { LabeledControlColors } from "../../src/controls/LabeledControlColors";
 import { PressableLabeledControl } from "../../src/controls/internal/PressableLabeledControl";
 import {
   PressableIndicatorMetrics,
@@ -57,7 +58,7 @@ class TrackingSwitchPresenter extends SwitchIndicatorPresenter {
     super(root, new PressableIndicatorMetrics(60.0, 24.0));
   }
 
-  apply(_theme: Theme, state: SwitchIndicatorVisualState): void {
+  apply(_theme: Theme, state: SwitchIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     this.root.bgColor(state.checked ? 0xff00ffff : 0xff0000ff);

@@ -24,6 +24,7 @@ import {
   SliderVisualState,
   SliderColors,
   DropdownColors,
+  LabeledControlColors,
   Switch,
   TextArea,
   TextInput,
@@ -157,7 +158,7 @@ class FixedCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
     super(root, new PressableIndicatorMetrics(33.0, 33.0));
   }
 
-  apply(_theme: Theme, _state: CheckboxIndicatorVisualState): void {
+  apply(_theme: Theme, _state: CheckboxIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.root
       .width(33.0, Unit.Pixel)
       .height(33.0, Unit.Pixel);

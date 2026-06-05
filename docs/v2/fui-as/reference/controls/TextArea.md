@@ -1,11 +1,12 @@
 # TextArea
 
 ```ts
-import { ScrollBarVisibility, TextArea } from "./Fui";
+import { ScrollBarVisibility, TextArea, TextInputColors } from "./Fui";
 ```
 
 - **Constructor:** `new TextArea(text = "")`
 - **Inherits:** all `TextInput` APIs
+- **Colors:** `colors(new TextInputColors().background(...).border(...).textPrimary(...).placeholder(...).caret(...).accent(...))`
 - **Multiline controls:** `wrapping(...)`, `verticalScrollbarVisibility(...)`, `horizontalScrollbarVisibility(...)`
 
 `TextArea` is multiline by default and uses retained scroll chrome for overflow behavior.

@@ -371,11 +371,25 @@ export function __fui_on_file_worker_process_complete(
   payloadPtr: usize,
   payloadLen: u32,
 ): void {
-  const outputFileName = readHostMessage(payloadPtr, payloadLen);
+  const raw = readHostMessage(payloadPtr, payloadLen);
+  let outputFileName: string | null = null;
+  let workerResult: string | null = null;
+  if (raw !== null) {
+    const nullPos = raw.indexOf("\0");
+    if (nullPos >= 0) {
+      const before = raw.substring(0, nullPos);
+      const after = raw.substring(nullPos + 1);
+      outputFileName = before.length > 0 ? before : null;
+      workerResult = after.length > 0 ? after : null;
+    } else {
+      outputFileName = raw.length > 0 ? raw : null;
+    }
+  }
   handleFileWorkerProcessComplete(
     requestId,
     processedBytes,
     outputFileName,
+    workerResult,
   );
 }
 

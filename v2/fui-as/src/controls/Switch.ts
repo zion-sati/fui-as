@@ -103,6 +103,7 @@ export class Switch extends PressableLabeledControl {
         this.focusedState,
         this.isEnabled,
       ),
+      this.colorsValue,
     );
   }
 

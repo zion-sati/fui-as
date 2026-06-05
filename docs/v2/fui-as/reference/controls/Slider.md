@@ -1,13 +1,14 @@
 # Slider
 
 ```ts
-import { Orientation, Slider, SliderSizing } from "./Fui";
+import { Orientation, Slider, SliderColors, SliderSizing } from "./Fui";
 ```
 
 - **Constructor:** `new Slider(value = 0.0)`
 - **Range:** `min(value)`, `max(value)`, `step(value)`
 - **Geometry:** `length(value)`, `orientation(Orientation.Horizontal|Vertical)`
 - **Sizing:** `sizing(new SliderSizing().thumbSize(px).trackThickness(px))`
+- **Colors:** `colors(new SliderColors().track(...).fill(...).thumb(...))`
 - **Change callback:** `onChanged(cb)` / `onChangedWith(owner, handler)`
 - **Read current value:** `value` getter
 

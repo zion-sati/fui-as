@@ -32,7 +32,7 @@ export class PressableLabeledControl extends FlexBox {
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private disposed: bool = false;
   private labelFontSizeOverride: f32 = 0.0;
-  private colorsValue: LabeledControlColors | null = null;
+  protected colorsValue: LabeledControlColors | null = null;
   protected hoveredState: bool = false;
   protected pressedState: bool = false;
   protected focusedState: bool = false;
@@ -182,6 +182,7 @@ export class PressableLabeledControl extends FlexBox {
   colors(colors: LabeledControlColors | null): this {
     this.colorsValue = colors;
     this.syncBaseTheme(activeTheme.value);
+    this.syncVisualState();
     return this;
   }
 

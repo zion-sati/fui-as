@@ -1,12 +1,13 @@
 # TextInput
 
 ```ts
-import { TextInput } from "./Fui";
+import { TextInput, TextInputColors } from "./Fui";
 ```
 
 - **Constructor:** `new TextInput(text = "")`
 - **Value/placeholder:** `text(...)`, `placeholder(...)`
 - **Modes:** `readOnly(...)`, `password(...)`
+- **Colors:** `colors(new TextInputColors().background(...).border(...).textPrimary(...).placeholder(...).caret(...).accent(...))`
 - **Limits/typography:** `maxChars(...)`, `fontFamily(...)`, `fontSize(...)`, `lineHeight(...)`
 - **Focus:** `focusNow()`
 - **Callbacks:** `onChanged`, `onSelectionChanged`, `onFocusChanged` (+ owner-bound variants)

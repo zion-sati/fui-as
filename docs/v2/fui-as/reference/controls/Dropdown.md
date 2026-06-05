@@ -1,7 +1,7 @@
 # Dropdown
 
 ```ts
-import { Dropdown, DropdownItem, DropdownSizing } from "./Fui";
+import { Dropdown, DropdownColors, DropdownItem, DropdownSizing } from "./Fui";
 ```
 
 - **Types:** `new DropdownItem(value, label = value)`
@@ -9,6 +9,7 @@ import { Dropdown, DropdownItem, DropdownSizing } from "./Fui";
 - **Items:** `items(list)`
 - **Selection:** `selectIndex(index)`, `selectedIndex` getter
 - **Change callback:** `onChanged(cb)` / `onChangedWith(owner, handler)`
+- **Colors:** `colors(new DropdownColors().background(...).border(...).textPrimary(...).placeholder(...).accent(...))`
 - **Sizing:** `sizing(new DropdownSizing().fieldFontSize(px).optionFontSize(px).fieldHeight(px).optionHeight(px).chevronBoxSize(px).chevronIconSize(px))`
 - **Popup sizing:** `maxVisibleItems(count)`, `popupWidth(px)`
 - **Popup panel style:** `popupPanelColor(color)`, `popupPanelBackgroundBlur(sigma)`

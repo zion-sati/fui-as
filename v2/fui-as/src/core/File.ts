@@ -285,10 +285,12 @@ export class FileWorkerProcessProgress {
 export class FileWorkerProcessResult {
   readonly processedBytes: u64;
   readonly outputFileName: string | null;
+  readonly workerResult: string | null;
 
-  constructor(processedBytes: u64, outputFileName: string | null) {
+  constructor(processedBytes: u64, outputFileName: string | null, workerResult: string | null = null) {
     this.processedBytes = processedBytes;
     this.outputFileName = outputFileName;
+    this.workerResult = workerResult;
   }
 }
 
@@ -961,12 +963,13 @@ export function handleFileWorkerProcessComplete(
   requestId: u32,
   processedBytes: u64,
   outputFileName: string | null,
+  workerResult: string | null = null,
 ): void {
   const request = pendingWorkerProcessRequests.has(requestId) ? unchecked(pendingWorkerProcessRequests.get(requestId)) : null;
   if (request === null) {
     return;
   }
-  request.dispatchComplete(new FileWorkerProcessResult(processedBytes, outputFileName));
+  request.dispatchComplete(new FileWorkerProcessResult(processedBytes, outputFileName, workerResult));
 }
 
 export function handleFileWorkerProcessError(requestId: u32, status: u32, message: string | null = null): void {

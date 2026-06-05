@@ -57,50 +57,15 @@ export interface ActiveFileWriterRecord {
   writtenBytes: number;
 }
 
-export interface FileProcessingWorkerStartMessage {
-  readonly type: 'start';
-  readonly file: File;
-  readonly chunkSize: number;
-}
-
-export interface FileProcessingWorkerNextMessage {
-  readonly type: 'next';
-}
-
-export interface FileProcessingWorkerCancelMessage {
-  readonly type: 'cancel';
-}
-
-export type FileProcessingWorkerInboundMessage =
-  | FileProcessingWorkerStartMessage
-  | FileProcessingWorkerNextMessage
-  | FileProcessingWorkerCancelMessage;
-
-export interface FileProcessingWorkerChunkMessage {
-  readonly type: 'chunk';
-  readonly offsetBytes: number;
-  readonly bytes: ArrayBuffer;
-  readonly copiedBytes: number;
-  readonly totalBytes: number;
-}
-
-export interface FileProcessingWorkerErrorMessage {
-  readonly type: 'error';
-  readonly message: string;
-}
-
-export type FileProcessingWorkerOutboundMessage =
-  | FileProcessingWorkerChunkMessage
-  | FileProcessingWorkerErrorMessage;
-
 export interface ActiveFileProcessingRecord {
   readonly requestId: number;
   readonly session: HarnessAppSession;
   readonly sourceFileName: string;
   readonly targetFileName: string | null;
   readonly totalBytes: number;
-  readonly worker: Worker;
   readonly stream: WritableFileStreamLike | null;
   readonly saveToPickedFile: boolean;
+  readonly worker: Worker;
   cancelled: boolean;
+  processedBytes: number;
 }

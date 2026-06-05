@@ -2,6 +2,7 @@ import { BorderStyle, SemanticCheckedState, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox, Svg } from "../../nodes";
 import { LabeledControlSizing } from "../ControlSizing";
+import { LabeledControlColors } from "../LabeledControlColors";
 import {
   PressableIndicatorMetrics,
   PressableIndicatorPresenter,
@@ -51,7 +52,7 @@ export abstract class CheckboxIndicatorPresenter extends PressableIndicatorPrese
     super(root, metrics);
   }
 
-  abstract apply(theme: Theme, state: CheckboxIndicatorVisualState): void;
+  abstract apply(theme: Theme, state: CheckboxIndicatorVisualState, colors?: LabeledControlColors | null): void;
 }
 
 export abstract class CheckboxIndicatorTemplate {
@@ -83,20 +84,21 @@ class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
     root.child(markHost);
   }
 
-  apply(theme: Theme, state: CheckboxIndicatorVisualState): void {
-    let background = theme.colors.surface;
-    let borderColor = theme.colors.border;
+  apply(theme: Theme, state: CheckboxIndicatorVisualState, colors: LabeledControlColors | null = null): void {
+    let background = colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface;
+    let borderColor = colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border;
     const geometry = this.geometry;
     let markVisible = false;
     let markColor = theme.colors.textPrimary;
+    const accent = colors !== null && colors.hasAccent
+      ? colors.accentColor
+      : (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent));
     if (state.checkedState == SemanticCheckedState.True || state.checkedState == SemanticCheckedState.Mixed) {
-      background = state.pressed
-        ? theme.colors.accentPressed
-        : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);
+      background = accent;
       borderColor = background;
       markVisible = state.checkedState == SemanticCheckedState.True;
       markColor = theme.colors.textOnAccent;
-    } else if (state.hovered) {
+    } else if (state.hovered && (colors === null || !colors.hasBackground)) {
       background = theme.colors.background;
     }
     this.root.cornerRadius(geometry.cornerRadius);

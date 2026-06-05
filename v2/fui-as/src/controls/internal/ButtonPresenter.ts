@@ -7,6 +7,7 @@ import {
 import { Theme } from "../../core/Theme";
 import { FontStyle, FontWeight } from "../../core/Typography";
 import { FlexBox, TextCore } from "../../nodes";
+import { ButtonColors } from "../ButtonColors";
 
 export class ButtonVisualState {
   constructor(
@@ -42,7 +43,7 @@ export abstract class ButtonPresenter {
     return changetype<FlexBox>(this.hostValue);
   }
 
-  abstract apply(theme: Theme, state: ButtonVisualState): void;
+  abstract apply(theme: Theme, state: ButtonVisualState, colors?: ButtonColors | null): void;
 }
 
 export abstract class ButtonTemplate {
@@ -60,7 +61,7 @@ class DefaultButtonPresenter extends ButtonPresenter {
     super(contentRoot, labelNode);
   }
 
-  apply(theme: Theme, state: ButtonVisualState): void {
+  apply(theme: Theme, state: ButtonVisualState, _colors: ButtonColors | null = null): void {
     const background = state.pressed
       ? theme.colors.accentPressed
       : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);

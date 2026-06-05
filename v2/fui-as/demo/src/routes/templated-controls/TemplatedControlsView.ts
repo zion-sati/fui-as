@@ -1,11 +1,17 @@
 import {
+  ButtonColors,
   Button,
   Checkbox,
   Column,
+  DropdownColors,
   FlexBox,
+  LabeledControlColors,
+  mixColor,
+  SliderColors,
   Text,
   TextArea,
   TextInput,
+  TextInputColors,
   Theme,
   Unit,
 } from "../../../../src/Fui";
@@ -86,6 +92,43 @@ export class TemplatedControlsView {
     .fillWidth()
     .height(120.0, Unit.Pixel)
     .nodeId("templated-controls:house-text-area") as TextArea;
+  readonly colorButton: Button = new Button("Run tinted action")
+    .nodeId("templated-controls:color-button") as Button;
+  readonly colorCheckbox: DemoCheckbox = new DemoCheckbox("Tinted checkbox chrome", true)
+    .check(true)
+    .nodeId("templated-controls:color-checkbox") as DemoCheckbox;
+  readonly colorSwitch: DemoSwitch = new DemoSwitch("Tinted switch chrome", true)
+    .check(true)
+    .nodeId("templated-controls:color-switch") as DemoSwitch;
+  readonly coolRadio: DemoRadioButton = new DemoRadioButton("cool", "Cool accent radio", true)
+    .nodeId("templated-controls:color-radio-cool") as DemoRadioButton;
+  readonly warmRadio: DemoRadioButton = new DemoRadioButton("warm", "Warm accent radio", true)
+    .nodeId("templated-controls:color-radio-warm") as DemoRadioButton;
+  readonly colorRadioGroup: DemoRadioGroup = new DemoRadioGroup(true)
+    .addOptions([this.coolRadio, this.warmRadio])
+    .selectIndex(0)
+    .nodeId("templated-controls:color-radio-group") as DemoRadioGroup;
+  readonly colorSlider: DemoSlider = new DemoSlider(72.0)
+    .min(0.0)
+    .max(100.0)
+    .step(2.0)
+    .length(240.0)
+    .semanticLabel("Tinted slider")
+    .nodeId("templated-controls:color-slider") as DemoSlider;
+  readonly colorDropdown: DemoDropdown = new DemoDropdown()
+    .items(HOUSE_DROPDOWN_ITEMS)
+    .selectIndex(2)
+    .fillWidth()
+    .nodeId("templated-controls:color-dropdown") as DemoDropdown;
+  readonly colorTextInput: TextInput = new TextInput("Palette")
+    .placeholder("Tinted text input")
+    .fillWidth()
+    .nodeId("templated-controls:color-text-input") as TextInput;
+  readonly colorTextArea: TextArea = new TextArea("Control colors flow through presenter-owned chrome too.")
+    .placeholder("Tinted text area")
+    .fillWidth()
+    .height(96.0, Unit.Pixel)
+    .nodeId("templated-controls:color-text-area") as TextArea;
   readonly defaultsStatusText: Text = createSummaryText(DemoTextRecipe.StatusValue);
   readonly overrideStatusText: Text = createSummaryText(DemoTextRecipe.StatusSupporting);
   readonly defaultsHintText: Text = new DemoText(
@@ -100,8 +143,76 @@ export class TemplatedControlsView {
   )
     .font(FONT_REGULAR, 15.0)
     .maxLines(3) as Text;
+  readonly colorHintText: Text = new DemoText(
+    "Per-instance control color objects tint the shipped presenters and the house templates on this route without changing the built-in control behavior.",
+    DemoTextRecipe.Hint,
+  )
+    .font(FONT_REGULAR, 15.0)
+    .maxLines(4) as Text;
 
-  applyTheme(_theme: Theme): void {}
+  applyTheme(theme: Theme): void {
+    const fieldBackground = mixColor(theme.colors.surface, theme.colors.background, 0.20);
+    const fieldBorder = mixColor(theme.colors.border, theme.colors.accent, 0.28);
+    const accentSoft = mixColor(theme.colors.accent, theme.colors.surface, 0.22);
+    const accentHover = mixColor(theme.colors.accentHovered, theme.colors.surface, 0.14);
+    const accentPressed = mixColor(theme.colors.accentPressed, theme.colors.surface, 0.08);
+    const secondaryAccent = mixColor(theme.colors.accentHovered, theme.colors.selection, 0.28);
+    const secondaryBorder = mixColor(theme.colors.border, theme.colors.accentHovered, 0.38);
+
+    this.colorButton.colors(new ButtonColors()
+      .background(accentSoft)
+      .backgroundHover(accentHover)
+      .backgroundPressed(accentPressed)
+      .border(fieldBorder)
+      .textPrimary(theme.colors.textPrimary));
+    this.colorCheckbox.colors(new LabeledControlColors()
+      .background(fieldBackground)
+      .border(fieldBorder)
+      .accent(theme.colors.accent)
+      .textPrimary(theme.colors.textPrimary)
+      .textMuted(theme.colors.textMuted));
+    this.colorSwitch.colors(new LabeledControlColors()
+      .background(fieldBackground)
+      .border(fieldBorder)
+      .accent(theme.colors.accent)
+      .textPrimary(theme.colors.textPrimary)
+      .textMuted(theme.colors.textMuted));
+    this.coolRadio.colors(new LabeledControlColors()
+      .background(fieldBackground)
+      .border(fieldBorder)
+      .accent(theme.colors.accent)
+      .textPrimary(theme.colors.textPrimary)
+      .textMuted(theme.colors.textMuted));
+    this.warmRadio.colors(new LabeledControlColors()
+      .background(fieldBackground)
+      .border(secondaryBorder)
+      .accent(secondaryAccent)
+      .textPrimary(theme.colors.textPrimary)
+      .textMuted(theme.colors.textMuted));
+    this.colorSlider.colors(new SliderColors()
+      .track(fieldBackground)
+      .fill(theme.colors.accent)
+      .thumb(theme.colors.surface));
+    this.colorDropdown.colors(new DropdownColors()
+      .background(fieldBackground)
+      .border(fieldBorder)
+      .textPrimary(theme.colors.textPrimary)
+      .accent(theme.colors.accent));
+    this.colorTextInput.colors(new TextInputColors()
+      .background(fieldBackground)
+      .border(fieldBorder)
+      .textPrimary(theme.colors.textPrimary)
+      .placeholder(theme.colors.textMuted)
+      .caret(theme.colors.accent)
+      .accent(theme.colors.accent));
+    this.colorTextArea.colors(new TextInputColors()
+      .background(fieldBackground)
+      .border(fieldBorder)
+      .textPrimary(theme.colors.textPrimary)
+      .placeholder(theme.colors.textMuted)
+      .caret(theme.colors.accent)
+      .accent(theme.colors.accent));
+  }
 
   getHouseDropdownSelectionLabel(): string {
     const selectedIndex = this.houseDropdown.selectedIndex;
@@ -114,6 +225,7 @@ export class TemplatedControlsView {
     return [
       this.buildDefaultsSection(),
       this.buildOverrideSection(),
+      this.buildColorSection(),
       this.buildSummarySection(),
     ];
   }
@@ -154,6 +266,33 @@ export class TemplatedControlsView {
     return createRoutePageSection(
       "Per-instance override precedence",
       "This control uses a local template override, so it stays distinct from the route's house defaults.",
+      body,
+    );
+  }
+
+  private buildColorSection(): RoutePageSection {
+    const body = Column(
+      this.colorButton,
+      verticalSpacer(10.0),
+      this.colorCheckbox,
+      verticalSpacer(10.0),
+      this.colorSwitch,
+      verticalSpacer(12.0),
+      this.colorRadioGroup,
+      verticalSpacer(14.0),
+      this.colorSlider,
+      verticalSpacer(14.0),
+      this.colorDropdown,
+      verticalSpacer(14.0),
+      this.colorTextInput,
+      verticalSpacer(14.0),
+      this.colorTextArea,
+      verticalSpacer(10.0),
+      this.colorHintText,
+    ).fillWidth();
+    return createRoutePageSection(
+      "Per-instance color overrides",
+      "Color objects tint button, labeled, slider, dropdown, and text-entry presenters while leaving semantics and interaction behavior with the built-in controls.",
       body,
     );
   }

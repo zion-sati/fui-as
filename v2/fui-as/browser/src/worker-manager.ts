@@ -121,6 +121,10 @@ export function createWorkerManager(options: WorkerManagerOptions): WorkerManage
       finishWorker(workerId);
       return;
     }
+    // File-process chunk messages are routed through the file host, not the worker manager.
+    if (message.type === 'file-process-chunk') {
+      return;
+    }
     emitToSession(workerId, 'error', message.text);
     finishWorker(workerId);
   }

@@ -165,6 +165,7 @@ export class Checkbox extends PressableLabeledControl {
         this.focusedState,
         this.isEnabled,
       ),
+      this.colorsValue,
     );
   }
 

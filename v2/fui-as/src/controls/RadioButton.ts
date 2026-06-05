@@ -131,6 +131,7 @@ export class RadioButton extends PressableLabeledControl {
         this.focusedState,
         this.isEnabled,
       ),
+      this.colorsValue,
     );
   }
 

@@ -1,13 +1,14 @@
 # Button
 
 ```ts
-import { Button } from "./Fui";
+import { Button, ButtonColors } from "./Fui";
 ```
 
 - **Constructor:** `new Button(label: string)`
 - **Action:** `onClick(cb)`
 - **State callback:** `onHoverChanged(cb)`
 - **Content:** `label(text)`
+- **Colors:** `colors(new ButtonColors().background(...).backgroundHover(...).backgroundPressed(...).border(...).textPrimary(...))`
 - **Style overrides:** `bgColor`, `hoverBgColor`, `pressedBgColor`, `textColor`
 - **Typography:** `font`, `fontFamily`, `fontWeight`, `fontStyle`, `fontSize`
 
@@ -17,6 +18,8 @@ so accent-backed buttons keep a readable foreground across light and dark themes
 Buttons also opt out of implicit cross-axis stretch by default, so a button in a
 column stays content-sized unless you explicitly give it `fillWidth()`,
 `width(...)`, `alignSelf(AlignSelf.Stretch)`, or other sizing overrides.
+Color overrides flow into the built-in presenter and any custom `ButtonPresenter`
+template you attach.
 
 ## See also
 

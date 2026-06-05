@@ -18,6 +18,7 @@ import {
   Unit,
   activeTheme,
 } from "../../../../../src/Fui";
+
 import {
   DemoText,
   DemoTextRecipe,
@@ -290,12 +291,16 @@ export class ExternalDropDemoSection {
   private handleCopyComplete(result: FileWorkerProcessResult): void {
     this.activeCopyRequest = null;
     const outputFileName = result.outputFileName;
+    let hashDisplay = "";
+    if (result.workerResult !== null) {
+      hashDisplay = " — hash: " + changetype<string>(result.workerResult);
+    }
     this.syncStatus(
       "External drop status: worker copied " +
       result.processedBytes.toString() +
       " bytes to " +
       (outputFileName === null ? "(stream)" : changetype<string>(outputFileName)) +
-      ". Picker ownership stayed on the main thread while chunk reads ran in the worker.",
+      "." + hashDisplay,
     );
     this.applyTheme(this.themeValue);
   }

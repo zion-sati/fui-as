@@ -2,6 +2,7 @@ import {
   Application,
   ApplicationRegistration,
   Button,
+  ButtonColors,
   ButtonPresenter,
   ButtonTemplate,
   ButtonVisualState,
@@ -19,6 +20,7 @@ import {
   DropdownItem,
   DropdownColors,
   FlexBox,
+  LabeledControlColors,
   Node,
   PressableIndicatorMetrics,
   Theme,
@@ -70,7 +72,7 @@ class AppDefaultCheckboxPresenter extends CheckboxIndicatorPresenter {
     super(root, new PressableIndicatorMetrics(size, size));
   }
 
-  apply(theme: Theme, state: CheckboxIndicatorVisualState): void {
+  apply(theme: Theme, state: CheckboxIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.root
       .cornerRadius(this.size * 0.5)
       .border(2.0, theme.colors.accent, BorderStyle.Solid)
@@ -158,7 +160,7 @@ class AppDefaultButtonPresenter extends ButtonPresenter {
     super(contentRoot, labelNode);
   }
 
-  apply(theme: Theme, _state: ButtonVisualState): void {
+  apply(theme: Theme, _state: ButtonVisualState, _colors: ButtonColors | null = null): void {
     this.host
       .cornerRadius(14.0)
       .border(2.0, theme.colors.accent, BorderStyle.Solid)

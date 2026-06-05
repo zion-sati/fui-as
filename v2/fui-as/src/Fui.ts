@@ -138,6 +138,7 @@ export { frameTimeSignal, viewportHeightSignal, viewportWidthSignal } from "./co
 export {
   AntiSelectionArea,
   Button,
+  ButtonColors,
   ButtonPresenter,
   ButtonTemplate,
   ButtonVisualState,

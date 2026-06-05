@@ -1,13 +1,14 @@
 # RadioButton
 
 ```ts
-import { LabeledControlSizing, RadioButton } from "./Fui";
+import { LabeledControlColors, LabeledControlSizing, RadioButton } from "./Fui";
 ```
 
 - **Constructor:** `new RadioButton(value: string, label: string = value)`
 - **Bind to group:** `bindGroup(group)`
 - **Value setter:** `check(flag)`
 - **Sizing:** `sizing(new LabeledControlSizing().indicatorSize(px).labelFontSize(px))`
+- **Colors:** `colors(new LabeledControlColors().background(...).border(...).accent(...).textPrimary(...).textMuted(...))`
 - **Change callback:** `onChanged(cb)` / `onChangedWith(owner, handler)`
 
 Typical usage is via `RadioGroup.addOption(...)` rather than manual group binding.
@@ -21,7 +22,7 @@ new RadioButton("density", "Compact")
     .labelFontSize(14.0));
 ```
 
-If you supply a custom indicator template, the template remains authoritative for indicator visuals.
+If you supply a custom indicator template, the template remains authoritative for indicator visuals, and the same `LabeledControlColors` object is passed through to that presenter.
 
 
 ## See also

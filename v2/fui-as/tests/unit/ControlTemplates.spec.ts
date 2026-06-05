@@ -5,6 +5,7 @@ import {
   ButtonTemplate,
   ButtonVisualState,
   BorderStyle,
+  ButtonColors,
   Checkbox,
   CheckboxIndicatorPresenter,
   CheckboxIndicatorTemplate,
@@ -12,6 +13,7 @@ import {
   FlexBox,
   CursorStyle,
   KeyEventType,
+  LabeledControlColors,
   PointerEventType,
   PressableIndicatorMetrics,
   RadioButton,
@@ -91,7 +93,7 @@ class TrackingCheckboxPresenter extends CheckboxIndicatorPresenter {
     root.child(fillNode);
   }
 
-  apply(theme: Theme, state: CheckboxIndicatorVisualState): void {
+  apply(theme: Theme, state: CheckboxIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     const accent = state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);
@@ -135,7 +137,7 @@ class TrackingRadioPresenter extends RadioIndicatorPresenter {
     root.child(dotNode);
   }
 
-  apply(theme: Theme, state: RadioIndicatorVisualState): void {
+  apply(theme: Theme, state: RadioIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     const accent = state.checked
@@ -179,7 +181,7 @@ class TrackingSwitchPresenter extends SwitchIndicatorPresenter {
     root.child(thumbNode);
   }
 
-  apply(theme: Theme, state: SwitchIndicatorVisualState): void {
+  apply(theme: Theme, state: SwitchIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     const accent = state.checked
@@ -219,7 +221,7 @@ class TrackingButtonPresenter extends ButtonPresenter {
     super(contentRoot, labelNode);
   }
 
-  apply(theme: Theme, state: ButtonVisualState): void {
+  apply(theme: Theme, state: ButtonVisualState, _colors: ButtonColors | null = null): void {
     this.applyCount += 1;
     this.lastState = state;
     const accent = state.pressed

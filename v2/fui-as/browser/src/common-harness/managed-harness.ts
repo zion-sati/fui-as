@@ -458,6 +458,8 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       notifyRouteChanged(session, `${window.location.pathname}${window.location.search}${window.location.hash}`);
     }
 
+    const workerBootstrapUrl = new URL('./worker-bootstrap.js', import.meta.url).toString();
+
     const fileHost = createManagedHarnessFileHost({
       getCurrentSession: () => currentSession,
       getRuntime: () => runtime,
@@ -465,6 +467,8 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       readAppBytes,
       writeTextCallbackPayload,
       describeHarnessError,
+      workerBootstrapUrl,
+      getCurrentWorkerHostServices: () => currentSession?.workerHostServices,
     });
 
     const fetchHost = createManagedHarnessFetchHost({

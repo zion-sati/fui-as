@@ -23,14 +23,11 @@ import {
   type ActiveFileProcessingRecord,
   type ActiveFileWriterRecord,
   type ExternalHarnessDropItem,
-  type FileProcessingWorkerCancelMessage,
-  type FileProcessingWorkerNextMessage,
-  type FileProcessingWorkerOutboundMessage,
-  type FileProcessingWorkerStartMessage,
   type SavePickerWindow,
   type StoredFileRecord,
   type WritableFileStreamLike,
 } from './managed-harness-file-types';
+import type { WorkerHostServicesBundleConfig } from '../worker-types';
 import type { HarnessAppSession } from './managed-harness-session';
 
 interface ManagedHarnessFileHostDependencies {
@@ -40,10 +37,11 @@ interface ManagedHarnessFileHostDependencies {
   readAppBytes(ptr: number, len: number): Uint8Array;
   writeTextCallbackPayload(session: HarnessAppSession, text: string, context: string): number;
   describeHarnessError(error: unknown): string;
+  workerBootstrapUrl: string;
+  getCurrentWorkerHostServices(): WorkerHostServicesBundleConfig | undefined;
 }
 
 const encoder = new TextEncoder();
-const FILE_PROCESSING_WORKER_URL = new URL('./file-processing-worker.js', import.meta.url).toString();
 
 function copyBytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const copied = new Uint8Array(bytes.byteLength);
@@ -303,13 +301,16 @@ export function createManagedHarnessFileHost(dependencies: ManagedHarnessFileHos
     requestId: number,
     processedBytes: bigint,
     outputFileName: string | null,
+    workerResult: string | null = null,
   ): void {
     if (session === null) {
       return;
     }
+    // Encode outputFileName\0workerResult so the wasm handler splits them.
+    const combined = (outputFileName ?? '') + '\0' + (workerResult ?? '');
     const payloadLength = dependencies.writeTextCallbackPayload(
       session,
-      outputFileName ?? '',
+      combined,
       'File worker process completion',
     );
     session.exports.__fui_on_file_worker_process_complete(
@@ -340,107 +341,146 @@ export function createManagedHarnessFileHost(dependencies: ManagedHarnessFileHos
 
   function cleanupFileProcessingRequest(requestId: number): void {
     cancelledFileProcessingRequestIds.delete(requestId);
-    const record = activeFileProcessingRequests.get(requestId);
-    if (record === undefined) {
-      return;
-    }
-    record.worker.terminate();
     activeFileProcessingRequests.delete(requestId);
   }
 
-  async function failFileProcessingRequest(record: ActiveFileProcessingRecord, status: number, message: string): Promise<void> {
+  function failFileProcessingRequest(record: ActiveFileProcessingRecord, status: number, message: string): void {
     cleanupFileProcessingRequest(record.requestId);
-    if (record.stream !== null) {
-      try {
-        await abortWritableStream(record.stream);
-      } catch {
-        // Ignore cleanup failures after surfacing the original worker-processing error.
-      }
-    }
     if (dependencies.getCurrentSession() === record.session) {
       emitFileWorkerProcessError(record.session, record.requestId, status, message);
     }
   }
 
-  async function handleFileProcessingWorkerMessage(
-    record: ActiveFileProcessingRecord,
-    message: FileProcessingWorkerOutboundMessage,
+  async function startFileProcessing(
+    requestId: number,
+    session: HarnessAppSession,
+    sourceFile: File,
+    suggestedName: string,
+    chunkBytes: number,
+    saveToPickedFile: boolean,
+    workerHostServices: WorkerHostServicesBundleConfig | undefined,
   ): Promise<void> {
-    if (!activeFileProcessingRequests.has(record.requestId)) {
+    const workerId = requestId;
+    const manifestUrl = new URL('./worker-manifest.json', dependencies.workerBootstrapUrl).toString();
+    const manifestResponse = await fetch(manifestUrl);
+    if (!manifestResponse.ok) {
+      emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Failed to load worker manifest.');
       return;
     }
-    if (message.type === 'error') {
-      await failFileProcessingRequest(record, FILE_STATUS_ERROR, message.message);
+    const manifest = await manifestResponse.json();
+    const wasmUrl = manifest.entries?.['fileProcessorWorker'];
+    if (typeof wasmUrl !== 'string' || wasmUrl.length === 0) {
+      emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Missing "fileProcessorWorker" entry in worker manifest.');
       return;
     }
-    if (record.cancelled) {
-      return;
-    }
-    if (record.saveToPickedFile) {
-      const stream = record.stream;
-      if (stream === null) {
-        await failFileProcessingRequest(record, FILE_STATUS_ERROR, 'Worker file processing lost its target stream.');
-        return;
-      }
-      try {
-        await stream.write(message.bytes);
-        if (dependencies.getCurrentSession() === record.session) {
-          emitFileWorkerProcessProgress(
-            record.session,
-            record.requestId,
-            BigInt(message.copiedBytes),
-            BigInt(message.totalBytes),
-            record.targetFileName,
-          );
-        }
-        if (message.copiedBytes >= message.totalBytes) {
-          await stream.close();
+    const resolvedWasmUrl = new URL(wasmUrl, manifestUrl).toString();
+    const startProcessor = (targetFileName: string | null, stream: WritableFileStreamLike | null): void => {
+      const worker = new Worker(dependencies.workerBootstrapUrl);
+      const record: ActiveFileProcessingRecord = {
+        requestId,
+        session,
+        sourceFileName: sourceFile.name,
+        targetFileName,
+        totalBytes: sourceFile.size,
+        stream,
+        saveToPickedFile,
+        cancelled: false,
+        worker,
+        processedBytes: 0,
+      };
+      activeFileProcessingRequests.set(requestId, record);
+      worker.addEventListener('message', (event: MessageEvent) => {
+        const msg = event.data;
+        if (msg.type === 'file-process-chunk' && stream !== null) {
+          void stream.write(msg.bytes).catch((error: unknown) => {
+            failFileProcessingRequest(record, FILE_STATUS_ERROR, dependencies.describeHarnessError(error));
+          });
+        } else if (msg.type === 'progress') {
           if (dependencies.getCurrentSession() === record.session) {
-            emitFileWorkerProcessComplete(
+            const parts = (msg.text as string).split(' ');
+            const processed = parseInt(parts[0] ?? '0', 10);
+            record.processedBytes = processed;
+            emitFileWorkerProcessProgress(
               record.session,
               record.requestId,
-              BigInt(message.totalBytes),
+              BigInt(processed),
+              BigInt(record.totalBytes),
               record.targetFileName,
             );
           }
+        } else if (msg.type === 'complete') {
+          if (dependencies.getCurrentSession() === record.session) {
+            if (stream !== null) {
+              void stream.close().catch(() => {
+                // Swallow close errors.
+              });
+            }
+            const hashText = (msg.text as string);
+            emitFileWorkerProcessComplete(
+              record.session,
+              record.requestId,
+              BigInt(record.processedBytes),
+              record.targetFileName,
+              hashText,
+            );
+          }
           cleanupFileProcessingRequest(record.requestId);
-          return;
+        } else if (msg.type === 'error') {
+          failFileProcessingRequest(record, FILE_STATUS_ERROR, msg.text);
         }
-        const nextMessage: FileProcessingWorkerNextMessage = { type: 'next' };
-        record.worker.postMessage(nextMessage);
-      } catch (error: unknown) {
-        await failFileProcessingRequest(record, FILE_STATUS_ERROR, dependencies.describeHarnessError(error));
-      }
+      });
+      worker.addEventListener('error', () => {
+        failFileProcessingRequest(record, FILE_STATUS_ERROR, 'Worker crashed.');
+      });
+      worker.postMessage({
+        type: 'start-file-process',
+        workerId,
+        file: sourceFile,
+        wasmUrl: resolvedWasmUrl,
+        entryName: 'fileProcessorWorker',
+        chunkSize: Math.max(1, Math.floor(chunkBytes)),
+        workerHostServices,
+      });
+    };
+
+    if (!saveToPickedFile) {
+      startProcessor(null, null);
       return;
     }
-    if (dependencies.getCurrentSession() === record.session) {
-      emitFileWorkerProcessChunk(
-        record.session,
-        record.requestId,
-        BigInt(message.offsetBytes),
-        BigInt(message.totalBytes),
-        new Uint8Array(message.bytes),
-      );
-      emitFileWorkerProcessProgress(
-        record.session,
-        record.requestId,
-        BigInt(message.copiedBytes),
-        BigInt(message.totalBytes),
-        null,
-      );
-      if (message.copiedBytes >= message.totalBytes) {
-        emitFileWorkerProcessComplete(
-          record.session,
-          record.requestId,
-          BigInt(message.totalBytes),
-          null,
-        );
-        cleanupFileProcessingRequest(record.requestId);
+    if (!supportsNativeSavePicker()) {
+      emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Worker file processing requires the native save picker.');
+      return;
+    }
+    const savePicker = (window as SavePickerWindow).showSaveFilePicker;
+    if (typeof savePicker !== 'function') {
+      emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Worker file processing requires the native save picker.');
+      return;
+    }
+    void savePicker({ suggestedName }).then((handle) =>
+      handle.createWritable().then((writableStream) => {
+        if (dependencies.getCurrentSession() !== session || cancelledFileProcessingRequestIds.has(requestId)) {
+          void abortWritableStream(writableStream).catch(() => {
+            // Ignore cleanup failures after the session moved on.
+          });
+          cancelledFileProcessingRequestIds.delete(requestId);
+          return;
+        }
+        startProcessor(handle.name ?? suggestedName, writableStream);
+      }),
+    ).catch((error: unknown) => {
+      cancelledFileProcessingRequestIds.delete(requestId);
+      if (dependencies.getCurrentSession() !== session) {
         return;
       }
-    }
-    const nextMessage: FileProcessingWorkerNextMessage = { type: 'next' };
-    record.worker.postMessage(nextMessage);
+      emitFileWorkerProcessError(
+        session,
+        requestId,
+        error instanceof DOMException && error.name === 'AbortError'
+          ? FILE_STATUS_CANCELLED
+          : FILE_STATUS_ERROR,
+        dependencies.describeHarnessError(error),
+      );
+    });
   }
 
   function cancelFileProcessingRequest(requestId: number): void {
@@ -450,14 +490,7 @@ export function createManagedHarnessFileHost(dependencies: ManagedHarnessFileHos
       return;
     }
     record.cancelled = true;
-    const cancelMessage: FileProcessingWorkerCancelMessage = { type: 'cancel' };
-    record.worker.postMessage(cancelMessage);
-    cleanupFileProcessingRequest(requestId);
-    if (record.stream !== null) {
-      void abortWritableStream(record.stream).catch(() => {
-        // Ignore cancellation cleanup failures.
-      });
-    }
+    record.worker.terminate();
   }
 
   function storeBrowserFile(file: File, prefix: string): StoredFileRecord {
@@ -1015,10 +1048,6 @@ export function createManagedHarnessFileHost(dependencies: ManagedHarnessFileHos
         if (session === null) {
           return;
         }
-        if (typeof Worker !== 'function') {
-          emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Worker file processing requires browser Worker support.');
-          return;
-        }
         const fileId = dependencies.readAppUtf8(fileIdPtr, fileIdLen);
         const sourceFile = storedBrowserFiles.get(fileId);
         if (sourceFile === undefined) {
@@ -1026,72 +1055,8 @@ export function createManagedHarnessFileHost(dependencies: ManagedHarnessFileHos
           return;
         }
         const suggestedName = resolveSuggestedName(dependencies.readAppUtf8(suggestedNamePtr, suggestedNameLen), '');
-        const safeChunkBytes = Math.max(1, Math.floor(chunkBytes));
-        const startWorker = (targetFileName: string | null, stream: WritableFileStreamLike | null): void => {
-          const worker = new Worker(FILE_PROCESSING_WORKER_URL);
-          const record: ActiveFileProcessingRecord = {
-            requestId,
-            session,
-            sourceFileName: sourceFile.name,
-            targetFileName,
-            totalBytes: sourceFile.size,
-            worker,
-            stream,
-            saveToPickedFile,
-            cancelled: false,
-          };
-          activeFileProcessingRequests.set(requestId, record);
-          worker.addEventListener('message', (event: MessageEvent<FileProcessingWorkerOutboundMessage>) => {
-            void handleFileProcessingWorkerMessage(record, event.data);
-          });
-          worker.addEventListener('error', (event: ErrorEvent) => {
-            void failFileProcessingRequest(
-              record,
-              FILE_STATUS_ERROR,
-              event.message.length > 0 ? event.message : 'Worker file processing crashed.',
-            );
-          });
-          const startMessage: FileProcessingWorkerStartMessage = {
-            type: 'start',
-            file: sourceFile,
-            chunkSize: safeChunkBytes,
-          };
-          worker.postMessage(startMessage);
-        };
-        if (!saveToPickedFile) {
-          startWorker(null, null);
-          return;
-        }
-        if (!supportsNativeSavePicker()) {
-          emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Worker file processing requires the native save picker.');
-          return;
-        }
-        const savePicker = (window as SavePickerWindow).showSaveFilePicker;
-        if (typeof savePicker !== 'function') {
-          emitFileWorkerProcessError(session, requestId, FILE_STATUS_ERROR, 'Worker file processing requires the native save picker.');
-          return;
-        }
-        void savePicker({ suggestedName }).then((handle) => handle.createWritable().then((stream) => {
-          if (dependencies.getCurrentSession() !== session || cancelledFileProcessingRequestIds.has(requestId)) {
-            void abortWritableStream(stream).catch(() => {
-              // Ignore cleanup failures after the session moved on.
-            });
-            cancelledFileProcessingRequestIds.delete(requestId);
-            return;
-          }
-          startWorker(handle.name ?? suggestedName, stream);
-        })).catch((error: unknown) => {
-          cancelledFileProcessingRequestIds.delete(requestId);
-          if (dependencies.getCurrentSession() !== session) {
-            return;
-          }
-          emitFileWorkerProcessError(
-            session,
-            requestId,
-            error instanceof DOMException && error.name === 'AbortError' ? FILE_STATUS_CANCELLED : FILE_STATUS_ERROR,
-            dependencies.describeHarnessError(error),
-          );
-        });
+        const workerHostServices = dependencies.getCurrentWorkerHostServices();
+        void startFileProcessing(requestId, session, sourceFile, suggestedName, chunkBytes, saveToPickedFile, workerHostServices);
       },
       fui_file_process_worker_cancel(requestId: number): void {
         cancelFileProcessingRequest(requestId);
