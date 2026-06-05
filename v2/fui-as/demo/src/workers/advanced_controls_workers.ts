@@ -101,6 +101,7 @@ import {
   fui_file_worker_write_chunk,
   Worker as WorkerRuntime,
 } from "../../../src/FuiWorker";
+import { JSON } from "@devcycle/assemblyscript-json/assembly/index";
 
 export function fileProcessorWorker(): void {
   const READ_CHUNK_SIZE: i32 = 65536;
@@ -128,7 +129,11 @@ export function fileProcessorWorker(): void {
     WorkerRuntime.reportProgress(offset.toString());
   }
 
-  WorkerRuntime.complete(hash.toString());
+  const result = new JSON.Obj();
+  result.set("hash", hash);
+  result.set("algo", "djb2");
+  result.set("bytes", i64(offset));
+  WorkerRuntime.complete(result.stringify());
 }
 
 export function largestPrimeCalculatorWorker(): void {
