@@ -85,6 +85,7 @@ into compiled, retained-mode runtimes. The result:
 - **Write in AssemblyScript, Rust, or Kotlin** — the runtime doesn't care
 
 [→ Full story: Why EffinDom (detailed)](./WHY_FUI_EFFINDOM.md)
+[→ Who is zion-sati?](./WHO_IS_ZION_SATI.md)
 
 ---
 
