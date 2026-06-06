@@ -38,7 +38,7 @@ npm install
 npm run dev
 ```
 
-That's it. You'll have a running EffinDom app at `http://localhost:5173`.
+That's it. You'll have a running EffinDom app at `http://localhost:8080`.
 
 For the MVC starter with routing:
 
@@ -187,7 +187,7 @@ Every feature below ships in the SDK today unless marked "roadmap."
 
 ### 🛠️ 8. Multi-Language Evolution & Developer Tooling
 
-- **Universal AST Schema** — The core execution target does not care what
+- **C-ABI Command Buffer** — The core execution target does not care what
   programming language wrote the front-end.
 - **FUI-AS (AssemblyScript)** — The flagship web reference implementation using
   TypeScript-style architecture. *(You are here.)*
