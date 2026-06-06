@@ -1,19 +1,14 @@
 # EffinDom FUI-AS
 
-> **The AssemblyScript SDK for the EffinDom display server. Build WPF-grade
-> web apps without touching the DOM.**
+> **Build WPF/SwiftUI-grade web apps in AssemblyScript. No DOM. No CSS. No virtual DOM diffing.**
 
-FUI-AS is the flagship Tier 3 SDK for EffinDom. You write TypeScript-style
-AssemblyScript — typed, compiled to WebAssembly, running against a retained-mode
-C++ rendering engine. No HTML. No CSS. No virtual DOM. No framework tax.
+FUI-AS is the flagship SDK for the [EffinDom](https://github.com/zion-sati/EffinDOM) display server. You write TypeScript-style AssemblyScript — typed, compiled to WebAssembly, running against a retained-mode C++ rendering engine.
 
+If you've ever used SwiftUI and then gone back to React, you already know the feeling this is trying to fix.
+
+**[→ Live demo](https://fui-as-demo.effindom.dev/)**
 
 https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
-
-
-**Demo**: [https://fui-as-demo.effindom.dev/](https://fui-as-demo.effindom.dev/)
-
-**Demo source code**: https://github.com/zion-sati/fui-as-demo/fui-as-demo-source/
 
 ---
 
@@ -26,206 +21,206 @@ npm install
 npm run dev
 ```
 
-That's it. You'll have a running EffinDom app at `http://localhost:8080`.
-
-For the MVC starter with routing:
+You'll have a running EffinDom app at `http://localhost:8080`. For the MVC starter with routing:
 
 ```bash
-npx @effindomv2/fui-as-app my-mvc-app -- --template mvc
+npx @effindomv2/create-fui-as-app my-app --template mvc
 ```
-
-The scaffolder lives in its own repo: [create-fui-as-app](https://github.com/zion-sati/create-fui-as-app).
 
 ---
 
 ## A minimal app
 
+Two files. No config. No HTML to touch.
+
 ```ts
-import { Application, Button, Column, Text } from "@effindomv2/fui-as";
+// App.ts
+import { Application } from "@effindomv2/fui-as";
 export * from "@effindomv2/fui-as/FuiExports";
 
-function buildPage() {
+import { createHelloWorldPage } from "./HelloWorld";
+
+Application.register((app) => app.page(createHelloWorldPage));
+```
+
+```ts
+// HelloWorld.ts
+import { Button, Column, Text } from "@effindomv2/fui-as";
+
+export function createHelloWorldPage() {
   return Column(
-    new Text("Hello EffinDom"),
+    new Text("Hello EffinDom").fontSize(24.0),
     new Button("Click me"),
   );
 }
-
-Application.register(app => app.page(buildPage));
 ```
 
----
-
-## SDK Reference
-
-- **[SDK Docs Index](./docs/v2/fui-as/SDK_INDEX.md)** — full navigation
-- **[API Reference](./docs/v2/fui-as/API_REFERENCE.md)**
-- **[Controls & Nodes Overview](./docs/v2/fui-as/CONTROLS_AND_NODES.md)**
-- **[Control Customization](./docs/v2/fui-as/CONTROL_CUSTOMIZATION.md)** — sizing, colors, templating
-- **[Per-Type Reference](./docs/v2/fui-as/reference/README.md)**
-- **[Events & Callbacks](./docs/v2/fui-as/EVENTS_AND_CALLBACKS.md)**
-- **[Quickstart (full walk-through)](./docs/v2/fui-as/QUICKSTART.md)**
-
-## Design & Architecture
-
-- **[Accessibility & Semantics](./docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
-- **[Theming & Style Matrix](./docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
-- **[Keyboard Policy](./docs/v2/fui-as/KEYBOARD_POLICY.md)**
-- **[Overlays & Portals](./docs/v2/fui-as/OVERLAYS_AND_PORTALS.md)**
-- **[Text Input Design](./docs/v2/fui-as/TEXT_INPUT_DESIGN.md)**
+For a fuller example with state, theming, and multiple controls — see the
+[hello-world scaffold source](https://github.com/zion-sati/create-fui-as-app)
+or the [live demo source](https://github.com/zion-sati/fui-as-demo).
 
 ---
 
-## Why EffinDom?
+## Why this exists
 
 The DOM was a 1995 document viewer that accidentally became the world's
-application platform. Every framework since has been a progressively more
-elaborate bandage on that original wound.
+application platform. Every framework since — React, Svelte, Vue — has been
+working around that original mismatch, not fixing it.
 
-EffinDom treats the browser as a **display server** — a hardware abstraction
-layer for input, fonts, networking, and GPU — and moves all UI architecture
-into compiled, retained-mode runtimes. The result:
+EffinDom treats the browser as a **display server**: a hardware abstraction
+layer for GPU, input, fonts, and networking. All UI architecture lives in
+compiled, retained-mode WebAssembly runtimes. FUI-AS is how you write apps
+against that runtime.
 
-- **~128 KB hello-world app payload** — the multi-megabyte engine is cached globally once
-- **60 FPS retained-mode rendering** — no diffing, no layout thrash
-- **Real typography** — HarfBuzz + ICU, not bitmap fonts
-- **Actual accessibility** — semantic tree projected through the browser bridge
-- **Write in AssemblyScript, Rust, or Kotlin** — the runtime doesn't care
+The result in practice:
 
-[→ Full story: Why EffinDom (detailed)](./WHY_FUI_EFFINDOM.md)
+- **~128 KB app payload** — the multi-megabyte engine is content-hashed,
+  CDN-cached, and shared across every EffinDom app a user visits
+- **60/120 FPS retained rendering** — no reconciler, no layout thrash, no
+  diffing
+- **Real typography** — HarfBuzz + ICU for full international text shaping,
+  BiDi, RTL, emoji, surgical font subset injection
+- **Accessibility out of the box** — semantic tree projected through the
+  browser bridge; screen readers, password managers, and devtools work without
+  extra wiring
+- **SwiftUI-style fluent API** — declarative chaining, no compiler plugins
+  required
 
+[→ Full story: Why EffinDom](./WHY_FUI_EFFINDOM.md) ·
 [→ Who is zion-sati?](./WHO_IS_ZION_SATI.md)
 
 ---
 
-## The FUI Architecture Reference Matrix
+## What ships today
 
-Every feature below ships in the SDK today unless marked "roadmap."
+Every item below is in the SDK now unless marked *(roadmap)*.
 
-### 📦 1. The Distributed Network & Deploy Layer (The "Web DLL")
+### 📦 The Web DLL — Distributed Network & Deploy Layer
 
-- **Web DLL Split Architecture** — Core runtimes are completely separated into
-  immutable, independent WebAssembly modules.
-- **Tier 1 Display Server** — Stateless, low-level microkernel controlling the
-  WebGL context, driving Skia, handling raw drawing instructions.
-- **Tier 2 Retained UI Layer** — Houses the structural AST, component
-  reactivity, and lifecycle states.
-- **Global CDN Caching** — Engine DLLs, ICU datasets, and core components
-  cached forever globally.
-- **Tiny App Footprint** — The runtime engine is cached once globally. Your
-  app payload is just your business logic (hello-world scaffold: ~128 KB),
-  ensuring sub-second Time-To-Interactive.
-- **Zero-Cost Edge Delivery** — Entire compilation and rendering loop runs
-  client-side, allowing infinite scaling via static edge CDNs.
-- **Native Fetch Pipeline** — High-performance, reactive REST/HTTP networking
-  baked directly into the WebAssembly runtime core.
+This is the core architectural differentiator. Flutter bundles its engine into
+every app. egui does the same. EffinDom doesn't — the runtime lives on the CDN,
+cached forever, shared across every EffinDom app the user visits.
 
-### 💾 2. Automated Node State & IndexedDB Persistence
+- **Web DLL Split Architecture** — Tier 1 and Tier 2 are completely separate,
+  immutable WebAssembly modules. Cached globally, shared across all apps.
+  Visit ten EffinDom apps — download the engine once.
+- **Tiny App Footprint** — The runtime is cached once globally. Your app payload
+  is just your business logic. Hello-world scaffold: **~128 KB**. Real apps land
+  in the low hundreds. Sub-second Time-To-Interactive.
+- **Zero-Cost Edge Delivery** — The entire compilation and rendering loop runs
+  client-side. No server required. Infinite scaling via static CDNs.
+- **Content-Hashed JSON Manifest** — Runtimes are mapped via cryptographic
+  content hashes. Perfect cache invalidation without ever breaking CDN
+  residency.
+- **Adaptive 4-Flavour Compilation** — Automatically selects the right build:
+  wasm64+SIMD, wasm64, wasm32+SIMD, wasm32. Every user gets the fastest binary
+  their hardware supports.
+- **Hermetic NPM Bundling** — The entire 4-flavour matrix and content-hashed
+  manifest are bundled inside the npm package. Fully self-contained builds
+  behind strict firewalls, no external CDN calls required.
+- **Native Fetch Pipeline** — Reactive REST/HTTP networking (GET, POST, PUT,
+  DELETE) baked directly into the WebAssembly runtime core.
 
-- **Opt-In Named Node Tracking** — Assign explicit identifiers to layout nodes
-  to opt them into automatic lifecycle state tracking.
-- **Zero-Friction Scroll & Component Preservation** — Active component states
-  — including scroll positions, input data, and layout configurations — are
-  automatically serialized to the browser's IndexedDB in the background.
-- **Seamless Back/Forward Navigation** — Eliminates canvas navigation amnesia.
-  Browser forward/back buttons automatically hydrate exact state configurations
-  back into the Tier 2 Retained UI engine.
+### 💾 Automated State Persistence
 
-### 🎨 3. High-Fidelity Rendering & UI Primitives
+- **Opt-In Named Node Tracking** — Assign an ID to any layout node and get
+  automatic lifecycle state tracking with zero boilerplate.
+- **Zero-Friction Scroll & Component Preservation** — Scroll positions, input
+  data, and layout configurations are automatically serialized to IndexedDB in
+  the background while the user works.
+- **Seamless Back/Forward Navigation** — No canvas amnesia. Browser back and
+  forward buttons instantly restore the exact retained state into the Tier 2
+  engine — no re-fetch, no re-render from scratch.
 
-- **Immediate-Mode Power, Retained-Mode Ergonomics** — Canvas layout engine
-  with full state tracking.
-- **Direct Pixel-Level Bitmaps** — Custom drawn, pixel-by-pixel bitmaps
-  (identical to WPF / Avalonia writeable bitmaps) written directly to GPU
-  textures.
-- **Native SVG Parsing** — Native parsing and rendering of vector graphics
-  without breaking out into HTML.
-- **Transparent PNG & Custom Bitmaps** — Alpha-channel images and custom
-  bitmap drawings.
-- **SwiftUI-Inspired Fluent Syntax** — Unified declarative chaining API
-  implemented natively across languages without custom compiler plugins.
+### 🎨 High-Fidelity Rendering & UI Primitives
+
+- **Retained-Mode Ergonomics, Immediate-Mode Power** — A full retained scene
+  graph with state tracking, without the overhead of a virtual DOM reconciler.
+- **Direct Pixel-Level Bitmaps** — WPF/Avalonia-style writeable bitmaps written
+  pixel-by-pixel directly to GPU textures for low-latency custom rendering.
+- **Native SVG Parsing** — Vector graphics parsed and rendered natively, no
+  HTML required.
+- **Transparent PNG & Custom Bitmaps** — Full alpha-channel image support and
+  custom bitmap drawings.
+- **SwiftUI-Inspired Fluent Syntax** — Declarative chaining API across all
+  controls and layout nodes. No custom compiler plugins required.
 - **Implicit & Explicit Transitions** — Structural animation interpolation
-  handled inside the WebAssembly loop.
-- **Fixed-Height Virtual Lists** — Structural element virtualization to render
-  tens of thousands of data points at locked 60/120 FPS.
-- **Native Dialog Modals** — Integrated, declarative overlay systems with
-  automatic, layout-aware Accept/Cancel button action assignments.
+  handled inside the WebAssembly loop, not in JavaScript.
+- **Fixed-Height Virtual Lists** — Render tens of thousands of items at a locked
+  60/120 FPS with structural element virtualisation.
+- **Native Dialog Modals** — Declarative overlay system with automatic,
+  layout-aware Accept/Cancel button assignments.
 
-### 🔤 4. Advanced Typography & Linguistic Engine
+### 🔤 Advanced Typography & Linguistic Engine
 
 - **Global ICU Engine** — Complete international text shaping, character
   attributes, and complex script support.
-- **Built-in RTL Foundation** — HarfBuzz and ICU architectures fully baked into
-  the Tier 2 layer to natively handle Right-to-Left script layout rules.
-- **Real-Time Glyph Caching** — Renders characters to a reusable texture atlas
-  to prevent expensive frame-by-frame vector calculations.
-- **Perfect Pixel Crispness** — Subpixel anti-aliasing intentionally disabled,
-  forcing razor-sharp text scaling without color-fringing.
-- **On-Demand Tofu Font Swapping** — Real-time text stream analysis that
-  dynamically catches missing Unicode boundaries.
-- **Surgical Subset Injections** — Instead of fetching massive multi-megabyte
-  language fonts, pulls down the specific missing characters on the fly.
-- **Cross-Boundary Text Selection** — Real-time hit-testing mimicking native
-  HTML text highlighting, dragging, and copying across boundaries.
+- **Built-In RTL Foundation** — HarfBuzz and ICU handle Right-to-Left and BiDi
+  layout rules natively at the Tier 2 level.
+- **Real-Time Glyph Caching** — Characters rendered to a reusable texture atlas.
+  No per-frame vector recalculation.
+- **Perfect Pixel Crispness** — Subpixel anti-aliasing intentionally disabled.
+  Razor-sharp text at any scale, no colour fringing on modern displays.
+- **On-Demand Tofu Font Swapping** — Real-time stream analysis catches missing
+  Unicode coverage as text flows in.
+- **Surgical Subset Injection** — Fetches only the specific missing characters,
+  not multi-megabyte language font files.
+- **Cross-Boundary Text Selection** — Real-time hit-testing for native-feeling
+  highlight, drag, and copy across text node boundaries.
 
-### 🖱️ 5. Native Browser Fidelity & OS Integration
+### 🖱️ Native Browser Fidelity & OS Integration
 
 - **Lock-Step System Theme Interpolation** — Captures granular OS theme shift
-  values (like macOS dynamic shifts) to transition colors in perfect
-  frame-by-frame synchronization.
-- **Custom In-App Find Engine** — Built-in Ctrl+F / ⌘F hotkey interception
-  that fires a custom canvas layout dialog to search text nodes natively.
-- **External File Drop Targets** — Extends standard viewport tracking to
-  intercept browser-level external files and object drops.
-- **Context-Aware Right-Click Menus** — Native-feeling context menus that alter
-  their layout and actions based on the specific AST element clicked.
-- **Desktop-Grade Navlinks** — Hyperlink interactions render a browser-style
-  preview popup at the bottom of the viewport on hover.
-- **Mobile Touch Gesture Engines** — Out-of-the-box support for fluent,
-  physics-driven mobile gestures like pull-to-refresh.
+  values (including macOS dynamic appearance) and transitions colours in
+  frame-by-frame synchronisation.
+- **Custom In-App Find Engine** — Built-in Ctrl+F / ⌘F interception that fires
+  a native canvas search dialog across all text nodes.
+- **External File Drop Targets** — Browser-level file and object drops routed
+  directly into the canvas event system.
+- **Context-Aware Right-Click Menus** — Layout and actions adapt to the specific
+  AST node under the cursor.
+- **Desktop-Grade Navlinks** — Hover over a link, get a browser-style URL
+  preview at the bottom of the viewport.
+- **Mobile Touch Gesture Engines** — Physics-driven pull-to-refresh and fling
+  scrolling out of the box.
 
-### 🌐 6. Core Web Accessibility & Interoperability
+### 🌐 Accessibility & Interoperability
 
-- **Granular Semantic Overrides** — Every individual semantic label can be
-  explicitly overridden at the component level.
-- **Pre-Defined Semantic Roles** — Out-of-the-box matrix of core semantic
-  roles, ensuring custom controls map accurately to native assistive
-  technologies.
-- **Out-of-the-Box Semantic Tree** — Auto-generates a synchronized, invisible
-  ARIA-compliant HTML mirror layout behind the canvas.
-- **Full Search Engine Accessibility** — Built-in structural trees allow web
-  crawlers to read text natively.
-- **Automatic CPU Software Fallback** — Transparently downgrades to a highly
-  optimized CPU-based Software Renderer if WebGL is unavailable (VMs, headless
-  CI).
-- **Anti-Fingerprint Block Resiliency** — Resilient WebGL setup hooks that
-  safely bypass strict browser privacy/fingerprinting blocks without crashing.
+- **Out-of-the-Box Semantic Tree** — Auto-generates an ARIA-compliant hidden
+  HTML mirror perfectly synced to GPU coordinates. Screen readers, password
+  managers, and browser devtools work without any extra wiring.
+- **Pre-Defined Semantic Roles** — Built-in role matrix maps every control
+  accurately to native assistive technologies.
+- **Granular Semantic Overrides** — Every semantic label overridable at the
+  individual component level for complex layouts.
+- **Full Search Engine Visibility** — Web crawlers read canvas text natively via
+  the semantic tree.
+- **Automatic CPU Software Fallback** — Transparently downgrades to a CPU
+  renderer when WebGL is unavailable — VMs, headless CI, strict environments.
+- **Anti-Fingerprint Block Resiliency** — WebGL setup hooks safely bypass strict
+  browser privacy blocks without crashing.
 
-### ⚙️ 7. Dynamic Hardware-Targeted Deployment Engine
+### 🛠️ Controls
 
-- **Content-Hashed JSON Matrix** — Runtimes mapped via an immutable JSON
-  manifest versioned strictly by cryptographic file content hashes, guaranteeing
-  perfect cache invalidation without breaking long-term CDN residency.
-- **Adaptive 4-Flavor Compilation** — Automates deployment across four distinct
-  hardware optimization profiles (64-bit + SIMD, 64-bit Non-SIMD, 32-bit +
-  SIMD, 32-bit Non-SIMD).
-- **Hermetic NPM Bundling** — The entire 4-flavor matrix and content-hashed
-  JSON manifest are bundled entirely within the local npm package, allowing 100%
-  self-contained local builds behind strict firewalls.
+Button, Text, TextInput, TextArea (monospaced/variable, wrap/no-wrap, scrollbar
+states), Checkbox, RadioButton, SelectionArea, Column, Row, FlexBox, Dialog,
+VirtualList, RichText, ContextMenu, and more.
 
-### 🛠️ 8. Multi-Language Evolution & Developer Tooling
+---
 
-- **C-ABI Command Buffer** — The runtime doesn't care what language you used.
-- **FUI-AS (AssemblyScript)** — The flagship web reference implementation using
-  TypeScript-style architecture. *(You are here.)*
-- **FUI-KT (Kotlin) is coming** — JetBrains' Compose Multiplatform
-  wraps Skiko (their Skia bindings for Kotlin), but FUI-KT will render
-  directly through EffinDom's own Tier 1/2 pipeline. Same Skia GPU
-  backend, none of the JVM baggage. Write Kotlin, ship WASM.
-- **FUI-RS (Rust)** — Zero-cost traits on the stack with zero heap allocation
-  overhead.
-- **`npx` Scaffolding Engines** — CLI toolkits with standard `simple` and
-  `mvc` structural blueprints.
+## SDK reference
+
+- **[SDK Docs Index](./docs/v2/fui-as/SDK_INDEX.md)**
+- **[API Reference](./docs/v2/fui-as/API_REFERENCE.md)**
+- **[Controls & Nodes](./docs/v2/fui-as/CONTROLS_AND_NODES.md)**
+- **[Control Customization](./docs/v2/fui-as/CONTROL_CUSTOMIZATION.md)** — sizing, colors, templating
+- **[Events & Callbacks](./docs/v2/fui-as/EVENTS_AND_CALLBACKS.md)**
+- **[Theming & Style Matrix](./docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
+- **[Accessibility & Semantics](./docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
+- **[Keyboard Policy](./docs/v2/fui-as/KEYBOARD_POLICY.md)**
+- **[Overlays & Portals](./docs/v2/fui-as/OVERLAYS_AND_PORTALS.md)**
+- **[Text Input Design](./docs/v2/fui-as/TEXT_INPUT_DESIGN.md)**
+- **[Full Quickstart walkthrough](./docs/v2/fui-as/QUICKSTART.md)**
 
 ---
 
@@ -234,46 +229,38 @@ Every feature below ships in the SDK today unless marked "roadmap."
 | Repo | Purpose |
 |---|---|
 | **[fui-as](https://github.com/zion-sati/fui-as)** | This repo — AssemblyScript SDK |
-| **[EffinDOM](https://github.com/zion-sati/EffinDOM)** | Monorepo — runtime, engine, docs |
-| **[create-fui-as-app](https://github.com/zion-sati/create-fui-as-app)** | `npx` scaffolder CLI |
+| **[EffinDOM](https://github.com/zion-sati/EffinDOM)** | Runtime, engine, browser bridge, docs |
+| **[create-fui-as-app](https://github.com/zion-sati/create-fui-as-app)** | `npx` scaffolder |
 
----
-
-## Build & publish (maintainers)
-
-```bash
-npm install
-npm run typecheck
-npm run test
-npm run build
-npm run publish:local
-```
+Working on the SDK itself? See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 ---
 
 ## Limitations
 
-EffinDom is early. The first release targets **desktop web apps**. Touch events
-are handled at the input routing level, but mobile gesture recognition
-(pinch-to-zoom, etc.) isn't polished yet, and the demo layouts aren't designed
-for small screens. Desktop-first, web-native.
+EffinDom is early. The first release targets **desktop web apps**. Touch input
+is handled at the routing level, but mobile gesture recognition isn't polished
+yet and the demo layouts aren't designed for small screens. Desktop-first,
+web-native.
 
-**Bus factor: 1.** I'm a solo developer with a young family, building this at
-night and on weekends. I'm asking for funding — not VC money, not an
-accelerator, but enough to hire another contributor and pay myself so I can
-keep this sustainable long-term without burning out.
+**Bus factor: 1.** This is a solo project built at night and on weekends. See
+the license section below.
+
+---
 
 ## License
 
-This repository is licensed under **AGPL-3.0-only** or commercial terms.
+| Package | License |
+|---|---|
+| `@effindomv2/runtime` | MIT |
+| `@effindomv2/fui-as` | AGPL-3.0-only or commercial |
+| `@effindomv2/create-fui-as-app` | MIT |
 
-The runtime (`@effindomv2/runtime`) is MIT — use it freely. The SDK is AGPL for
-a reason. MIT is the license big corporations love because it lets them take
-your work, build a product on top of it, fire you, and never give back. They've
-been doing it for years. I've watched it happen. AGPL is what the open-source
-initiative was *supposed* to be — you can use it, study it, modify it, but if
-you build a service on it, you share back.
+The runtime is MIT — no restrictions. The SDK is AGPL-3.0 because I'm a solo
+maintainer with a young family, building this after hours. AGPL means you can
+use it, study it, and modify it freely — but if you ship a commercial product
+built on it, you either open-source that product or purchase a commercial
+license. That's how this project stays alive.
 
-If you're building something commercial and AGPL doesn't fit, there's a
-license for that — and it directly funds this project's survival. See
-`LICENSE.md` and `COMMERCIAL.md`.
+If you're building something commercial, the license exists — it directly funds
+continued development. See [`COMMERCIAL.md`](./COMMERCIAL.md) for details.
