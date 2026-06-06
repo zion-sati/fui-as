@@ -191,9 +191,12 @@ Every feature below ships in the SDK today unless marked "roadmap."
   programming language wrote the front-end.
 - **FUI-AS (AssemblyScript)** — The flagship web reference implementation using
   TypeScript-style architecture. *(You are here.)*
-- **FUI-KT & FUI-RS Roadmap** — Direct architectural translations into Kotlin
-  and Rust (utilizing zero-cost traits on the stack with zero heap allocation
-  overhead).
+- **FUI-KT (Kotlin) is coming** — JetBrains' Compose Multiplatform
+  wraps Skiko (their Skia bindings for Kotlin), but FUI-KT will render
+  directly through EffinDom's own Tier 1/2 pipeline. Same Skia GPU
+  backend, none of the JVM baggage. Write Kotlin, ship WASM.
+- **FUI-RS (Rust)** — Zero-cost traits on the stack with zero heap allocation
+  overhead.
 - **`npx` Scaffolding Engines** — CLI toolkits with standard `simple` and
   `mvc` structural blueprints.
 
