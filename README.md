@@ -13,6 +13,8 @@ https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
 
 **Demo**: [https://fui-as-demo.effindom.dev/](https://fui-as-demo.effindom.dev/)
 
+**Demo source code**: https://github.com/zion-sati/fui-as-demo/fui-as-demo-source/
+
 ---
 
 ## Quickstart
@@ -91,6 +93,7 @@ into compiled, retained-mode runtimes. The result:
 - **Write in AssemblyScript, Rust, or Kotlin** — the runtime doesn't care
 
 [→ Full story: Why EffinDom (detailed)](./WHY_FUI_EFFINDOM.md)
+
 [→ Who is zion-sati?](./WHO_IS_ZION_SATI.md)
 
 ---
