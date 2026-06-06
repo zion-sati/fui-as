@@ -11,6 +11,8 @@ C++ rendering engine. No HTML. No CSS. No virtual DOM. No framework tax.
 https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
 
 
+**Demo**: [https://fui-as-demo.effindom.dev/](https://fui-as-demo.effindom.dev/)
+
 ---
 
 ## Quickstart
@@ -246,13 +248,29 @@ npm run publish:local
 
 ---
 
+## Limitations
+
+EffinDom is early. The first release targets **desktop web apps**. Touch events
+are handled at the input routing level, but mobile gesture recognition
+(pinch-to-zoom, etc.) isn't polished yet, and the demo layouts aren't designed
+for small screens. Desktop-first, web-native.
+
+**Bus factor: 1.** I'm a solo developer with a young family, building this at
+night and on weekends. I'm asking for funding — not VC money, not an
+accelerator, but enough to hire another contributor and pay myself so I can
+keep this sustainable long-term without burning out.
+
 ## License
 
 This repository is licensed under **AGPL-3.0-only** or commercial terms.
 
-The runtime (`@effindomv2/runtime`) is MIT — use it freely. The SDK is AGPL
-because I'm a solo maintainer with a young family, and I need commercial use to
-support the project's survival. If you're building something commercial, there's
-a license for that.
+The runtime (`@effindomv2/runtime`) is MIT — use it freely. The SDK is AGPL for
+a reason. MIT is the license big corporations love because it lets them take
+your work, build a product on top of it, fire you, and never give back. They've
+been doing it for years. I've watched it happen. AGPL is what the open-source
+initiative was *supposed* to be — you can use it, study it, modify it, but if
+you build a service on it, you share back.
 
-See `LICENSE.md` and `COMMERCIAL.md` for details.
+If you're building something commercial and AGPL doesn't fit, there's a
+license for that — and it directly funds this project's survival. See
+`LICENSE.md` and `COMMERCIAL.md`.
