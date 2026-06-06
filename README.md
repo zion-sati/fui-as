@@ -7,7 +7,9 @@ FUI-AS is the flagship Tier 3 SDK for EffinDom. You write TypeScript-style
 AssemblyScript — typed, compiled to WebAssembly, running against a retained-mode
 C++ rendering engine. No HTML. No CSS. No virtual DOM. No framework tax.
 
-<video src="https://raw.githubusercontent.com/zion-sati/fui-as/main/fui-as-demo.mov" width="600" controls></video>
+
+https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
+
 
 ---
 
