@@ -2,8 +2,11 @@
 
 I've spent four decades in software. I've written Linux kernel drivers at the
 bare-metal level, built low-latency search engines where every microsecond
-counted, and shipped web applications to millions of users. I've seen
-abstractions come and go, paradigms rise and fall, and the same mistakes
+counted, and shipped web applications to millions of users.
+
+I earned my first $1,000 when I was 14, selling a GUI Editbox control to a friend. The GUI framework ran in VGA 640×480 at 256 colors — long before Windows made this easy. The problem: VGA's memory aperture was only 64 KB wide, but 640×480×256 colors is 300 KB of pixel data. So you couldn't just write to video memory linearly. You had to program the VGA sequencer registers to switch between four 64 KB banks — bank 0 for scanlines 0–119, bank 1 for 120–239, bank 2 for 240–359, bank 3 for 360–479. Every time you crossed a bank boundary while drawing a line or filling a rectangle, you had to switch banks mid-operation. If you got it wrong, you'd write pixels into the wrong part of the screen and your GUI would look like a glitch-art masterpiece. I got it right. Sold it. That was the moment I knew I'd be doing this forever.
+
+I've seen abstractions come and go, paradigms rise and fall, and the same mistakes
 repackaged as innovation every five years.
 
 **zion-sati is a pseudonym.** It's from The Matrix — my favorite film, and the
