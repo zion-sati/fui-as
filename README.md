@@ -9,26 +9,6 @@ C++ rendering engine. No HTML. No CSS. No virtual DOM. No framework tax.
 
 ---
 
-## Why EffinDom? Why not React / Flutter / Three.js?
-
-The DOM was a 1995 document viewer that accidentally became the world's
-application platform. Every framework since has been a progressively more
-elaborate bandage on that original wound.
-
-EffinDom treats the browser as a **display server** — a hardware abstraction
-layer for input, fonts, networking, and GPU — and moves all UI architecture
-into compiled, retained-mode runtimes. The result:
-
-- **~128 KB hello-world app payload** — the multi-megabyte engine is cached globally once
-- **60 FPS retained-mode rendering** — no diffing, no layout thrash
-- **Real typography** — HarfBuzz + ICU, not bitmap fonts
-- **Actual accessibility** — semantic tree projected through the browser bridge
-- **Write in AssemblyScript, Rust, or Kotlin** — the runtime doesn't care
-
-[→ Full story: Why EffinDom (detailed)](WHY_FUI_EFFINDOM.md)
-
----
-
 ## Quickstart
 
 ```bash
@@ -46,8 +26,7 @@ For the MVC starter with routing:
 npm create @effindomv2/fui-as-app@latest my-mvc-app -- --template mvc
 ```
 
-The scaffolder lives in its own repo:
-[→ create-fui-as-app](https://github.com/zion-sati/create-fui-as-app)
+The scaffolder lives in its own repo: [create-fui-as-app](https://github.com/zion-sati/create-fui-as-app).
 
 ---
 
@@ -69,6 +48,46 @@ Application.register(app => app.page(buildPage));
 
 ---
 
+## SDK Reference
+
+- **[SDK Docs Index](./docs/v2/fui-as/SDK_INDEX.md)** — full navigation
+- **[API Reference](./docs/v2/fui-as/API_REFERENCE.md)**
+- **[Controls & Nodes Overview](./docs/v2/fui-as/CONTROLS_AND_NODES.md)**
+- **[Control Customization](./docs/v2/fui-as/CONTROL_CUSTOMIZATION.md)** — sizing, colors, templating
+- **[Per-Type Reference](./docs/v2/fui-as/reference/README.md)**
+- **[Events & Callbacks](./docs/v2/fui-as/EVENTS_AND_CALLBACKS.md)**
+- **[Quickstart (full walk-through)](./docs/v2/fui-as/QUICKSTART.md)**
+
+## Design & Architecture
+
+- **[Accessibility & Semantics](./docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
+- **[Theming & Style Matrix](./docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
+- **[Keyboard Policy](./docs/v2/fui-as/KEYBOARD_POLICY.md)**
+- **[Overlays & Portals](./docs/v2/fui-as/OVERLAYS_AND_PORTALS.md)**
+- **[Text Input Design](./docs/v2/fui-as/TEXT_INPUT_DESIGN.md)**
+
+---
+
+## Why EffinDom?
+
+The DOM was a 1995 document viewer that accidentally became the world's
+application platform. Every framework since has been a progressively more
+elaborate bandage on that original wound.
+
+EffinDom treats the browser as a **display server** — a hardware abstraction
+layer for input, fonts, networking, and GPU — and moves all UI architecture
+into compiled, retained-mode runtimes. The result:
+
+- **~128 KB hello-world app payload** — the multi-megabyte engine is cached globally once
+- **60 FPS retained-mode rendering** — no diffing, no layout thrash
+- **Real typography** — HarfBuzz + ICU, not bitmap fonts
+- **Actual accessibility** — semantic tree projected through the browser bridge
+- **Write in AssemblyScript, Rust, or Kotlin** — the runtime doesn't care
+
+[→ Full story: Why EffinDom (detailed)](./WHY_FUI_EFFINDOM.md)
+
+---
+
 ## The FUI Architecture Reference Matrix
 
 Every feature below ships in the SDK today unless marked "roadmap."
@@ -85,8 +104,7 @@ Every feature below ships in the SDK today unless marked "roadmap."
   cached forever globally.
 - **Tiny App Footprint** — The runtime engine is cached once globally. Your
   app payload is just your business logic (hello-world scaffold: ~128 KB),
-  ensuring
-  sub-second Time-To-Interactive.
+  ensuring sub-second Time-To-Interactive.
 - **Zero-Cost Edge Delivery** — Entire compilation and rendering loop runs
   client-side, allowing infinite scaling via static edge CDNs.
 - **Native Fetch Pipeline** — High-performance, reactive REST/HTTP networking
@@ -187,8 +205,7 @@ Every feature below ships in the SDK today unless marked "roadmap."
 
 ### 🛠️ 8. Multi-Language Evolution & Developer Tooling
 
-- **C-ABI Command Buffer** — The core execution target does not care what
-  programming language wrote the front-end.
+- **C-ABI Command Buffer** — The runtime doesn't care what language you used.
 - **FUI-AS (AssemblyScript)** — The flagship web reference implementation using
   TypeScript-style architecture. *(You are here.)*
 - **FUI-KT (Kotlin) is coming** — JetBrains' Compose Multiplatform
@@ -199,70 +216,6 @@ Every feature below ships in the SDK today unless marked "roadmap."
   overhead.
 - **`npx` Scaffolding Engines** — CLI toolkits with standard `simple` and
   `mvc` structural blueprints.
-
----
-
-## Documentation
-
-### Getting started
-
-- **[FUI-AS Quickstart](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/QUICKSTART.md)** — build, run, scaffold
-- **[Top-level v2 quickstart](https://github.com/zion-sati/EffinDOM/blob/main/docs/QUICKSTART.md)** — prerequisites for the full stack
-
-### SDK reference
-
-- **[SDK Docs Index](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/SDK_INDEX.md)** — full navigation
-- **[API Reference](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/API_REFERENCE.md)**
-- **[Controls & Nodes Overview](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/CONTROLS_AND_NODES.md)**
-- **[Per-Type Reference](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/reference/README.md)**
-- **[Events & Callbacks](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/EVENTS_AND_CALLBACKS.md)**
-
-### Design & architecture
-
-- **[Accessibility & Semantics](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
-- **[Theming & Style Matrix](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
-- **[Keyboard Policy](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/KEYBOARD_POLICY.md)**
-- **[Overlays & Portals](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/OVERLAYS_AND_PORTALS.md)**
-- **[Text Input Design](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/TEXT_INPUT_DESIGN.md)**
-
-### Custom controls (templating)
-
-All built-in controls — `Button`, `Checkbox`, `RadioButton`, `Switch`,
-`Slider`, `Dropdown`, `TextInput`, `TextArea` — support custom templates:
-
-```ts
-import {
-  Checkbox,
-  CheckboxIndicatorPresenter,
-  CheckboxIndicatorTemplate,
-  CheckboxIndicatorVisualState,
-  FlexBox,
-  LabeledControlColors,
-  PressableIndicatorMetrics,
-  Theme,
-  Unit,
-} from "@effindomv2/fui-as";
-
-class CapsuleCheckboxPresenter extends CheckboxIndicatorPresenter {
-  private readonly fillNode: FlexBox;
-  constructor() {
-    const root = new FlexBox().width(24, Unit.Pixel).height(24, Unit.Pixel);
-    super(root, new PressableIndicatorMetrics(24, 24));
-    this.fillNode = new FlexBox().width(10, Unit.Pixel).height(10, Unit.Pixel);
-    root.child(this.fillNode);
-  }
-  apply(theme: Theme, state: CheckboxIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
-    const accent = state.pressed ? theme.colors.accentPressed : theme.colors.accent;
-    this.root.cornerRadius(12).border(2, accent).bgColor(theme.colors.surface);
-    this.fillNode.bgColor(accent).opacity(state.checkedState == 0 ? 0 : 1);
-  }
-}
-
-const myCheckbox = new Checkbox("Remember me")
-  .template(new (class extends CheckboxIndicatorTemplate {
-    create(): CheckboxIndicatorPresenter { return new CapsuleCheckboxPresenter(); }
-  })());
-```
 
 ---
 

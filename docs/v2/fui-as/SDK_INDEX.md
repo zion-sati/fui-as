@@ -13,6 +13,7 @@ This is the primary SDK navigation page for `v2/fui-as`.
 - [Controls and nodes overview](./CONTROLS_AND_NODES.md#controls)
 - [Per-type control reference](./reference/README.md#controls)
 - [Keyboard policy](./KEYBOARD_POLICY.md)
+- [Control customization](./CONTROL_CUSTOMIZATION.md)
 - [Overlays and portals](./OVERLAYS_AND_PORTALS.md)
 
 ## Nodes
