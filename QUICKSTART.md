@@ -30,7 +30,7 @@ If developing against a local runtime checkout:
 The fastest way to start is the standalone scaffolder:
 
 ```bash
-npm create @effindomv2/fui-as-app@latest my-app
+npx @effindomv2/create-fui-as-app my-app
 cd my-app
 npm install
 npm run dev
@@ -39,7 +39,7 @@ npm run dev
 For the MVC starter with routing:
 
 ```bash
-npm create @effindomv2/fui-as-app@latest my-mvc-app -- --template mvc
+npx @effindomv2/fui-as-app my-mvc-app -- --template mvc
 ```
 
 The scaffolder lives in its own repo:

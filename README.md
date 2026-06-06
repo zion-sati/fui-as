@@ -7,12 +7,14 @@ FUI-AS is the flagship Tier 3 SDK for EffinDom. You write TypeScript-style
 AssemblyScript — typed, compiled to WebAssembly, running against a retained-mode
 C++ rendering engine. No HTML. No CSS. No virtual DOM. No framework tax.
 
+<video src="https://github.com/zion-sati/fui-as/fui-as-demo.mov" width="600" controls></video>
+
 ---
 
 ## Quickstart
 
 ```bash
-npm create @effindomv2/fui-as-app@latest my-app
+npx @effindomv2/create-fui-as-app my-app
 cd my-app
 npm install
 npm run dev
@@ -23,7 +25,7 @@ That's it. You'll have a running EffinDom app at `http://localhost:8080`.
 For the MVC starter with routing:
 
 ```bash
-npm create @effindomv2/fui-as-app@latest my-mvc-app -- --template mvc
+npx @effindomv2/fui-as-app my-mvc-app -- --template mvc
 ```
 
 The scaffolder lives in its own repo: [create-fui-as-app](https://github.com/zion-sati/create-fui-as-app).
