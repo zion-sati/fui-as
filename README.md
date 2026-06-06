@@ -6,7 +6,7 @@ FUI-AS is the flagship SDK for the [EffinDom](https://github.com/zion-sati/Effin
 
 If you've ever used SwiftUI and then gone back to React, you already know the feeling this is trying to fix.
 
-**[→ Live demo](https://fui-as-demo.effindom.dev/)**
+**[→ Live demo](https://fui-as-demo.effindom.dev/)** *(best viewed on desktop)*
 
 https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
 
@@ -240,8 +240,8 @@ Working on the SDK itself? See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 EffinDom is early. The first release targets **desktop web apps**. Touch input
 is handled at the routing level, but mobile gesture recognition isn't polished
-yet and the demo layouts aren't designed for small screens. Desktop-first,
-web-native.
+yet. The demo app was built for desktop screens — if you open it on a phone it
+will work but it won't look great. Desktop-first, web-native.
 
 **Bus factor: 1.** This is a solo project built at night and on weekends. See
 the license section below.
