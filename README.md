@@ -57,7 +57,7 @@ export function createHelloWorldPage() {
 
 For a fuller example with state, theming, and multiple controls — see the
 [hello-world scaffold source](https://github.com/zion-sati/create-fui-as-app)
-or the [live demo source](https://github.com/zion-sati/fui-as-demo).
+or the [live demo source](https://github.com/zion-sati/fui-as-demo/fui-as-demo-source).
 
 ---
 
