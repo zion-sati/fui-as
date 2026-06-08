@@ -991,6 +991,8 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this;
   }
 
+  /// Removes `node` from this parent.  Does NOT call `dispose()` — the C++ handle
+  /// stays alive so callers can re-parent with `addChildNode()`.
   removeChildNode(node: Node): this {
     const index = this.indexOfChild(node);
     if (index < 0) {
