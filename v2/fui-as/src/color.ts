@@ -1,4 +1,3 @@
-// v2 UI colors are packed as 0xRRGGBBAA.
 export function rgba(red: u32, green: u32, blue: u32, alpha: u32): u32 {
   return ((red & 0xff) << 24) | ((green & 0xff) << 16) | ((blue & 0xff) << 8) | (alpha & 0xff);
 }

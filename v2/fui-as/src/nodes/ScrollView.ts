@@ -9,7 +9,7 @@ import {
   storePersistedScrollOffset,
   tryLoadPersistedScrollOffset,
 } from "../core/PersistedUiState";
-import { HandleValue, NodeType, Unit } from "../core/ffi";
+import { NodeType, Unit } from "../core/ffi";
 import { ScrollState } from "./ScrollState";
 
 const PROGRAMMATIC_SCROLL_ACK_TOLERANCE: f32 = 0.5;

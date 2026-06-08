@@ -674,7 +674,7 @@ export class DashboardView {
   mainContentColumn: FlexBox | null = null;
 
   constructor() {
-    configureDemoScrollBar(this.sidebarList.scrollBar);
+    configureDemoScrollBar(this.sidebarList.scrollBox.verticalScrollBar);
 
     this.configureMainPanel();
     const columnGap = dashboardColumnGap();
@@ -706,7 +706,7 @@ export class DashboardView {
     applyDemoSurfaceRecipe(this.keyTargetBox, theme, DemoSurfaceRecipe.KeyTargetIdle);
     this.mediaSvgImage.tint(theme.colors.accent);
     applyDemoSurfaceRecipe(this.demoScopeBadge, theme, DemoSurfaceRecipe.AccentBadge);
-    applyDemoScrollBarTheme(this.sidebarList.scrollBar, theme, panelColor);
+    applyDemoScrollBarTheme(this.sidebarList.scrollBox.verticalScrollBar, theme, panelColor);
     applyDemoScrollBoxTheme(this.mainContentScrollBox, theme, panelColor);
     applyDemoScrollBoxTheme(this.nestedScrollBox, theme, panelColor);
     applyDemoScrollBoxTheme(this.dashboardScrollBox, theme, panelColor);

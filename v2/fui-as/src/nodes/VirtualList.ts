@@ -5,7 +5,6 @@ import { FlexDirection, HandleValue, Unit } from "../core/ffi";
 import { VirtualListItemBindingError } from "../core/Errors";
 import { Node } from "../core/Node";
 import { FlexBox } from "./FlexBox";
-import { ScrollBar } from "./ScrollBar";
 import { ScrollBox } from "./ScrollBox";
 import { ScrollState } from "./ScrollState";
 import { Text } from "./Text";
@@ -62,7 +61,6 @@ export class VirtualList extends FlexBox {
   private bindItemValue: VirtualListBinderCallback;
   private readonly scrollStateValue: ScrollState;
   private readonly scrollBoxValue: ScrollBox;
-  private readonly contentValue: FlexBox;
   private readonly topSpacerValue: FlexBox;
   private readonly bottomSpacerValue: FlexBox;
   private readonly poolSizeValue: i32;
@@ -121,7 +119,6 @@ export class VirtualList extends FlexBox {
 
     this.topSpacerValue = topSpacerValue;
     this.bottomSpacerValue = bottomSpacerValue;
-    this.contentValue = contentValue;
     this.scrollBoxValue = scrollBoxValue;
     this.poolValue = poolValue;
     this.poolItemIndexByRow = poolItemIndexByRow;
@@ -141,8 +138,8 @@ export class VirtualList extends FlexBox {
     return this.totalItemsValue;
   }
 
-  get scrollBar(): ScrollBar {
-    return this.scrollBoxValue.verticalScrollBar;
+  get scrollBox(): ScrollBox {
+    return this.scrollBoxValue;
   }
 
   get itemHeight(): f32 {

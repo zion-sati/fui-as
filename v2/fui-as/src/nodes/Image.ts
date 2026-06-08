@@ -10,7 +10,7 @@ import {
 } from "../core/Assets";
 import { Action, HandlerAction } from "../core/Action";
 import * as ui from "../bindings/ui";
-import { HandleValue, NodeType, ObjectFit, SemanticRole, Unit } from "../core/ffi";
+import { NodeType, ObjectFit, SemanticRole, Unit } from "../core/ffi";
 import { Signal } from "../core/Signal";
 import { FlexBox, FlexBoxProps } from "./FlexBox";
 

@@ -7,7 +7,6 @@ import { Theme, activeTheme } from "../core/Theme";
 import { FontFamily, FontStack, FontStyle, FontWeight } from "../core/Typography";
 import {
   CursorStyle,
-  HandleValue,
   NodeType,
   TextAlign,
   TextOverflow,
