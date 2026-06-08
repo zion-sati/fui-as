@@ -3,19 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EffinDom FUI AssemblyScript Smoke Harness</title>
+  <title>EffinDom Smoke Harness</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
       font-family: system-ui, sans-serif;
       background: #0f172a;
       color: #e2e8f0;
       display: grid;
       place-items: center;
       min-height: 100vh;
-      gap: 12px;
     }
-
     .canvas-shell {
       position: relative;
       width: 320px;
@@ -24,27 +22,21 @@
       overflow: hidden;
       box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
     }
-
     canvas {
+      display: block;
       width: 100%;
       height: 100%;
-      border: 1px solid #334155;
       border-radius: 12px;
       image-rendering: pixelated;
       background: transparent;
       outline: none;
     }
-
-    canvas:focus,
-    canvas:focus-visible {
-      outline: none;
-    }
-
+    canvas:focus, canvas:focus-visible { outline: none; }
     {{LOADING_OVERLAY_STYLES}}
   </style>
 </head>
 <body>
-  <div class="canvas-shell">
+  <div class="canvas-shell" data-effindom-canvas-size-source>
     <canvas id="fui-canvas"></canvas>
     {{LOADING_OVERLAY_BODY}}
   </div>

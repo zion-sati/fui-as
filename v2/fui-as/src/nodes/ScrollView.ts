@@ -505,6 +505,7 @@ export class ScrollView extends Node {
     this._scrollState.contentHeight.value = contentHeight;
     this._scrollState.viewportWidth.value = viewportWidth;
     this._scrollState.viewportHeight.value = viewportHeight;
+
   }
 
   private updateRetainedScrollOffset(x: f32, y: f32): void {

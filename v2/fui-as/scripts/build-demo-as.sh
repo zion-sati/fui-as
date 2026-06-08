@@ -82,6 +82,7 @@ case "${BUILD_TARGET}" in
     build_demo_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
     build_demo_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
     build_demo_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
+    build_demo_app "demo/src/routes/demo_scrollbar_gutter.ts" "${DEMO_OUT_DIR}/scrollbar-gutter.wasm"
     ;;
   dashboard)
     build_demo_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
@@ -94,6 +95,9 @@ case "${BUILD_TARGET}" in
     ;;
   templated-controls|templated)
     build_demo_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
+    ;;
+  scrollbar-gutter)
+    build_demo_app "demo/src/routes/demo_scrollbar_gutter.ts" "${DEMO_OUT_DIR}/scrollbar-gutter.wasm"
     ;;
   *)
     echo "Unknown build target: ${BUILD_TARGET}" >&2

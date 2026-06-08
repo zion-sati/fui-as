@@ -40,7 +40,7 @@ interface DemoRouteExports extends HarnessExports {
 }
 
 interface DemoRoute extends RoutedHarnessRoute {
-  readonly key: 'home' | 'advanced-controls' | 'templated-controls';
+  readonly key: 'home' | 'advanced-controls' | 'templated-controls' | 'scrollbar-gutter';
 }
 
 const SOURCE_HOME_ROUTE = '/v2/fui-as/demo/index.html';
@@ -69,6 +69,12 @@ const ROUTES: readonly DemoRoute[] = [
     routePath: SOURCE_TEMPLATED_CONTROLS_ROUTE,
     wasmPath: '/v2/fui-as/demo/templated-controls.wasm?v=midnight-5',
     title: 'Templated controls',
+  },
+  {
+    key: 'scrollbar-gutter',
+    routePath: '/v2/fui-as/demo/scrollbar-gutter/',
+    wasmPath: '/v2/fui-as/demo/scrollbar-gutter.wasm?v=midnight-5',
+    title: 'Scrollbar gutter bug',
   },
   {
     key: 'home',

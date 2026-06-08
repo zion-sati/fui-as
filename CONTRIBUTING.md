@@ -101,16 +101,6 @@ Full reference lives in the
 
 ---
 
-## Contributor License Agreement (CLA)
-
-FUI-AS uses a dual-licensing model (AGPLv3 and separate commercial licenses). 
-
-By submitting a Pull Request to this project, you agree to the terms outlined in our [CLA.md](./CLA.md). You grant the repository owner permanent, royalty-free re-licensing rights so your contributions can be included in both our free open-source releases and paid commercial editions. 
-
-An automated bot will ask you to formally sign this agreement in your Pull Request thread before your code can be merged.
-
----
-
 ## Getting in touch
 
 This is a solo project. If you're thinking about contributing, please open an

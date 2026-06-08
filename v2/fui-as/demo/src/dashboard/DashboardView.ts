@@ -53,6 +53,7 @@ import {
   configureDemoScrollBar,
   demoAdvancedControlsRoute,
   demoHomeRoute,
+  demoScrollbarGutterRoute,
   demoTemplatedControlsRoute,
 } from "../design-system";
 import {
@@ -274,10 +275,13 @@ export class DashboardView {
   readonly demoScopeSummaryText: Text = new DashboardText("Use the NavLinks below to jump between the three demo MFEs without leaving the shared runtime shell.", 14.0, DemoTextRecipe.Hint);
   readonly advancedControlsLink: DemoNavLink = new DemoNavLink(demoAdvancedControlsRoute(), "Advanced controls") as DemoNavLink;
   readonly templatedControlsLink: DemoNavLink = new DemoNavLink(demoTemplatedControlsRoute(), "Templated controls") as DemoNavLink;
+  readonly scrollbarGutterLink: DemoNavLink = new DemoNavLink(demoScrollbarGutterRoute(), "Scrollbar gutter bug") as DemoNavLink;
   readonly demoScopeNavRow: FlexBox = Row(
     this.advancedControlsLink,
     this.horizontalSpacer(10.0),
     this.templatedControlsLink,
+    this.horizontalSpacer(10.0),
+    this.scrollbarGutterLink,
   ).width(FULL_SIZE, Unit.Percent) as FlexBox;
   readonly demoScopeCard: FlexBox = new DemoSurface(DemoSurfaceRecipe.SectionPanel)
     .padding(16.0, 16.0, 16.0, 16.0)

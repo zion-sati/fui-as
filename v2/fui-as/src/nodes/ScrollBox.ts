@@ -17,7 +17,7 @@ import { ScrollState } from "./ScrollState";
 import { ScrollView } from "./ScrollView";
 import { NodeTransitions } from "../core/Transitions";
 
-const DEFAULT_SCROLLBAR_GUTTER: f32 = 6.0;
+const DEFAULT_SCROLLBAR_GUTTER: f32 = 0.0;
 const OVERFLOW_TOLERANCE: f32 = 0.5;
 
 function noopPointerCallback(_x: f32, _y: f32): void {}
@@ -294,45 +294,35 @@ export class ScrollBox extends FlexBox {
   private refreshChrome(): void {
     const verticalRailThickness = this.scrollbarGutterValue + this.verticalScrollBarValue.thickness;
     const horizontalRailThickness = this.horizontalScrollBarValue.thickness;
-    const outerViewportWidth = this.scrollStateValue.viewportWidth.value + (this.verticalChromeVisibleValue ? verticalRailThickness : 0.0);
-    const outerViewportHeight = this.scrollStateValue.viewportHeight.value + (this.horizontalChromeVisibleValue ? horizontalRailThickness : 0.0);
-    let showVertical = this.verticalChromeVisibleValue;
-    let showHorizontal = this.horizontalChromeVisibleValue;
-    for (let pass = 0; pass < 3; pass += 1) {
-      const availableWidth = outerViewportWidth - (showVertical ? verticalRailThickness : 0.0);
-      const availableHeight = outerViewportHeight - (showHorizontal ? horizontalRailThickness : 0.0);
-      const nextVertical = this.shouldShow(
-        this.verticalVisibilityValue,
-        this.verticalScrollEnabledValue,
-        this.scrollStateValue.contentHeight.value,
-        availableHeight,
-      );
-      const nextHorizontal = this.shouldShow(
-        this.horizontalVisibilityValue,
-        this.horizontalScrollEnabledValue,
-        this.scrollStateValue.contentWidth.value,
-        availableWidth,
-      );
-      if (nextVertical == showVertical && nextHorizontal == showHorizontal) {
-        break;
-      }
-      showVertical = nextVertical;
-      showHorizontal = nextHorizontal;
-    }
+    // Use raw viewport dimensions — Yoga already accounts for applied rails.
+    // The decision is independent of the other axis since available space
+    // doesn't change with rail state, so no loop is needed.
+    const showVertical = this.shouldShow(
+      this.verticalVisibilityValue,
+      this.verticalScrollEnabledValue,
+      this.scrollStateValue.contentHeight.value,
+      this.scrollStateValue.viewportHeight.value,
+    );
+    const showHorizontal = this.shouldShow(
+      this.horizontalVisibilityValue,
+      this.horizontalScrollEnabledValue,
+      this.scrollStateValue.contentWidth.value,
+      this.scrollStateValue.viewportWidth.value,
+    );
     this.verticalChromeVisibleValue = showVertical;
     this.horizontalChromeVisibleValue = showHorizontal;
     this.verticalScrollBarValue.chromeVisible(showVertical);
     this.horizontalScrollBarValue.chromeVisible(showHorizontal);
-    const verticalRailWidth = showVertical ? verticalRailThickness : 0.0;
-    const horizontalRailHeight = showHorizontal ? horizontalRailThickness : 0.0;
 
     this.verticalGutterValue.width(showVertical ? this.scrollbarGutterValue : 0.0, Unit.Pixel);
     this.verticalScrollBarValue.render().width(
       showVertical ? this.verticalScrollBarValue.thickness : 0.0,
       Unit.Pixel,
     );
+    const horizontalRailHeight = showHorizontal ? horizontalRailThickness : 0.0;
     this.bottomRowValue.height(horizontalRailHeight, Unit.Pixel);
     this.horizontalScrollBarValue.render().height(showHorizontal ? this.horizontalScrollBarValue.thickness : 0.0, Unit.Pixel);
+    const verticalRailWidth = showVertical ? verticalRailThickness : 0.0;
     this.cornerValue.width(showVertical ? verticalRailWidth : 0.0, Unit.Pixel);
     this.cornerValue.height(showHorizontal ? horizontalRailHeight : 0.0, Unit.Pixel);
   }

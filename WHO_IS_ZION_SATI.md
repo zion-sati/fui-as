@@ -26,12 +26,11 @@ frameworks and the DOM, between the old world and its assumptions. She makes
 the sunrise. She changes the rules.
 
 That's what EffinDom is. Not another framework. Not another trench. A new
-world. Built by someone who spent the last 30 years watching the old one fail, and
+world. Built by someone who spent 40 years watching the old one fail, and
 finally decided to do something about it.
 
 I'm a solo engineer. I have a young family. I build this at night, on
-weekends, in the gaps between life. There is no team, no funding.
-I use AI as an accelerator — it compresses the
+weekends, in the gaps between life. There is no team, no funding. I use AI as an accelerator — it compresses the
 grunt work, but the architecture, the eight years of failed experiments, the
 lessons about what breaks when you try to put a UI framework on a canvas —
 those were earned the hard way. AI didn't teach me why naive canvas frameworks

@@ -2,14 +2,8 @@ import {
   Application,
   Column,
   FlexBox,
-  HandleValue,
-  Node,
   Row,
-  SemanticRole,
-  Signal,
-  Svg,
   Text,
-  Worker,
   createManagedApplication,
   rgb,
 } from "../../../src/Fui";
@@ -17,56 +11,29 @@ export * from "../../../src/FuiExports";
 
 const FONT_REGULAR: u32 = 1;
 const PANEL_TEXT: u32 = rgb(0xe2, 0xe8, 0xf0);
-const SMOKE_SVG_URL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 100 50' preserveAspectRatio='xMinYMin meet'><rect width='100' height='50' fill='%23006cff'/></svg>";
-
-enum SmokeWorkerPhase {
-  Idle = 0,
-  Progress = 1,
-  Complete = 2,
-  Error = 3,
-}
+const SPACING: f32 = 32.0;
 
 class SmokeApp {
-  private readonly spacing: Signal<f32>;
-  private readonly spacer: FlexBox;
   private readonly root: FlexBox;
-  private activeWorker: Worker | null = null;
-  private workerProgressCount: i32 = 0;
-  private workerCompleteCount: i32 = 0;
-  private workerErrorCount: i32 = 0;
-  private workerPhase: SmokeWorkerPhase = SmokeWorkerPhase.Idle;
 
   constructor() {
-    const spacing = new Signal<f32>(32.0);
-    const spacer = new FlexBox().height(1.0);
     const left = new Text("left")
       .font(FONT_REGULAR, 28.0)
-      .textColor(PANEL_TEXT)
-      .semanticRole(SemanticRole.Heading)
-      .semanticLabel("left") as Text;
+      .textColor(PANEL_TEXT) as Text;
 
     const right = new Text("right")
       .font(FONT_REGULAR, 28.0)
-      .textColor(PANEL_TEXT)
-      .semanticRole(SemanticRole.Heading)
-      .semanticLabel("right") as Text;
-    const smokeSvg = (new Svg()
-      .source(SMOKE_SVG_URL)
-      .width(120.0)
-      .height(96.0) as Svg)
-      .altText("smoke svg");
+      .textColor(PANEL_TEXT) as Text;
 
-    spacer.width(spacing.value);
-    this.spacing = spacing;
-    this.spacer = spacer;
+    const blueBox = new FlexBox()
+      .width(120.0)
+      .height(96.0)
+      .bgColor(0x006CFFFF) as FlexBox;
+
     this.root = Column(
-      Row(
-        left,
-        spacer,
-        right,
-      ),
+      Row(left, new FlexBox().width(SPACING).height(1.0), right),
       new FlexBox().height(24.0),
-      smokeSvg,
+      blueBox,
     )
       .padding(24.0, 24.0, 24.0, 24.0);
   }
@@ -75,90 +42,7 @@ class SmokeApp {
     return this.root;
   }
 
-  dispose(): void {
-    const worker = this.activeWorker;
-    if (worker !== null) {
-      worker.dispose();
-      this.activeWorker = null;
-    }
-  }
-
-  setSpacing(next: f32): void {
-    this.spacing.value = next;
-    this.spacer.width(this.spacing.value);
-  }
-
-  private resetWorkerState(): void {
-    const worker = this.activeWorker;
-    if (worker !== null) {
-      worker.dispose();
-    }
-    this.activeWorker = null;
-    this.workerProgressCount = 0;
-    this.workerCompleteCount = 0;
-    this.workerErrorCount = 0;
-    this.workerPhase = SmokeWorkerPhase.Idle;
-  }
-
-  private startWorker(entryName: string, input: string): void {
-    this.resetWorkerState();
-    const worker = Worker.start(entryName)
-      .onProgress(this, (app, _progress) => {
-        app.workerProgressCount += 1;
-        app.workerPhase = SmokeWorkerPhase.Progress;
-      })
-      .onComplete(this, (app, _result) => {
-        app.workerCompleteCount += 1;
-        app.workerPhase = SmokeWorkerPhase.Complete;
-        app.activeWorker = null;
-      })
-      .onError(this, (app, _message) => {
-        app.workerErrorCount += 1;
-        app.workerPhase = SmokeWorkerPhase.Error;
-        app.activeWorker = null;
-      });
-    this.activeWorker = worker;
-    worker.sendString(input);
-  }
-
-  startEchoWorker(): void {
-    this.startWorker("smokeEchoWorker", "alpha");
-  }
-
-  startFailWorker(): void {
-    this.startWorker("smokeFailWorker", "boom");
-  }
-
-  startMissingWorker(): void {
-    this.startWorker("missingSmokeWorker", "missing");
-  }
-
-  startCancelableWorker(): void {
-    this.startWorker("smokeCancelableWorker", "cancel");
-  }
-
-  cancelActiveWorker(): void {
-    const worker = this.activeWorker;
-    if (worker !== null) {
-      worker.cancel();
-    }
-  }
-
-  getWorkerProgressCount(): i32 {
-    return this.workerProgressCount;
-  }
-
-  getWorkerCompleteCount(): i32 {
-    return this.workerCompleteCount;
-  }
-
-  getWorkerErrorCount(): i32 {
-    return this.workerErrorCount;
-  }
-
-  getWorkerPhase(): i32 {
-    return <i32>this.workerPhase;
-  }
+  dispose(): void {}
 }
 
 const smokeHarness = createManagedApplication<SmokeApp>(
@@ -172,75 +56,7 @@ export function __runSmokeApp(): void {
   smokeHarness.run();
 }
 
-export function __setSmokeSpacing(next: f32): void {
-  const app = smokeHarness.getActivePage();
-  if (app === null) {
-    return;
-  }
-  app.setSpacing(next);
-}
-
 export function __runSmokeAppWithNullChild(): void {
   const spacer = new FlexBox();
-  spacer.child(changetype<Node>(0));
-}
-
-export function __startSmokeEchoWorker(): void {
-  const app = smokeHarness.getActivePage();
-  if (app === null) {
-    return;
-  }
-  app.startEchoWorker();
-}
-
-export function __startSmokeFailWorker(): void {
-  const app = smokeHarness.getActivePage();
-  if (app === null) {
-    return;
-  }
-  app.startFailWorker();
-}
-
-export function __startSmokeMissingWorker(): void {
-  const app = smokeHarness.getActivePage();
-  if (app === null) {
-    return;
-  }
-  app.startMissingWorker();
-}
-
-export function __startSmokeCancelableWorker(): void {
-  const app = smokeHarness.getActivePage();
-  if (app === null) {
-    return;
-  }
-  app.startCancelableWorker();
-}
-
-export function __cancelSmokeWorker(): void {
-  const app = smokeHarness.getActivePage();
-  if (app === null) {
-    return;
-  }
-  app.cancelActiveWorker();
-}
-
-export function __getSmokeWorkerProgressCount(): i32 {
-  const app = smokeHarness.getActivePage();
-  return app === null ? 0 : app.getWorkerProgressCount();
-}
-
-export function __getSmokeWorkerCompleteCount(): i32 {
-  const app = smokeHarness.getActivePage();
-  return app === null ? 0 : app.getWorkerCompleteCount();
-}
-
-export function __getSmokeWorkerErrorCount(): i32 {
-  const app = smokeHarness.getActivePage();
-  return app === null ? 0 : app.getWorkerErrorCount();
-}
-
-export function __getSmokeWorkerPhase(): i32 {
-  const app = smokeHarness.getActivePage();
-  return app === null ? 0 : app.getWorkerPhase();
+  spacer.child(changetype<FlexBox>(0));
 }

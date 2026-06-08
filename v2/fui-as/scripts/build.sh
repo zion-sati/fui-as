@@ -223,7 +223,8 @@ build_workers() {
 }
 
 write_worker_manifest() {
-  declare -A worker_entries=()
+  local tmp_entries
+  tmp_entries="$(mktemp)"
   local worker_entry=""
   while IFS= read -r worker_entry; do
     [ -n "${worker_entry}" ] || continue
@@ -232,28 +233,30 @@ write_worker_manifest() {
     local export_name=""
     while IFS= read -r export_name; do
       [ -n "${export_name}" ] || continue
-      if [ -n "${worker_entries[$export_name]:-}" ]; then
+      if grep -q "^${export_name} " "${tmp_entries}" 2>/dev/null; then
         echo "Duplicate worker export name: ${export_name}" >&2
+        rm -f "${tmp_entries}"
         exit 1
       fi
-      worker_entries["${export_name}"]="./workers/${worker_name}.wasm"
+      echo "${export_name} ./workers/${worker_name}.wasm" >> "${tmp_entries}"
     done < <(rg 'export function ([A-Za-z_][A-Za-z0-9_]*)\s*\(' "${worker_entry}" -or '$1')
   done < <(find_worker_entries)
 
   {
     printf '{\n  "version": 1,\n  "entries": {\n'
     local first=1
-    local entry_name=""
-    while IFS= read -r entry_name; do
+    local line=""
+    sort "${tmp_entries}" | while IFS=' ' read -r entry_name entry_path; do
       [ -n "${entry_name}" ] || continue
       if [ "${first}" -eq 0 ]; then
         printf ',\n'
       fi
       first=0
-      printf '    "%s": "%s"' "${entry_name}" "${worker_entries[$entry_name]}"
-    done < <(printf '%s\n' "${!worker_entries[@]}" | sort)
+      printf '    "%s": "%s"' "${entry_name}" "${entry_path}"
+    done
     printf '\n  }\n}\n'
   } > "${WORKER_MANIFEST_BUILD}"
+  rm -f "${tmp_entries}"
 }
 
 copy_worker_assets() {
@@ -283,6 +286,7 @@ build_app "demo/src/dashboard.ts" "${DEMO_OUT_DIR}/demo.wasm"
 build_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
 build_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
 build_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
+build_app "demo/src/routes/demo_scrollbar_gutter.ts" "${DEMO_OUT_DIR}/scrollbar-gutter.wasm"
 build_workers
 write_worker_manifest
 
@@ -342,9 +346,10 @@ cp "${PACKAGE_DIR}/browser/favicon.ico" "${REPO_ROOT}/public/favicon.ico"
 cp "${PACKAGE_DIR}/demo/demo-texture.png" "${DEMO_OUT_DIR}/demo-texture.png"
 cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-secondary-texture.png"
 
-mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls"
+mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls" "${DEMO_OUT_DIR}/scrollbar-gutter"
 render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
 render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
+render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/scrollbar-gutter/index.html"
 
 copy_runtime_assets "${OUT_DIR}"
 copy_runtime_assets "${DEMO_OUT_DIR}"
@@ -354,3 +359,4 @@ write_runtime_config "${OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${DEMO_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${DEMO_OUT_DIR}/advanced-controls" "../runtime/dist/effindom.v2.manifest.json"
 write_runtime_config "${DEMO_OUT_DIR}/templated-controls" "../runtime/dist/effindom.v2.manifest.json"
+write_runtime_config "${DEMO_OUT_DIR}/scrollbar-gutter" "../runtime/dist/effindom.v2.manifest.json"
