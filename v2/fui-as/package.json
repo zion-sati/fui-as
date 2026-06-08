@@ -1,6 +1,6 @@
 {
   "name": "@effindomv2/fui-as",
-  "version": "0.1.33",
+  "version": "0.1.34",
   "private": false,
   "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
   "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
@@ -87,7 +87,7 @@
   "dependencies": {
     "@assemblyscript/loader": "^0.28.17",
     "@devcycle/assemblyscript-json": "^2.0.0",
-    "@effindomv2/runtime": "0.1.16"
+    "@effindomv2/runtime": "0.1.17"
   },
   "devDependencies": {
     "@as-pect/assembly": "8.1.0",
