@@ -74,7 +74,7 @@ against that runtime.
 
 The result in practice:
 
-- **~228 KB app payload** — the multi-megabyte engine is content-hashed,
+- **Under 100 KB app payload over the wire** — the multi-megabyte engine is content-hashed,
   CDN-cached, and shared across every EffinDom app a user visits
 - **60/120 FPS retained rendering** — no reconciler, no layout thrash, no
   diffing
@@ -105,7 +105,7 @@ cached forever, shared across every EffinDom app the user visits.
   immutable WebAssembly modules. Cached globally, shared across all apps.
   Visit ten EffinDom apps — download the engine once.
 - **Tiny App Footprint** — The runtime is cached once globally. Your app payload
-  is just your business logic. Hello-world scaffold: **~228 KB**. Real apps land
+  is just your business logic. Hello-world scaffold: **under 100 KB over the wire**. Real apps land
   in the low hundreds. Sub-second Time-To-Interactive.
 - **Zero-Cost Edge Delivery** — The entire compilation and rendering loop runs
   client-side. No server required. Infinite scaling via static CDNs.
