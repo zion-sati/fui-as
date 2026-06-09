@@ -6,7 +6,7 @@ FUI-AS is the flagship SDK for the [EffinDom](https://github.com/zion-sati/Effin
 
 If you've ever used SwiftUI and then gone back to React, you already know the feeling this is trying to fix.
 
-**[→ Live demo](https://fui-as-demo.effindom.dev/)** *(best viewed on desktop)*
+**[→ Live demo](https://fui-as-demo.effindom.dev/)** *(works on mobile too — pinch-to-zoom and long press not yet supported)*
 
 https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
 
@@ -63,9 +63,15 @@ or the [live demo source](https://github.com/zion-sati/fui-as-demo/fui-as-demo-s
 
 ## Why this exists
 
-The DOM was a 1995 document viewer that accidentally became the world's
-application platform. Every framework since — React, Svelte, Vue — has been
-working around that original mismatch, not fixing it.
+The DOM is a Document Object Model. That's not a criticism — it's a description. It was designed in 1995 for documents: academic papers, hyperlinked pages, content that flows like text. For that purpose, it's the right tool. HTML, CSS, and the browser's document rendering model are genuinely excellent at what they were built for.
+
+The problem is that somewhere along the way, we started building *applications* with it.
+
+Some developers have never known anything else. They were born into a world where React was already the default, where `useEffect` was just how you do things, where the reconciler mental model was simply "how the web works." Like the Matrix — they can't see the document model underneath because they've never been outside it. The DOM-as-application-platform isn't a deliberate choice they made. It's just the water they swim in.
+
+But for those of us who remember Delphi, WPF, Qt, SwiftUI — retained-mode frameworks where you describe what you want and the runtime figures out how to render it — the mismatch has always been visible. A document viewer is the wrong tool for a trading dashboard, a design tool, a kiosk, a data-heavy enterprise application. Not because HTML is bad. Because it's a document model, not an application model.
+
+**EffinDom is not trying to replace HTML.** If you're building a content site, a blog, a marketing page, an e-commerce store — use HTML. It's the right tool. EffinDom is for the other category: applications that feel at home in WPF or SwiftUI — dashboards, editors, simulators, kiosks, data visualizations, enterprise web apps, anything where you're managing complex state and rendering performance matters.
 
 EffinDom treats the browser as a **display server**: a hardware abstraction
 layer for GPU, input, fonts, and networking. All UI architecture lives in
@@ -74,15 +80,19 @@ against that runtime.
 
 The result in practice:
 
-- **Under 100 KB app payload over the wire** — the multi-megabyte engine is content-hashed,
+- **Under 100 KB over the wire** — the multi-megabyte engine is content-hashed,
   CDN-cached, and shared across every EffinDom app a user visits
 - **60/120 FPS retained rendering** — no reconciler, no layout thrash, no
   diffing
 - **Real typography** — HarfBuzz + ICU for full international text shaping,
   BiDi, RTL, emoji, surgical font subset injection
-- **Accessibility out of the box** — semantic tree projected through the
-  browser bridge; screen readers, password managers, and devtools work without
-  extra wiring
+- **ARIA-first accessibility** — not bolted on, not retrofitted. The semantic
+  tree, coordinate syncing, and real-time DOM mirror were architectural
+  requirements from day one. Turn on VoiceOver (⌘F5) and press **⌃⌥A** to
+  read all — the native macOS VoiceOver ring highlights canvas-rendered text
+  pixel-synced to GPU coordinates as it reads. Tab navigation has its own
+  built-in focus ring. State changes announce in real time. **On macOS: open
+  the demo, ⌘F5 to enable VoiceOver, ⌃⌥A to read all.**
 - **SwiftUI-style fluent API** — declarative chaining, no compiler plugins
   required
 
@@ -105,8 +115,8 @@ cached forever, shared across every EffinDom app the user visits.
   immutable WebAssembly modules. Cached globally, shared across all apps.
   Visit ten EffinDom apps — download the engine once.
 - **Tiny App Footprint** — The runtime is cached once globally. Your app payload
-  is just your business logic. Hello-world scaffold: **under 100 KB over the wire**. Real apps land
-  in the low hundreds. Sub-second Time-To-Interactive.
+  is just your business logic. Under 100 KB over the wire with Brotli e.g. for our demo pages.
+  Sub-second Time-To-Interactive when Tier 1 and 2 have been downloaded one time.
 - **Zero-Cost Edge Delivery** — The entire compilation and rendering loop runs
   client-side. No server required. Infinite scaling via static CDNs.
 - **Content-Hashed JSON Manifest** — Runtimes are mapped via cryptographic
@@ -115,7 +125,7 @@ cached forever, shared across every EffinDom app the user visits.
 - **Adaptive 4-Flavour Compilation** — Automatically selects the right build:
   wasm64+SIMD, wasm64, wasm32+SIMD, wasm32. Every user gets the fastest binary
   their hardware supports.
-- **Hermetic NPM Bundling** — The entire 4-flavour matrix and content-hashed
+- **Hermetic NPM Bundling** — The entire 4-flavor matrix and content-hashed
   manifest are bundled inside the npm package. Fully self-contained builds
   behind strict firewalls, no external CDN calls required.
 - **Native Fetch Pipeline** — Reactive REST/HTTP networking (GET, POST, PUT,
@@ -147,7 +157,7 @@ cached forever, shared across every EffinDom app the user visits.
 - **Implicit & Explicit Transitions** — Structural animation interpolation
   handled inside the WebAssembly loop, not in JavaScript.
 - **Fixed-Height Virtual Lists** — Render tens of thousands of items at a locked
-  60/120 FPS with structural element virtualisation.
+  60/120 FPS with structural element virtualization.
 - **Native Dialog Modals** — Declarative overlay system with automatic,
   layout-aware Accept/Cancel button assignments.
 
@@ -160,7 +170,7 @@ cached forever, shared across every EffinDom app the user visits.
 - **Real-Time Glyph Caching** — Characters rendered to a reusable texture atlas.
   No per-frame vector recalculation.
 - **Perfect Pixel Crispness** — Subpixel anti-aliasing intentionally disabled.
-  Razor-sharp text at any scale, no colour fringing on modern displays.
+  Razor-sharp text at any scale, no color fringing on modern displays.
 - **On-Demand Tofu Font Swapping** — Real-time stream analysis catches missing
   Unicode coverage as text flows in.
 - **Surgical Subset Injection** — Fetches only the specific missing characters,
@@ -171,8 +181,8 @@ cached forever, shared across every EffinDom app the user visits.
 ### 🖱️ Native Browser Fidelity & OS Integration
 
 - **Lock-Step System Theme Interpolation** — Captures granular OS theme shift
-  values (including macOS dynamic appearance) and transitions colours in
-  frame-by-frame synchronisation.
+  values (including macOS dynamic appearance) and transitions colors in
+  frame-by-frame synchronization.
 - **Custom In-App Find Engine** — Built-in Ctrl+F / ⌘F interception that fires
   a native canvas search dialog across all text nodes.
 - **External File Drop Targets** — Browser-level file and object drops routed
@@ -236,15 +246,52 @@ Working on the SDK itself? See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 ---
 
-## Limitations
+## Enterprise & Security
 
-EffinDom is early. The first release targets **desktop web apps**. Touch input
-is handled at the routing level, but mobile gesture recognition isn't polished
-yet. The demo app was built for desktop screens — if you open it on a phone it
-will work but it won't look great. Desktop-first, web-native.
+Run `npx @effindomv2/create-fui-as-app my-app` and then `npm install`. Check
+the output:
 
-**Bus factor: 1.** This is a solo project built at night and on weekends. See
-the license section below.
+```
+0 vulnerabilities found
+```
+
+There are no third-party runtime dependencies. The only code that runs in the browser is yours and EffinDom's own packages.
+
+A typical React app has hundreds of transitive dependencies — each one a
+potential supply chain attack vector. Log4Shell, XZ Utils, the Polyfill.io
+compromise — enterprises and banks have entire security teams whose job is
+auditing that graph. Some organizations can't ship to production without a
+full dependency audit that takes weeks.
+
+EffinDom's answer is: **there is no third-party runtime dependency graph to audit.** The only code that ships to the browser is yours and EffinDom's own hermetically bundled, content-hashed packages.
+
+The runtime is hermetically bundled inside the npm package. No external CDN
+calls at build time. No transitive packages pulling in unknown code. The WASM
+binaries are content-hashed — you know cryptographically exactly what you're
+running. Air-gapped environments work out of the box via the hermetic npm
+bundle.
+
+Your app is just your code. That's it. That's the entire attack surface.
+
+For organizations with strict supply chain policies, security audits, or
+air-gapped build environments — this is a first-class design decision, not
+an accident.
+
+---
+
+## Alpha status (v0.1.x)
+
+This is early alpha software. Here's an honest picture of where things stand:
+
+**Solid and heavily tested:** core rendering, the full control set, layout for well-formed constraint trees, theming, routing, accessibility, networking, state persistence, the Web DLL deploy model. No handle leaks — incremental GC is running.
+
+**Works on mobile:** the demo is responsive across screen sizes. Touch input, fling scrolling, and pull-to-refresh work. Find-in-page works on mobile too — it draws a text overlay above the canvas rather than highlighting the canvas text directly, which is a known limitation of the approach.
+
+**Not yet supported on mobile:** pinch-to-zoom and long press gestures.
+
+**Layout edge cases:** conflicting constraint trees produce undefined behavior. For example, two sibling columns both calling `.fillWidth()` — both are asking to fill the parent's width, there's no defined winner. The framework won't crash, but the result isn't guaranteed. Avoid ambiguous constraint trees and you'll be fine. These edge cases are documented as they're discovered.
+
+**Bus factor: 1.** This is a solo project built at nights and on weekends. See the license section below.
 
 ---
 
