@@ -104,6 +104,8 @@ The result in practice:
   the demo, ⌘F5 to enable VoiceOver, ⌃⌥A to read all.**
 - **SwiftUI-style fluent API** — declarative chaining, no compiler plugins
   required
+- **Native Web Browser Feel** - probably the most time consuming and hardest
+  part of this project, to make a pure canvas app feel web native for users.
 
 [→ Full story: Why EffinDom](./WHY_FUI_EFFINDOM.md) ·
 [→ Who is zion-sati?](./WHO_IS_ZION_SATI.md)
