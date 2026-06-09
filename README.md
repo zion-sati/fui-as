@@ -149,7 +149,8 @@ cached forever, shared across every EffinDom app the user visits.
   the background while the user works.
 - **Seamless Back/Forward Navigation** — No canvas amnesia. Browser back and
   forward buttons instantly restore the exact retained state into the Tier 2
-  engine — no re-fetch, no re-render from scratch.
+  engine — no re-fetch, no re-render from scratch. Specify a nodeID and the 
+  framework retains your state automatically for you.
 
 ### 🎨 High-Fidelity Rendering & UI Primitives
 
@@ -157,8 +158,7 @@ cached forever, shared across every EffinDom app the user visits.
   graph with state tracking, without the overhead of a virtual DOM reconciler.
 - **Direct Pixel-Level Bitmaps** — WPF/Avalonia-style writeable bitmaps written
   pixel-by-pixel directly to GPU textures for low-latency custom rendering.
-- **Native SVG Parsing** — Vector graphics parsed and rendered natively, no
-  HTML required.
+- **SVG Support** — Full vector graphics support.
 - **Transparent PNG & Custom Bitmaps** — Full alpha-channel image support and
   custom bitmap drawings.
 - **SwiftUI-Inspired Fluent Syntax** — Declarative chaining API across all
@@ -212,12 +212,10 @@ cached forever, shared across every EffinDom app the user visits.
   accurately to native assistive technologies.
 - **Granular Semantic Overrides** — Every semantic label overridable at the
   individual component level for complex layouts.
-- **Full Search Engine Visibility** — Web crawlers read canvas text natively via
-  the semantic tree.
+- **Full Search Engine Visibility** — Web crawlers, AI (e.g. Copilot) read 
+  canvas text natively via the semantic tree.
 - **Automatic CPU Software Fallback** — Transparently downgrades to a CPU
   renderer when WebGL is unavailable — VMs, headless CI, strict environments.
-- **Anti-Fingerprint Block Resiliency** — WebGL setup hooks safely bypass strict
-  browser privacy blocks without crashing.
 
 ### 🛠️ Controls
 
