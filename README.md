@@ -29,29 +29,38 @@ npx @effindomv2/create-fui-as-app my-app --template mvc
 
 ---
 
-## A minimal app
-
-Two files. No config. No HTML to touch.
+## A minimal hello world app
 
 ```ts
-// App.ts
-import { Application } from "@effindomv2/fui-as";
-export * from "@effindomv2/fui-as/FuiExports";
+import { Button, SelectionArea, Text } from "./Fui";
 
-import { createHelloWorldPage } from "./HelloWorld";
+class HelloWorld {
+  private count: i32 = 0;
+  private readonly label: Text;
 
-Application.register((app) => app.page(createHelloWorldPage));
-```
+  constructor() {
+    this.label = new Text("Clicked 0 times");
+  }
 
-```ts
-// HelloWorld.ts
-import { Button, Column, Text } from "@effindomv2/fui-as";
+  buildPage(): SelectionArea {
+    return new SelectionArea()
+      .fillWidth()
+      .fillHeight()
+      .child(
+        new Button("Click me").onClickWith<HelloWorld>(this, (owner) => {
+          owner.count += 1;
+          owner.label.text(
+            "Clicked " + owner.count.toString() + " time" +
+            (owner.count == 1 ? "" : "s"),
+          );
+        }),
+      )
+      .child(this.label);
+  }
+}
 
-export function createHelloWorldPage() {
-  return Column(
-    new Text("Hello EffinDom").fontSize(24.0),
-    new Button("Click me"),
-  );
+export function createHelloWorldPage(): SelectionArea {
+  return new HelloWorld().buildPage();
 }
 ```
 
