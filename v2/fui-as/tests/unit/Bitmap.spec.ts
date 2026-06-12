@@ -1,4 +1,4 @@
-import { Bitmap, Image, ObjectFit, Unit } from "../../src/Fui";
+import { Bitmap, Image, ObjectFit, Paint, Unit, rgba } from "../../src/Fui";
 import {
   CALL_BITMAP_COMMIT,
   CALL_BITMAP_RELEASE,
@@ -112,6 +112,40 @@ describe("Bitmap", () => {
     bitmap.dispose();
     bitmap.dispose();
 
+    const sequence = getCallSequence();
+    let releaseCount = 0;
+    for (let i = 0; i < sequence.length; ++i) {
+      if (unchecked(sequence[i]) == CALL_BITMAP_RELEASE) {
+        releaseCount += 1;
+      }
+    }
+    expect<i32>(releaseCount).toBe(1);
+  });
+
+  it("provides a DrawContext via canvas() that targets the offscreen surface", () => {
+    resetCalls();
+
+    const bitmap = new Bitmap(4, 4);
+    const ctx = bitmap.canvas();
+    // Smoke: drawing on the canvas context should not throw
+    const red = rgba(255, 0, 0, 255);
+    ctx.drawRect(0, 0, 4, 4, Paint.fill(red));
+    ctx.drawCircle(2, 2, 1, Paint.stroke(red, 1));
+
+    // commit() after canvas use should still produce a valid texture ID
+    const textureId = bitmap.commit();
+    expect<u32>(textureId).toBe(bitmap.textureId);
+
+    bitmap.dispose();
+  });
+
+  it("disposes the offscreen surface along with the bitmap", () => {
+    resetCalls();
+
+    const bitmap = new Bitmap(1, 1);
+    bitmap.dispose();
+
+    // Verify the bitmap release was called (offscreen destroy is FFI, not tracked)
     const sequence = getCallSequence();
     let releaseCount = 0;
     for (let i = 0; i < sequence.length; ++i) {

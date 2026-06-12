@@ -54,6 +54,7 @@ import {
   demoAdvancedControlsRoute,
   demoHomeRoute,
   demoScrollbarGutterRoute,
+  demoImmediateDrawingRoute,
   demoTemplatedControlsRoute,
 } from "../design-system";
 import {
@@ -276,12 +277,15 @@ export class DashboardView {
   readonly advancedControlsLink: DemoNavLink = new DemoNavLink(demoAdvancedControlsRoute(), "Advanced controls") as DemoNavLink;
   readonly templatedControlsLink: DemoNavLink = new DemoNavLink(demoTemplatedControlsRoute(), "Templated controls") as DemoNavLink;
   readonly scrollbarGutterLink: DemoNavLink = new DemoNavLink(demoScrollbarGutterRoute(), "Scrollbar gutter bug") as DemoNavLink;
+  readonly immediateDrawingLink: DemoNavLink = new DemoNavLink(demoImmediateDrawingRoute(), "Immediate-mode drawing") as DemoNavLink;
   readonly demoScopeNavRow: FlexBox = Row(
     this.advancedControlsLink,
     this.horizontalSpacer(10.0),
     this.templatedControlsLink,
     this.horizontalSpacer(10.0),
     this.scrollbarGutterLink,
+    this.horizontalSpacer(10.0),
+    this.immediateDrawingLink,
   ).width(FULL_SIZE, Unit.Percent) as FlexBox;
   readonly demoScopeCard: FlexBox = new DemoSurface(DemoSurfaceRecipe.SectionPanel)
     .padding(16.0, 16.0, 16.0, 16.0)

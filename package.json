@@ -1,7 +1,7 @@
 {
   "name": "effindom-fui-as-repo",
   "private": true,
-  "version": "0.1.36",
+  "version": "0.1.37",
   "description": "Standalone FUI-AS repository for @effindomv2/fui-as",
   "engines": {
     "node": ">=18"

@@ -1,6 +1,6 @@
 {
   "name": "@effindomv2/fui-as",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "private": false,
   "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
   "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
@@ -85,9 +85,8 @@
     "typecheck": "npm run guard:runtime-dependency && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@assemblyscript/loader": "^0.28.17",
-    "@devcycle/assemblyscript-json": "^2.0.0",
-    "@effindomv2/runtime": "0.1.17"
+    "@assemblyscript/loader": "^0.28.19",
+    "@effindomv2/runtime": "0.1.18"
   },
   "devDependencies": {
     "@as-pect/assembly": "8.1.0",
@@ -95,7 +94,8 @@
     "@as-pect/core": "8.1.0",
     "@playwright/test": "1.59.1",
     "@types/node": "^24.10.1",
-    "assemblyscript": "0.28.17",
+    "assemblyscript": "0.28.19",
+    "@devcycle/assemblyscript-json": "2.0.0",
     "esbuild": "^0.27.7",
     "typescript": "^5.9.3"
   }

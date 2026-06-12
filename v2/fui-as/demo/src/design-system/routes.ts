@@ -33,6 +33,12 @@ export function demoScrollbarGutterRoute(): string {
   return isSourceDemoRoute(currentRoute.value) ? SOURCE_SCROLLBAR_GUTTER_ROUTE : PUBLISHED_TEMPLATED_CONTROLS_ROUTE;
 }
 
+export function demoImmediateDrawingRoute(): string {
+  return isSourceDemoRoute(currentRoute.value)
+    ? "/v2/fui-as/demo/immediate-drawing/"
+    : "/immediate-drawing/";
+}
+
 export function demoSharedFontUrl(assetFile: string): string {
   return SHARED_FONT_BASE + assetFile;
 }

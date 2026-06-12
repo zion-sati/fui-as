@@ -53,3 +53,4 @@ export {
   __fui_on_texture_failed,
   __fui_on_texture_loaded,
 } from "./core/Assets";
+export { fui_dispatch_custom_draw } from "./drawing/DrawCallback";

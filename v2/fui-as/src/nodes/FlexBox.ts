@@ -14,6 +14,7 @@ import {
   AlignItems,
   BorderStyle,
   FlexDirection,
+  FlexWrap,
   HandleValue,
   JustifyContent,
   NodeType,
@@ -127,6 +128,8 @@ export class FlexBox extends Node {
   private borderDashOn: f32 = 0.0;
   private borderDashOff: f32 = 0.0;
   private flexDirectionValue: FlexDirection = FlexDirection.Column;
+  private hasFlexWrap: bool = false;
+  private flexWrapValue: FlexWrap = FlexWrap.NoWrap;
   private hasFlexDirection: bool = false;
   private justifyContentValue: JustifyContent = JustifyContent.Start;
   private hasJustifyContent: bool = false;
@@ -389,6 +392,17 @@ export class FlexBox extends Node {
     this.hasFlexDirection = true;
     if (this.hasBuiltHandle()) {
       ui.setFlexDirection(this.handle, <u32>direction);
+      this.notifyRetainedLayoutMutation();
+      this.onRetainedChildLayoutChanged();
+    }
+    return this;
+  }
+
+  flexWrap(wrap: FlexWrap): this {
+    this.flexWrapValue = wrap;
+    this.hasFlexWrap = true;
+    if (this.hasBuiltHandle()) {
+      ui.setFlexWrap(this.handle, <u32>wrap);
       this.notifyRetainedLayoutMutation();
       this.onRetainedChildLayoutChanged();
     }
@@ -675,6 +689,9 @@ export class FlexBox extends Node {
     }
     if (this.hasFlexDirection) {
       ui.setFlexDirection(this.handle, <u32>this.flexDirectionValue);
+    }
+    if (this.hasFlexWrap) {
+      ui.setFlexWrap(this.handle, <u32>this.flexWrapValue);
     }
     if (this.hasFlexBasis) {
       ui.setFlexBasis(this.handle, this.flexBasisValue);

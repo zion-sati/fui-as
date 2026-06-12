@@ -31,10 +31,14 @@ export {
   loadTexture,
 } from "./core/Assets";
 export { Bitmap } from "./core/Bitmap";
+export { DrawContext } from "./drawing/DrawContext";
+export { Paint } from "./drawing/Paint";
+export { Path } from "./drawing/Path";
 export { Fetch, FetchRequest, FetchResponse } from "./core/Fetch";
 export { log } from "./core/Logger";
 export { disposeAll, Disposable } from "./core/Disposable";
 export { cancelAllTimers, cancelTimer, hasTimer, scheduleTimer } from "./core/Timers";
+export { onLoaded } from "./core/FrameScheduler";
 export { SetBackgroundAction, SetTextAction } from "./core/Actions";
 export { hslToColor, mixColor, rgb, rgba } from "./color";
 export {
@@ -74,6 +78,7 @@ export {
   BorderStyle,
   CursorStyle,
   FlexDirection,
+  FlexWrap,
   GridUnit,
   HandleValue,
   JustifyContent,
@@ -201,6 +206,7 @@ export {
 export {
   FlexBox,
   FlexBoxProps,
+  CustomDrawable,
   GradientStop,
   Grid,
   Image,

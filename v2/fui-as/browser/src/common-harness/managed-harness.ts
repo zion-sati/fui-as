@@ -14,6 +14,7 @@ import {
 } from './interop';
 import { createHostImportModule } from './host-imports';
 import { createManagedHarnessBitmapHost } from './managed-harness-bitmap-host';
+import { createManagedHarnessCanvasHost } from './managed-harness-canvas-host';
 import { createManagedHarnessFileHost } from './managed-harness-file-host';
 import {
   EXTERNAL_DRAG_EVENT_DROP,
@@ -312,6 +313,11 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
       },
     });
     bitmapHost.installReplay(runtime);
+
+    const canvasHost = createManagedHarnessCanvasHost({
+      getRuntime: () => runtime,
+      writeAppBytes,
+    });
 
     async function settleCurrentSessionAfterRestore(context: string): Promise<void> {
       const session = currentSession;
@@ -896,6 +902,7 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
             notifyTextureFailed,
           }),
           ...bitmapHost.imports,
+          ...canvasHost.imports,
           ...fileHost.imports,
         },
         fui_fetch_host: fetchHost.imports,
@@ -1387,6 +1394,20 @@ export function startManagedHarness(options: ManagedHarnessOptions): void {
           },
       };
       currentSession = session;
+
+      // Wire the immediate-mode custom draw callback (Tier 1 → JS → Tier 3)
+      (window as unknown as Record<string, unknown>).__effindomV2CustomDraw = (
+        handleLo: number,
+        handleHi: number,
+        canvasPtr: number,
+      ): void => {
+        const handle = (BigInt(handleHi >>> 0) << 32n) | BigInt(handleLo >>> 0);
+        const rawExports = exports as unknown as Record<string, unknown>;
+        if (typeof rawExports.fui_dispatch_custom_draw === 'function') {
+          (rawExports.fui_dispatch_custom_draw as (h: bigint, p: number) => void)(handle, canvasPtr);
+        }
+      };
+
       notifyRouteForCurrentLocation(session);
       runtime.setAppFrameHandler((timestampMs: number) => {
         if (currentSession !== session) {

@@ -130,6 +130,7 @@ export interface HarnessExports {
   __fui_on_worker_complete(workerId: number, textPtr: number, textLen: number): void;
   __fui_on_worker_error(workerId: number, textPtr: number, textLen: number): void;
   __fui_restore_persisted_ui_state?(): void;
+  fui_dispatch_custom_draw?(handle: bigint, canvasPtr: number): void;
 }
 
 export interface HarnessContext<Exports extends HarnessExports> {

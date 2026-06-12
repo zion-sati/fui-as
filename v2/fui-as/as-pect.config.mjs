@@ -111,6 +111,8 @@ const CallOp = Object.freeze({
   BitmapRelease: 98,
   ReleaseSvg: 99,
   ReleaseTexture: 100,
+  SetCustomDrawable: 110,
+  SetFlexWrap: 111,
 });
 
 let calls = [];
@@ -321,6 +323,12 @@ export default {
         },
         ui_set_is_shared_size_scope(handle, flag) {
           record(CallOp.SetIsSharedSizeScope, toNumber(handle), flag ? 1 : 0);
+        },
+        ui_set_custom_drawable(handle, flag) {
+          record(CallOp.SetCustomDrawable, toNumber(handle), flag ? 1 : 0);
+        },
+        ui_set_flex_wrap(handle, wrap) {
+          record(CallOp.SetFlexWrap, toNumber(handle), wrap);
         },
         ui_set_root() {},
         ui_set_width(handle, value, unit) {
@@ -791,6 +799,35 @@ export default {
           record(CallOp.FileWorkerProcessCancel, requestId);
         },
         fui_logs_enabled() { return logsEnabled ? 1 : 0; },
+
+        /* Canvas drawing — no-op mocks for unit tests. */
+        fui_canvas_save(_ptr) {},
+        fui_canvas_restore(_ptr) {},
+        fui_canvas_translate(_ptr, _x, _y) {},
+        fui_canvas_scale(_ptr, _sx, _sy) {},
+        fui_canvas_rotate(_ptr, _deg) {},
+        fui_canvas_clip_rect(_ptr, _x, _y, _w, _h) {},
+        fui_canvas_draw_rect(_ptr, _x, _y, _w, _h, _fc, _sc, _sw) {},
+        fui_canvas_draw_circle(_ptr, _cx, _cy, _r, _fc, _sc, _sw) {},
+        fui_canvas_draw_line(_ptr, _x1, _y1, _x2, _y2, _c, _sw) {},
+        fui_canvas_draw_round_rect(_ptr, _x, _y, _w, _h, _rx, _ry, _fc, _sc, _sw) {},
+        fui_path_create() { return 0; },
+        fui_path_destroy(_id) {},
+        fui_path_move_to(_id, _x, _y) {},
+        fui_path_line_to(_id, _x, _y) {},
+        fui_path_quad_to(_id, _cx, _cy, _x, _y) {},
+        fui_path_cubic_to(_id, _cx1, _cy1, _cx2, _cy2, _x, _y) {},
+        fui_path_close(_id) {},
+        fui_path_add_rect(_id, _x, _y, _w, _h) {},
+        fui_path_add_circle(_id, _cx, _cy, _r) {},
+        fui_canvas_draw_path(_ptr, _pid, _fc, _sc, _sw) {},
+        fui_canvas_draw_text(_ptr, _utf8, _len, _x, _y, _fid, _fs, _c) {},
+        fui_canvas_draw_image(_ptr, _tid, _x, _y, _w, _h) {},
+        fui_canvas_draw_svg(_ptr, _sid, _x, _y, _w, _h) {},
+        fui_canvas_create_offscreen(_w, _h) { return 0; },
+        fui_canvas_get_offscreen_ptr(_id) { return 0; },
+        fui_canvas_read_offscreen_pixels(_id, _out, _w, _h) {},
+        fui_canvas_destroy_offscreen(_id) {},
       },
       fui_host_service: {
         demoShellAccentColorHex(resultPtr, resultCap) {

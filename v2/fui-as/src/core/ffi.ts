@@ -47,6 +47,12 @@ export enum FlexDirection {
   Row = 1,
 }
 
+export enum FlexWrap {
+  NoWrap = 0,
+  Wrap = 1,
+  WrapReverse = 2,
+}
+
 export enum JustifyContent {
   Start = 0,
   Center = 2,
@@ -290,6 +296,12 @@ export declare function ui_set_position(handle: u64, left: f32, top: f32, right:
 
 @external("effindom_v2_ui", "ui_set_is_shared_size_scope")
 export declare function ui_set_is_shared_size_scope(handle: u64, isScope: bool): void;
+
+@external("effindom_v2_ui", "ui_set_custom_drawable")
+export declare function ui_set_custom_drawable(handle: u64, flag: bool): void;
+
+@external("effindom_v2_ui", "ui_set_flex_wrap")
+export declare function ui_set_flex_wrap(handle: u64, wrap: u32): void;
 
 @external("effindom_v2_ui", "ui_grid_set_columns")
 export declare function ui_grid_set_columns(handle: u64, count: u32, valuesPtr: usize, typesPtr: usize): void;
@@ -752,3 +764,110 @@ export declare function fui_file_process_worker_start(
 
 @external("fui_host", "fui_file_process_worker_cancel")
 export declare function fui_file_process_worker_cancel(requestId: u32): void;
+
+/* ── Immediate-mode canvas drawing ───────────────────────── */
+
+@external("fui_host", "fui_canvas_save")
+export declare function fui_canvas_save(canvasPtr: usize): void;
+
+@external("fui_host", "fui_canvas_restore")
+export declare function fui_canvas_restore(canvasPtr: usize): void;
+
+@external("fui_host", "fui_canvas_translate")
+export declare function fui_canvas_translate(canvasPtr: usize, x: f32, y: f32): void;
+
+@external("fui_host", "fui_canvas_scale")
+export declare function fui_canvas_scale(canvasPtr: usize, sx: f32, sy: f32): void;
+
+@external("fui_host", "fui_canvas_rotate")
+export declare function fui_canvas_rotate(canvasPtr: usize, degrees: f32): void;
+
+@external("fui_host", "fui_canvas_clip_rect")
+export declare function fui_canvas_clip_rect(canvasPtr: usize, x: f32, y: f32, w: f32, h: f32): void;
+
+@external("fui_host", "fui_canvas_draw_rect")
+export declare function fui_canvas_draw_rect(
+  canvasPtr: usize, x: f32, y: f32, w: f32, h: f32,
+  fillColor: u32, strokeColor: u32, strokeWidth: f32,
+): void;
+
+@external("fui_host", "fui_canvas_draw_circle")
+export declare function fui_canvas_draw_circle(
+  canvasPtr: usize, cx: f32, cy: f32, radius: f32,
+  fillColor: u32, strokeColor: u32, strokeWidth: f32,
+): void;
+
+@external("fui_host", "fui_canvas_draw_line")
+export declare function fui_canvas_draw_line(
+  canvasPtr: usize, x1: f32, y1: f32, x2: f32, y2: f32,
+  color: u32, strokeWidth: f32,
+): void;
+
+@external("fui_host", "fui_canvas_draw_round_rect")
+export declare function fui_canvas_draw_round_rect(
+  canvasPtr: usize, x: f32, y: f32, w: f32, h: f32,
+  rx: f32, ry: f32, fillColor: u32, strokeColor: u32, strokeWidth: f32,
+): void;
+
+@external("fui_host", "fui_path_create")
+export declare function fui_path_create(): u32;
+
+@external("fui_host", "fui_path_destroy")
+export declare function fui_path_destroy(pathId: u32): void;
+
+@external("fui_host", "fui_path_move_to")
+export declare function fui_path_move_to(pathId: u32, x: f32, y: f32): void;
+
+@external("fui_host", "fui_path_line_to")
+export declare function fui_path_line_to(pathId: u32, x: f32, y: f32): void;
+
+@external("fui_host", "fui_path_quad_to")
+export declare function fui_path_quad_to(pathId: u32, cx: f32, cy: f32, x: f32, y: f32): void;
+
+@external("fui_host", "fui_path_cubic_to")
+export declare function fui_path_cubic_to(
+  pathId: u32, cx1: f32, cy1: f32, cx2: f32, cy2: f32, x: f32, y: f32,
+): void;
+
+@external("fui_host", "fui_path_close")
+export declare function fui_path_close(pathId: u32): void;
+
+@external("fui_host", "fui_path_add_rect")
+export declare function fui_path_add_rect(pathId: u32, x: f32, y: f32, w: f32, h: f32): void;
+
+@external("fui_host", "fui_path_add_circle")
+export declare function fui_path_add_circle(pathId: u32, cx: f32, cy: f32, r: f32): void;
+
+@external("fui_host", "fui_canvas_draw_path")
+export declare function fui_canvas_draw_path(
+  canvasPtr: usize, pathId: u32,
+  fillColor: u32, strokeColor: u32, strokeWidth: f32,
+): void;
+
+@external("fui_host", "fui_canvas_draw_text")
+export declare function fui_canvas_draw_text(
+  canvasPtr: usize, utf8Ptr: usize, utf8Len: u32, x: f32, y: f32,
+  fontId: u32, fontSize: f32, color: u32,
+): void;
+
+@external("fui_host", "fui_canvas_draw_image")
+export declare function fui_canvas_draw_image(
+  canvasPtr: usize, textureId: u32, x: f32, y: f32, w: f32, h: f32,
+): void;
+
+@external("fui_host", "fui_canvas_draw_svg")
+export declare function fui_canvas_draw_svg(
+  canvasPtr: usize, svgId: u32, x: f32, y: f32, w: f32, h: f32,
+): void;
+
+@external("fui_host", "fui_canvas_create_offscreen")
+export declare function fui_canvas_create_offscreen(width: u32, height: u32): u32;
+
+@external("fui_host", "fui_canvas_get_offscreen_ptr")
+export declare function fui_canvas_get_offscreen_ptr(offscreenId: u32): usize;
+
+@external("fui_host", "fui_canvas_read_offscreen_pixels")
+export declare function fui_canvas_read_offscreen_pixels(offscreenId: u32, outPtr: usize, width: u32, height: u32): void;
+
+@external("fui_host", "fui_canvas_destroy_offscreen")
+export declare function fui_canvas_destroy_offscreen(offscreenId: u32): void;

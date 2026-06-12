@@ -287,6 +287,7 @@ build_app "demo/src/routes/demo_home.ts" "${DEMO_OUT_DIR}/home.wasm"
 build_app "demo/src/routes/demo_advanced_controls.ts" "${DEMO_OUT_DIR}/advanced-controls.wasm"
 build_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-controls.wasm"
 build_app "demo/src/routes/demo_scrollbar_gutter.ts" "${DEMO_OUT_DIR}/scrollbar-gutter.wasm"
+build_app "demo/src/routes/demo_immediate_drawing.ts" "${DEMO_OUT_DIR}/immediate-drawing.wasm"
 build_workers
 write_worker_manifest
 
@@ -346,10 +347,11 @@ cp "${PACKAGE_DIR}/browser/favicon.ico" "${REPO_ROOT}/public/favicon.ico"
 cp "${PACKAGE_DIR}/demo/demo-texture.png" "${DEMO_OUT_DIR}/demo-texture.png"
 cp "${PACKAGE_DIR}/demo/demo-secondary-texture.png" "${DEMO_OUT_DIR}/demo-secondary-texture.png"
 
-mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls" "${DEMO_OUT_DIR}/scrollbar-gutter"
+mkdir -p "${DEMO_OUT_DIR}/advanced-controls" "${DEMO_OUT_DIR}/templated-controls" "${DEMO_OUT_DIR}/scrollbar-gutter" "${DEMO_OUT_DIR}/immediate-drawing"
 render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/advanced-controls/index.html"
 render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/templated-controls/index.html"
 render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/scrollbar-gutter/index.html"
+render_html_with_loading_overlay "${PACKAGE_DIR}/demo/route-shell.html" "${DEMO_OUT_DIR}/immediate-drawing/index.html"
 
 copy_runtime_assets "${OUT_DIR}"
 copy_runtime_assets "${DEMO_OUT_DIR}"
@@ -360,3 +362,4 @@ write_runtime_config "${DEMO_OUT_DIR}" "${DEFAULT_MANIFEST_PATH}"
 write_runtime_config "${DEMO_OUT_DIR}/advanced-controls" "../runtime/dist/effindom.v2.manifest.json"
 write_runtime_config "${DEMO_OUT_DIR}/templated-controls" "../runtime/dist/effindom.v2.manifest.json"
 write_runtime_config "${DEMO_OUT_DIR}/scrollbar-gutter" "../runtime/dist/effindom.v2.manifest.json"
+write_runtime_config "${DEMO_OUT_DIR}/immediate-drawing" "../runtime/dist/effindom.v2.manifest.json"

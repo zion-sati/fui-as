@@ -115,6 +115,12 @@ export function createUiImportModule(deps: UiImportDeps) {
     ui_set_is_shared_size_scope(handle: AppHandleLike, flag: number): void {
       deps.getRuntime().ui._ui_set_is_shared_size_scope(toBigIntHandle(handle), flag);
     },
+    ui_set_custom_drawable(handle: AppHandleLike, flag: number): void {
+      deps.getRuntime().ui._ui_set_custom_drawable(toBigIntHandle(handle), flag);
+    },
+    ui_set_flex_wrap(handle: AppHandleLike, wrap: number): void {
+      deps.getRuntime().ui._ui_set_flex_wrap(toBigIntHandle(handle), wrap);
+    },
     ui_set_root(handle: AppHandleLike): void {
       const runtime = deps.getRuntime();
       const rootHandle = toBigIntHandle(handle);

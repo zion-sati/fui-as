@@ -172,6 +172,14 @@ export function setIsSharedSizeScope(handle: u64, isScope: bool): void {
   ffi.ui_set_is_shared_size_scope(handle, isScope);
 }
 
+export function setCustomDrawable(handle: u64, flag: bool): void {
+  ffi.ui_set_custom_drawable(handle, flag);
+}
+
+export function setFlexWrap(handle: u64, wrap: u32): void {
+  ffi.ui_set_flex_wrap(handle, wrap);
+}
+
 export function gridSetColumns(handle: u64, values: Float32Array, types: Uint8Array): void {
   ffi.ui_grid_set_columns(
     handle,

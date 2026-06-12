@@ -40,7 +40,7 @@ interface DemoRouteExports extends HarnessExports {
 }
 
 interface DemoRoute extends RoutedHarnessRoute {
-  readonly key: 'home' | 'advanced-controls' | 'templated-controls' | 'scrollbar-gutter';
+  readonly key: 'home' | 'advanced-controls' | 'templated-controls' | 'scrollbar-gutter' | 'immediate-drawing';
 }
 
 const SOURCE_HOME_ROUTE = '/v2/fui-as/demo/index.html';
@@ -50,6 +50,7 @@ const SOURCE_TEMPLATED_CONTROLS_ROUTE = '/v2/fui-as/demo/templated-controls/';
 const ROOT_HOME_ROUTE = '/';
 const ROOT_ADVANCED_CONTROLS_ROUTE = '/advanced-controls/';
 const ROOT_TEMPLATED_CONTROLS_ROUTE = '/templated-controls/';
+const ROOT_IMMEDIATE_DRAWING_ROUTE = '/immediate-drawing/';
 const ROUTES: readonly DemoRoute[] = [
   {
     key: 'home',
@@ -77,6 +78,12 @@ const ROUTES: readonly DemoRoute[] = [
     title: 'Scrollbar gutter bug',
   },
   {
+    key: 'immediate-drawing',
+    routePath: '/v2/fui-as/demo/immediate-drawing/',
+    wasmPath: '/v2/fui-as/demo/immediate-drawing.wasm?v=midnight-5',
+    title: 'Immediate-mode drawing',
+  },
+  {
     key: 'home',
     routePath: ROOT_HOME_ROUTE,
     wasmPath: '/home.wasm?v=midnight-5',
@@ -93,6 +100,12 @@ const ROUTES: readonly DemoRoute[] = [
     routePath: ROOT_TEMPLATED_CONTROLS_ROUTE,
     wasmPath: '/templated-controls.wasm?v=midnight-5',
     title: 'Templated controls',
+  },
+  {
+    key: 'immediate-drawing',
+    routePath: ROOT_IMMEDIATE_DRAWING_ROUTE,
+    wasmPath: '/immediate-drawing.wasm?v=midnight-5',
+    title: 'Immediate-mode drawing',
   },
 ];
 const shellId = `fui-demo-${Math.random().toString(36).slice(2, 10)}`;

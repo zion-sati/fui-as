@@ -5,7 +5,7 @@ import { disposeAllFileRequests } from "./File";
 import { FocusAdornerManager } from "./FocusAdornerManager";
 import { ToolTipManager } from "./ToolTipManager";
 import * as ui from "../bindings/ui";
-import { flushCommit, markNeedsCommit, resetCommitState } from "./FrameScheduler";
+import { flushCommit, fireLoadedCallbacks, markNeedsCommit, resetCommitState } from "./FrameScheduler";
 import { HandleValue, Unit } from "./ffi";
 import { Node } from "./Node";
 import { cancelAllTimers } from "./Timers";
@@ -211,6 +211,7 @@ export class Application<TPage> {
     ui.setRoot(shell.builtHandle);
     mountedShell = shell;
     mountedRoot = root;
+    fireLoadedCallbacks();
     markNeedsCommit();
     return root;
   }
