@@ -22,6 +22,11 @@ RUNTIME_CONFIG_FILE="effindom-runtime-config.js"
 DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
 LOADING_OVERLAY_STYLES_FILE="${PACKAGE_DIR}/browser/loading-overlay-styles.html"
 LOADING_OVERLAY_BODY_FILE="${PACKAGE_DIR}/browser/loading-overlay-body.html"
+RUNTIME_PACKAGE_DIR="${PACKAGE_DIR}/node_modules/@effindomv2/runtime"
+
+if [ ! -d "${RUNTIME_PACKAGE_DIR}" ]; then
+  RUNTIME_PACKAGE_DIR="${REPO_ROOT}/node_modules/@effindomv2/runtime"
+fi
 
 rm -rf "${OUT_DIR}"
 mkdir -p "${PACKAGE_DIR}/build" "${OUT_DIR}" "${DEMO_OUT_DIR}" "${WORKER_BUILD_DIR}"
@@ -38,10 +43,28 @@ else
 fi
 
 ESBUILD_RUNTIME_ALIAS_ARGS=()
-if [ -f "${REPO_ROOT}/v2/browser-bridge/src/index.ts" ]; then
+LOCAL_RUNTIME_PACKAGE_JSON="${REPO_ROOT}/v2/browser-bridge/package.json"
+if [ -f "${LOCAL_RUNTIME_PACKAGE_JSON}" ]; then
+  REQUIRED_RUNTIME_VERSION="$(
+    node -e '
+      const pkg = require(process.argv[1]);
+      process.stdout.write(String(pkg.dependencies?.["@effindomv2/runtime"] ?? ""));
+    ' "${PACKAGE_DIR}/package.json"
+  )"
+  LOCAL_RUNTIME_VERSION="$(
+    node -e '
+      const pkg = require(process.argv[1]);
+      process.stdout.write(String(pkg.version ?? ""));
+    ' "${LOCAL_RUNTIME_PACKAGE_JSON}"
+  )"
+else
+  REQUIRED_RUNTIME_VERSION=""
+  LOCAL_RUNTIME_VERSION=""
+fi
+
+if [ -n "${REQUIRED_RUNTIME_VERSION}" ] && [ "${LOCAL_RUNTIME_VERSION}" = "${REQUIRED_RUNTIME_VERSION}" ]; then
   ESBUILD_RUNTIME_ALIAS_ARGS+=(
-    "--alias:@effindomv2/runtime=${REPO_ROOT}/v2/browser-bridge/src/index.ts"
-    "--alias:@effindomv2/runtime/core-types=${REPO_ROOT}/v2/browser-bridge/src/core-types.ts"
+    "--alias:@effindomv2/runtime=${REPO_ROOT}/v2/browser-bridge/src"
   )
 fi
 
@@ -308,7 +331,7 @@ npx esbuild "${PACKAGE_DIR}/demo/harness.ts" \
   --outfile="${DEMO_OUT_DIR}/harness.js" \
   --sourcemap
 
-npx esbuild "${REPO_ROOT}/v2/browser-bridge/src/managed-harness/file-processing-worker.ts" \
+npx esbuild "${RUNTIME_PACKAGE_DIR}/src/managed-harness/file-processing-worker.ts" \
   --bundle \
   --format=iife \
   --platform=browser \
@@ -323,7 +346,7 @@ cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${OUT_DIR}/file-processing-worker.js.m
 cp "${FILE_PROCESSING_WORKER_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js"
 cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js.map"
 
-npx esbuild "${REPO_ROOT}/v2/browser-bridge/src/managed-harness/worker-bootstrap.ts" \
+npx esbuild "${RUNTIME_PACKAGE_DIR}/src/managed-harness/worker-bootstrap.ts" \
   --bundle \
   --format=iife \
   --platform=browser \

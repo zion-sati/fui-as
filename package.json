@@ -1,13 +1,12 @@
 {
   "name": "effindom-fui-as-repo",
   "private": true,
-  "version": "0.1.39",
+  "version": "0.1.41",
   "description": "Standalone FUI-AS repository for @effindomv2/fui-as",
   "engines": {
     "node": ">=18"
   },
   "workspaces": [
-    "v2/browser-bridge",
     "v2/fui-as"
   ],
   "scripts": {
@@ -29,6 +28,7 @@
   },
   "allowScripts": {
     "esbuild@0.27.7": true,
+    "esbuild@0.28.0": true,
     "fsevents@2.3.2": true
   }
 }

@@ -1,1 +1,1 @@
-export * from '../../browser-bridge/src/routed-app-conventions.js';
+export * from '@effindomv2/runtime/routed-app-conventions';

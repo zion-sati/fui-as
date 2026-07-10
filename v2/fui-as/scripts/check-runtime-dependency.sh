@@ -3,9 +3,7 @@
 set -euo pipefail
 
 PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_ROOT="$(cd "${PACKAGE_DIR}/../.." && pwd)"
 PACKAGE_JSON="${PACKAGE_DIR}/package.json"
-RUNTIME_PACKAGE_JSON="${REPO_ROOT}/v2/browser-bridge/package.json"
 
 if [ ! -f "${PACKAGE_JSON}" ]; then
   echo "Missing package.json at ${PACKAGE_JSON}" >&2
@@ -29,20 +27,3 @@ if ! printf '%s' "${runtime_spec}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A
   echo "@effindomv2/runtime must be pinned to an exact version, found: ${runtime_spec}" >&2
   exit 1
 fi
-
-if [ -f "${RUNTIME_PACKAGE_JSON}" ]; then
-  runtime_version="$(
-    node -e '
-      const fs = require("node:fs");
-      const pkg = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-      process.stdout.write(String(pkg.version ?? ""));
-    ' "${RUNTIME_PACKAGE_JSON}"
-  )"
-
-  if [ -n "${runtime_version}" ] && [ "${runtime_spec}" != "${runtime_version}" ]; then
-    echo "@effindomv2/fui-as depends on @effindomv2/runtime@${runtime_spec}, but monorepo runtime is ${runtime_version}." >&2
-    echo "Update v2/fui-as/package.json to match v2/browser-bridge/package.json." >&2
-    exit 1
-  fi
-fi
-
