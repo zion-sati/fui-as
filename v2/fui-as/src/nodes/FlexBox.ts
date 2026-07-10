@@ -5,7 +5,7 @@ import {
   Animation,
   AnimationTiming,
 } from "../core/Animation";
-import { Node } from "../core/Node";
+import { PointerClickEventArgs, PointerEventArgs, Node } from "../core/Node";
 import { warn } from "../core/Logger";
 import { throwNullArgument } from "../core/Errors";
 import { NodeTransitions } from "../core/Transitions";
@@ -86,6 +86,28 @@ export class FlexBoxProps {
   clipEnabled: bool = true;
   hasClip: bool = true;
   readonly childNodes: Array<Node> = new Array<Node>();
+}
+
+export class Border {
+  constructor(
+    readonly width: f32,
+    readonly color: u32,
+    readonly style: BorderStyle = BorderStyle.Solid,
+    readonly dashOn: f32 = 0.0,
+    readonly dashOff: f32 = 0.0,
+  ) {}
+
+  static solid(width: f32, color: u32): Border {
+    return new Border(width, color, BorderStyle.Solid);
+  }
+
+  static dashed(width: f32, color: u32, dashOn: f32, dashOff: f32): Border {
+    return new Border(width, color, BorderStyle.Dashed, dashOn, dashOff);
+  }
+
+  static dotted(width: f32, color: u32, dashOn: f32, dashOff: f32): Border {
+    return new Border(width, color, BorderStyle.Dotted, dashOn, dashOff);
+  }
 }
 
 export class FlexBox extends Node {
@@ -361,10 +383,15 @@ export class FlexBox extends Node {
     return this;
   }
 
-  border(width: f32, color: u32, style: BorderStyle = BorderStyle.Solid): this {
+  _cornerTopLeft(): f32 { return this.cornerTopLeft; }
+  _cornerTopRight(): f32 { return this.cornerTopRight; }
+  _cornerBottomRight(): f32 { return this.cornerBottomRight; }
+  _cornerBottomLeft(): f32 { return this.cornerBottomLeft; }
+
+  border(width: f32, color: u32): this {
     this.borderWidth = width;
     this.borderColor = color;
-    this.borderStyle = style;
+    this.borderStyle = BorderStyle.Solid;
     this.borderDashOn = 0.0;
     this.borderDashOff = 0.0;
     this.hasBoxStyle = true;
@@ -375,10 +402,12 @@ export class FlexBox extends Node {
     return this;
   }
 
-  borderDashed(on: f32, off: f32): this {
-    this.borderStyle = BorderStyle.Dashed;
-    this.borderDashOn = on;
-    this.borderDashOff = off;
+  borderConfig(border: Border): this {
+    this.borderWidth = border.width;
+    this.borderColor = border.color;
+    this.borderStyle = border.style;
+    this.borderDashOn = border.dashOn;
+    this.borderDashOff = border.dashOff;
     this.hasBoxStyle = true;
     if (this.hasBuiltHandle()) {
       this.applyVisualStyle();
@@ -585,17 +614,17 @@ export class FlexBox extends Node {
     return this;
   }
 
-  onClick(cb: () => void): this {
-    super.onClick(cb);
+  onPointerClick(cb: (event: PointerClickEventArgs) => void): this {
+    super.onPointerClick(cb);
     return this;
   }
 
-  onPointerEnter(cb: () => void): this {
+  onPointerEnter(cb: (event: PointerEventArgs) => void): this {
     super.onPointerEnter(cb);
     return this;
   }
 
-  onPointerLeave(cb: () => void): this {
+  onPointerLeave(cb: (event: PointerEventArgs) => void): this {
     super.onPointerLeave(cb);
     return this;
   }

@@ -10,6 +10,7 @@ log_step "Running @effindomv2/fui-as publish checks"
 ensure_npm_deps "${REPO_ROOT}" "npm install --legacy-peer-deps --silent"
 ensure_npm_deps "${PACKAGE_DIR}" "npm install --legacy-peer-deps --silent"
 ensure_npm_path "${PACKAGE_DIR}" "node_modules/@as-pect/assembly/assembly/index.ts" "npm install --legacy-peer-deps --silent"
+run_in_dir "${PACKAGE_DIR}" npm run lint
 run_in_dir "${PACKAGE_DIR}" npm run typecheck
 run_in_dir "${PACKAGE_DIR}" npm run test:unit
 run_in_dir "${PACKAGE_DIR}" npm run build

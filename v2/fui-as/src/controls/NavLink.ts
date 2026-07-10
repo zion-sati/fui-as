@@ -1,6 +1,7 @@
 import {
   CursorStyle,
   KeyEventType,
+  KeyModifier,
   PointerEventType,
   SemanticRole,
   fui_hide_url_preview,
@@ -11,16 +12,25 @@ import { Disposable, disposeAll } from "../core/Disposable";
 import { FocusAdornerManager } from "../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../core/FocusVisibility";
 import { navigateTo } from "../core/Navigation";
+import { PointerEventArgs, PointerType } from "../core/Node";
 import { hasPrimaryShortcutModifier } from "../core/Platform";
 import { Theme, activeTheme } from "../core/Theme";
 import { FlexBox } from "../nodes";
+
+export class NavigateEventArgs {
+  readonly path: string;
+
+  constructor(path: string) {
+    this.path = path;
+  }
+}
 
 export class NavLink extends FlexBox {
   private static activePreviewOwner: NavLink | null = null;
   private hrefValue: string;
   private openInNewTabValue: bool;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
-  private navigateCallback: ((path: string) => void) | null = null;
+  private navigateCallback: ((event: NavigateEventArgs) => void) | null = null;
   private pointerPressed: bool = false;
   private pointerPressedOpenInNewTab: bool = false;
   private enterPressed: bool = false;
@@ -60,7 +70,7 @@ export class NavLink extends FlexBox {
     return this;
   }
 
-  onNavigate(cb: (path: string) => void): this {
+  onNavigate(cb: (event: NavigateEventArgs) => void): this {
     this.navigateCallback = cb;
     return this;
   }
@@ -75,6 +85,10 @@ export class NavLink extends FlexBox {
   }
 
   _handlePointerEvent(eventType: PointerEventType, x: f32, y: f32, modifiers: u32 = 0): void {
+    const pending = NavLink.pendingPointerEventArgs;
+    const isPrimaryActivation = pending !== null
+      ? this.isPrimaryActivationPointer(changetype<PointerEventArgs>(pending))
+      : true;
     super._handlePointerEvent(eventType, x, y, modifiers);
     if (eventType == PointerEventType.Enter) {
       this.hovered = true;
@@ -91,11 +105,16 @@ export class NavLink extends FlexBox {
       return;
     }
     if (eventType == PointerEventType.Down) {
+      if (!isPrimaryActivation) {
+        this.pointerPressed = false;
+        this.pointerPressedOpenInNewTab = false;
+        return;
+      }
       this.pointerPressed = true;
       this.pointerPressedOpenInNewTab = this.shouldOpenInNewTab(modifiers);
       return;
     }
-    if (eventType == PointerEventType.Up && this.pointerPressed) {
+    if (eventType == PointerEventType.Up && this.pointerPressed && isPrimaryActivation) {
       this.pointerPressed = false;
       this.activate(this.pointerPressedOpenInNewTab || this.shouldOpenInNewTab(modifiers));
       this.pointerPressedOpenInNewTab = false;
@@ -123,7 +142,7 @@ export class NavLink extends FlexBox {
     if (key != "Enter") {
       return callbackHandled;
     }
-    if (modifiers != 0 && !hasPrimaryShortcutModifier(modifiers)) {
+    if (modifiers != 0 && !hasPrimaryShortcutModifier(<KeyModifier>modifiers)) {
       return callbackHandled;
     }
     if (eventType == KeyEventType.Down) {
@@ -144,12 +163,16 @@ export class NavLink extends FlexBox {
     navigateTo(this.hrefValue, openInNewTab);
     const callback = this.navigateCallback;
     if (callback !== null) {
-      callback(this.hrefValue);
+      callback(new NavigateEventArgs(this.hrefValue));
     }
   }
 
   private shouldOpenInNewTab(modifiers: u32): bool {
-    return this.openInNewTabValue || hasPrimaryShortcutModifier(modifiers);
+    return this.openInNewTabValue || hasPrimaryShortcutModifier(<KeyModifier>modifiers);
+  }
+
+  private isPrimaryActivationPointer(event: PointerEventArgs): bool {
+    return event.button == 0 || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
   }
 
   pinPreviewForContextMenu(): void {

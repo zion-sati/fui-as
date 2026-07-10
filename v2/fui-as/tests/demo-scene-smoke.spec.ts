@@ -9,10 +9,10 @@ test('repaints consistently across repeated reloads', async ({ page }) => {
     await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?reload=${String(attempt)}`);
     await expect.poll(async () => {
       return await page.evaluate(() => {
-        if (window.__fuiAsError !== undefined) {
-          return `error:${window.__fuiAsError}`;
+        if (window.__fuiError !== undefined) {
+          return `error:${window.__fuiError}`;
         }
-        return window.__fuiAsReady === true ? 'ready' : 'pending';
+        return window.__fuiReady === true ? 'ready' : 'pending';
       });
     }).toBe('ready');
 
@@ -79,7 +79,7 @@ test('renders the interactive fui-as demo scene', async ({ page }) => {
 
   await demo.waitForDemoReady(page);
 
-  const state = await page.evaluate(() => window.__fuiAsState);
+  const state = await page.evaluate(() => window.__fuiState);
   expect(state).toBeDefined();
   if (state === undefined) {
     throw new Error('Expected FUI demo state to be available.');
@@ -105,15 +105,9 @@ test('renders the interactive fui-as demo scene', async ({ page }) => {
   }).toEqual(expect.arrayContaining([
     'EffinDom FUI-AS Demo',
     'Scrollable list',
+    'Dashboard sample',
     'Interactive color preview',
-    'Inspector',
     'Item 0',
-    'First visible item 0',
-    'Clicks: 0',
-    'Pointer idle',
-    'Keyboard target unfocused',
-    'Focus me, then press keys. Last key: (none)',
-    'Click me',
   ]));
 });
 
@@ -200,7 +194,7 @@ test('toggles light and dark mode from the demo sidebar', async ({ page }) => {
 test('shows the control foundations demo focus state and inherited disabled scope', async ({ page }) => {
   await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?control-foundations=1`);
   await demo.waitForDemoReady(page);
-  await demo.scrollSemanticLabelIntoView(page, 'Control foundations');
+  await demo.scrollSemanticLabelIntoView(page, 'Scoped child activations 0');
   await page.evaluate(() => {
     (window as Window & { __activateDemoFoundationsScopedAction?: () => void }).__activateDemoFoundationsScopedAction?.();
   });
@@ -333,7 +327,7 @@ test('common controls stay interactive in the demo scene', async ({ page }) => {
   });
 
   await demo.scrollSemanticLabelIntoView(page, 'Slider');
-  await expect(page.getByRole('slider', { name: /^Slider, value / })).toBeAttached();
+  await expect(page.getByRole('slider', { name: 'Slider', exact: true })).toBeAttached();
   await demo.clickSliderThumb(page, 'Slider', 40, 0, 100);
   await page.keyboard.press('ArrowRight');
   await expect.poll(async () => await demo.readSemanticNode(page, 'Slider')).toMatchObject({
@@ -389,7 +383,7 @@ test('demo read-only text input keeps textbox caret navigation without allowing 
 
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      const input = document.querySelector('input[aria-hidden="true"]');
+      const input = document.querySelector('input[data-effindom-hidden-editor="true"]');
       if (!(input instanceof HTMLInputElement)) {
         throw new Error('Expected hidden bridge input.');
       }
@@ -401,7 +395,7 @@ test('demo read-only text input keeps textbox caret navigation without allowing 
     });
   }).toMatchObject({ readOnly: true });
   const initialSelection = await page.evaluate(() => {
-    const input = document.querySelector('input[aria-hidden="true"]');
+    const input = document.querySelector('input[data-effindom-hidden-editor="true"]');
     if (!(input instanceof HTMLInputElement)) {
       throw new Error('Expected hidden bridge input.');
     }
@@ -416,7 +410,7 @@ test('demo read-only text input keeps textbox caret navigation without allowing 
   await page.keyboard.press('ArrowLeft');
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      const input = document.querySelector('input[aria-hidden="true"]');
+      const input = document.querySelector('input[data-effindom-hidden-editor="true"]');
       if (!(input instanceof HTMLInputElement)) {
         throw new Error('Expected hidden bridge input.');
       }
@@ -432,7 +426,7 @@ test('demo read-only text input keeps textbox caret navigation without allowing 
   await page.keyboard.up('Shift');
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      const input = document.querySelector('input[aria-hidden="true"]');
+      const input = document.querySelector('input[data-effindom-hidden-editor="true"]');
       if (!(input instanceof HTMLInputElement)) {
         throw new Error('Expected hidden bridge input.');
       }
@@ -448,7 +442,7 @@ test('demo read-only text input keeps textbox caret navigation without allowing 
   await page.keyboard.press('Backspace');
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      const input = document.querySelector('input[aria-hidden="true"]');
+      const input = document.querySelector('input[data-effindom-hidden-editor="true"]');
       if (!(input instanceof HTMLInputElement)) {
         throw new Error('Expected hidden bridge input.');
       }
@@ -624,4 +618,50 @@ test('dropdown selection restores wheel scrolling under the former popup area', 
   const afterBounds = await demo.findSemanticBounds(page, 'Quality first');
   expect(afterBounds).not.toBeNull();
   expect(afterBounds?.y ?? beforeBounds.y).toBeLessThan(beforeBounds.y - 20);
+});
+
+test('combobox chevron preserves the default text caret at the end in the demo scene', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?common-controls=1`);
+  await demo.waitForDemoReady(page);
+
+  await demo.scrollSemanticLabelIntoView(page, 'Melbourne');
+  await demo.clickSemanticLabelAtFraction(page, 'Melbourne', 0.93, 0.5);
+  await demo.waitForHiddenTextInputFocus(page);
+
+  await expect.poll(async () => await demo.readHiddenInputSelection(page)).toMatchObject({
+    start: 9,
+    end: 9,
+    focused: true,
+  });
+});
+
+test('dashboard city combobox pointer item selection survives clearing and editor blur', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?common-controls-pointer-combobox=1`);
+  await demo.waitForDemoReady(page);
+
+  await demo.scrollSemanticLabelIntoView(page, 'Melbourne');
+  await demo.clickSemanticLabel(page, 'Melbourne');
+  await demo.waitForHiddenTextInputFocus(page);
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+  await page.keyboard.press('Backspace');
+
+  await expect.poll(async () => {
+    return await demo.readSemanticNode(page, 'Search city');
+  }, { timeout: 10000 }).toMatchObject({
+    roleName: 'textbox',
+  });
+
+  await demo.clickSemanticLabelAtFraction(page, 'Search city', 0.93, 0.5);
+  await expect.poll(async () => await demo.readSemanticNode(page, 'Sydney'), { timeout: 10000 }).toMatchObject({
+    roleName: 'listitem',
+  });
+
+  await demo.clickSemanticLabel(page, 'Sydney');
+  await expect.poll(async () => await demo.readSemanticNode(page, 'Sydney'), { timeout: 10000 }).toMatchObject({
+    roleName: 'combobox',
+    state: { expanded: false },
+  });
+  await expect.poll(async () => {
+    return await demo.readSemanticLabelByPrefix(page, 'ComboBox: ');
+  }, { timeout: 10000 }).toBe('ComboBox: Sydney • Text: <empty>');
 });

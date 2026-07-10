@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
 
 import * as demo from './demo-test-support';
 
@@ -25,13 +25,14 @@ test('demo loading overlay surfaces popstate route load failures', async ({ page
 
   await page.evaluate(() => {
     const target = new URL('/v2/fui-as/demo/advanced-controls/', window.location.origin);
-    window.history.pushState({ href: target.href }, '', target.href);
-    window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+    const state: { href: string } = { href: target.href };
+    window.history.pushState(state, '', target.href);
+    window.dispatchEvent(new PopStateEvent('popstate', { state }));
   });
   await expect(page).toHaveURL(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiAsError ?? null);
+    return await page.evaluate(() => window.__fuiError ?? null);
   }).toContain('Failed to load wasm app: /v2/fui-as/demo/advanced-controls.wasm');
 
   await expect(page.locator('#effindom-loading-overlay')).toBeVisible();

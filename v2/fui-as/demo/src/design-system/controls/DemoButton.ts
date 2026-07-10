@@ -3,7 +3,6 @@ import {
   BUTTON_PADDING_X,
   BUTTON_PADDING_Y,
   BUTTON_RADIUS,
-  FONT_REGULAR,
 } from "../tokens";
 import { DemoButtonRecipe, applyDemoButtonRecipe } from "./recipes";
 
@@ -28,7 +27,7 @@ export class DemoButton extends Button {
     this
       .cornerRadius(BUTTON_RADIUS)
       .padding(BUTTON_PADDING_X, BUTTON_PADDING_Y, BUTTON_PADDING_X, BUTTON_PADDING_Y)
-      .font(FONT_REGULAR, 16.0);
+      .fontSize(16.0);
     this.trackDemoTheme(bindTheme(this, (button, theme): void => {
       button.applyDemoTheme(theme);
     }));

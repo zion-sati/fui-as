@@ -1,4 +1,4 @@
-import { BorderStyle, Unit } from "../../core/ffi";
+import { AlignItems, JustifyContent, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
 import { LabeledControlSizing } from "../ControlSizing";
@@ -30,7 +30,7 @@ export abstract class RadioIndicatorPresenter extends PressableIndicatorPresente
 }
 
 export abstract class RadioIndicatorTemplate {
-  abstract create(): RadioIndicatorPresenter;
+  abstract create(sizing?: LabeledControlSizing | null): RadioIndicatorPresenter;
 }
 
 class RadioIndicatorMetrics extends PressableIndicatorMetrics {
@@ -76,8 +76,8 @@ class DefaultRadioIndicatorPresenter extends RadioIndicatorPresenter {
     const root = new FlexBox()
       .width(metrics.indicatorSize, Unit.Pixel)
       .height(metrics.indicatorSize, Unit.Pixel)
-      .alignItems(1)
-      .justifyContent(1);
+      .alignItems(AlignItems.Center)
+      .justifyContent(JustifyContent.Center);
     super(root, metrics);
     this.geometry = metrics;
     const dotNode = new FlexBox()
@@ -98,7 +98,7 @@ class DefaultRadioIndicatorPresenter extends RadioIndicatorPresenter {
       ? accent
       : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border);
     this.root.cornerRadius(geometry.indicatorSize * 0.5);
-    this.root.border(geometry.borderWidth, outerColor, BorderStyle.Solid);
+    this.root.border(geometry.borderWidth, outerColor);
     this.root.bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
     this.dotNode
       .cornerRadius(geometry.dotSize * 0.5)
@@ -111,8 +111,8 @@ class DefaultRadioIndicatorPresenter extends RadioIndicatorPresenter {
 }
 
 class DefaultRadioIndicatorTemplate extends RadioIndicatorTemplate {
-  create(): RadioIndicatorPresenter {
-    return new DefaultRadioIndicatorPresenter();
+  create(sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
+    return createDefaultRadioIndicatorPresenter(sizing);
   }
 }
 

@@ -1,6 +1,5 @@
 {
   "extends": "./asconfig.json",
-  "entries": ["./node_modules/@as-pect/assembly/assembly/index.ts"],
   "targets": {
     "coverage": {
       "lib": ["./node_modules/@as-covers/assembly/index.ts"],

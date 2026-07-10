@@ -6,7 +6,6 @@ import { DragCompletedEvent, DragDeltaEvent, DragGesture, DragGestureHost, DragS
 import { FocusAdornerManager } from "../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../core/FocusVisibility";
 import {
-  BorderStyle,
   CursorStyle,
   KeyEventType,
   Orientation,
@@ -17,7 +16,7 @@ import {
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
 import { PersistedFloat32Codec, PersistedValueState } from "../core/PersistedState";
-import { Node } from "../core/Node";
+import { Node, SliderChangedEventArgs } from "../core/Node";
 import { FlexBox } from "../nodes";
 import { bind1 } from "../core/bind";
 import { SliderSizing } from "./ControlSizing";
@@ -67,13 +66,13 @@ const SLIDER_CHILD_INSET: f32 = SLIDER_PADDING + SLIDER_CONTENT_INSET;
 
 function createSliderPresenter(template: SliderTemplate | null, sizing: SliderSizing | null = null): SliderPresenter {
   if (template !== null) {
-    return template.create();
+    return template.create(sizing);
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.slider : null;
   return appTemplate === null
     ? createDefaultSliderPresenter(sizing)
-    : appTemplate.create();
+    : appTemplate.create(sizing);
 }
 
 export class Slider extends FlexBox implements DragGestureHost {
@@ -83,8 +82,8 @@ export class Slider extends FlexBox implements DragGestureHost {
   private colorsValue: SliderColors | null = null;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private readonly dragGesture!: DragGesture;
-  private changedCallback: ((value: f32) => void) | null = null;
-  private changedBinding: Callback1<f32> | null = null;
+  private changedCallback: ((event: SliderChangedEventArgs) => void) | null = null;
+  private changedBinding: Callback1<SliderChangedEventArgs> | null = null;
   private disposed: bool = false;
   private focusedState: bool = false;
   private hoveredState: bool = false;
@@ -135,7 +134,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     if (this.maxValue < value) {
       this.maxValue = value;
     }
-    this.setValue(this.currentValue, false);
+    this.setValue(this.currentValue, true, false);
     return this;
   }
 
@@ -144,7 +143,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     if (this.minValue > value) {
       this.minValue = value;
     }
-    this.setValue(this.currentValue, false);
+    this.setValue(this.currentValue, true, false);
     return this;
   }
 
@@ -153,7 +152,7 @@ export class Slider extends FlexBox implements DragGestureHost {
       warn("Layout", "Slider.step() received " + value.toString() + "; clamping to 1.0.");
     }
     this.stepValue = value > 0.0 ? value : 1.0;
-    this.setValue(this.currentValue, false);
+    this.setValue(this.currentValue, true, false);
     return this;
   }
 
@@ -180,9 +179,6 @@ export class Slider extends FlexBox implements DragGestureHost {
 
   sizing(sizing: SliderSizing | null): this {
     this.sizingValue = sizing;
-    if (!this.usesDefaultPresenter()) {
-      return this;
-    }
     this.replacePresenter(createSliderPresenter(this.templateOverride, this.sizingValue));
     const thumbSize = this.sliderPresenter.metrics.thumbSize;
     if (this.lengthValue <= thumbSize) {
@@ -214,19 +210,19 @@ export class Slider extends FlexBox implements DragGestureHost {
     return this;
   }
 
-  onChanged(callback: ((value: f32) => void) | null): this {
+  onChanged(callback: ((event: SliderChangedEventArgs) => void) | null): this {
     this.changedCallback = callback;
     this.changedBinding = null;
     return this;
   }
 
-  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, f32>): this {
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, SliderChangedEventArgs>): this {
     this.changedCallback = null;
-    this.changedBinding = bind1<Owner, f32>(owner, handler);
+    this.changedBinding = bind1<Owner, SliderChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, f32>): this {
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, SliderChangedEventArgs>): this {
     this.bindChanged(owner, handler);
     return this;
   }
@@ -322,7 +318,7 @@ export class Slider extends FlexBox implements DragGestureHost {
   }
 
   _applyPersistedValue(value: f32): void {
-    this.setValue(value, true);
+    this.setValue(value, true, false);
   }
 
   private normalizeValue(value: f32): f32 {
@@ -334,7 +330,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     return clamp(this.minValue + snapped, this.minValue, this.maxValue);
   }
 
-  private setValue(value: f32, emit: bool): void {
+  private setValue(value: f32, emit: bool, announce: bool = emit): void {
     const normalized = this.normalizeValue(value);
     if (normalized == this.currentValue) {
       this.syncPresentation();
@@ -344,14 +340,17 @@ export class Slider extends FlexBox implements DragGestureHost {
     this.semanticValueRange(this.currentValue, this.minValue, this.maxValue);
     this.syncPresentation();
     if (emit) {
-      this.requestSemanticAnnouncement();
+      if (announce) {
+        this.requestSemanticAnnouncement();
+      }
+      const event = new SliderChangedEventArgs(this.currentValue);
       const callback = this.changedCallback;
       if (callback !== null) {
-        callback(this.currentValue);
+        callback(event);
       }
       const binding = this.changedBinding;
       if (binding !== null) {
-        binding.invoke(this.currentValue);
+        binding.invoke(event);
       }
     }
   }
@@ -401,8 +400,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     this.cornerRadius(theme.spacing.sm);
     this.border(
       SLIDER_FOCUS_BORDER_WIDTH,
-      theme.colors.background,
-      BorderStyle.Solid,
+      theme.colors.background
     );
     this.padding(SLIDER_PADDING, SLIDER_PADDING, SLIDER_PADDING, SLIDER_PADDING);
     this.opacity(this.isEnabled ? 1.0 : 0.6);

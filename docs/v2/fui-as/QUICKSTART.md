@@ -86,6 +86,16 @@ The generated project includes:
 4. `generate:host*`, `dev`, `build`, and `test` scripts with runtime staging and watch rebuilds (`build`/`test` regenerate host bindings automatically).
 5. `tsconfig.json` that extends `assemblyscript/std/assembly.json` so `src/**/*.ts` is treated as AssemblyScript in editor/type tooling.
 
+## Debug retained UI
+
+Generated apps emit `buildMode` into runtime config. Debug builds default the
+DevTools DOM Mirror to on-requested, and publish/release builds default it to
+disabled. Press `Shift+Meta+F12` to open the debug dialog when the mode allows
+it, then enable the mirror or Inspect Mode from there.
+
+See [DevTools DOM Mirror](../browser-bridge/DEVTOOLS_DOM_MIRROR.md) for the
+console APIs, DOM shape, and override options.
+
 ## 3. Public import barrels
 
 Use only the public barrels when authoring apps, demos, or custom controls:
@@ -571,6 +581,84 @@ stable semantic state like selected tabs, expanded sections, draft filters, or
 splitter ratios, and avoid runtime-only state like hover, pressed, live focus,
 raw handles, or IME composition. Built-in text persistence intentionally skips
 password fields.
+
+## Custom drawing, bitmap text, and immediate text
+
+`Bitmap` provides a retained pixel buffer backed by a GPU texture. It can be
+edited directly, drawn into with `DrawContext`, and used as an off-screen target
+for text rendered through the same HarfBuzz pipeline as retained `Text` and
+`RichText`.
+
+```ts
+const bmp = new Bitmap(200, 100);
+
+// Direct pixel access
+bmp.pixels()[0] = 255;   // red channel of first pixel
+bmp.commit();             // upload to GPU
+
+// Canvas drawing
+const ctx = bmp.canvas();
+ctx.drawRect(0, 0, 50, 50, Paint.fill(rgba(255, 0, 0, 255)));
+ctx.flush();
+bmp.commit();
+
+// Memory bitmap text with absolute logical placement
+const label = new Text("Hello")
+  .fontFamily(theme.fonts.bodyFamily)
+  .fontSize(24)
+  .textColor(rgba(255, 255, 255, 255))
+  .width(200).height(100);
+label.build();
+
+Bitmap.onTextReady(label, () => {
+  bmp.render(label, 12, 32, devicePixelRatio());
+  bmp.commit();
+});
+```
+
+For immediate-mode text in `CustomDrawable.draw(ctx)`, prepare a reusable layout
+and draw it once ready:
+
+```ts
+const title = TextLayout.text("Revenue")
+  .fontFamily(theme.fonts.bodyFamily)
+  .fontSize(13)
+  .color(rgba(255, 255, 255, 230))
+  .onReadyWith(this, (owner, _layout) => owner.markDirty());
+
+const value = DynamicTextLayout.numeric()
+  .precision(1)
+  .suffix("%")
+  .fontFamily(theme.fonts.monoFamily)
+  .fontSize(12)
+  .color(rgba(255, 255, 255, 230))
+  .onReadyWith(this, (owner, _layout) => owner.markDirty());
+
+value.setValue(42.67);
+
+if (title.isReady) ctx.drawTextLayout(title, 16, 24);
+if (value.isReady) {
+  const m = value.measure();
+  ctx.drawRoundRect(12, 40, m.width + 10, 22, 5, 5, Paint.fill(rgba(8, 10, 18, 220)));
+  ctx.drawTextLayout(value, 17, 44);
+}
+```
+
+See [Bitmap](./reference/nodes/Bitmap.md),
+[TextLayout](./reference/nodes/TextLayout.md), and
+[DynamicTextLayout](./reference/nodes/DynamicTextLayout.md) for details.
+
+Texture sampling is explicit when you need non-default scaling behavior.
+Retained images/SVG raster variants and immediate `drawImage(...)` default to
+`ImageSampling.linear()`. Use `ImageSampling.nearest()` for pixel art or
+`ImageSampling.cubicMitchell()` for higher-quality scaled UI imagery:
+
+```ts
+Image.load("/sprites/icon.png")
+  .sampling(ImageSampling.nearest());
+
+ctx.drawImage(textureId, 12, 12, 96, 96, ImageSampling.cubicMitchell());
+```
 
 ## See also
 

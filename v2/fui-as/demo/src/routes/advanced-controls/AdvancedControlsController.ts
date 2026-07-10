@@ -1,4 +1,16 @@
-import { AnimationTiming, Easings, ScrollBarVisibility, SemanticCheckedState, Theme, Visibility, Worker, activeTheme } from "../../../../src/Fui";
+import {
+  AnimationTiming,
+  Easings,
+  ScrollBarVisibility,
+  SemanticCheckedState,
+  Theme,
+  Visibility,
+  Worker,
+  WorkerCompletedEventArgs,
+  WorkerErrorEventArgs,
+  WorkerProgressEventArgs,
+  activeTheme,
+} from "../../../../src/Fui";
 import { RoutePageLifecycleOwner, RoutePageSection } from "../../design-system";
 import { AdvancedControlsModel } from "./AdvancedControlsModel";
 import { ExternalDropDemoSection } from "./external-drop/ExternalDropDemoSection";
@@ -50,14 +62,16 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
   readonly reorderDemo: ReorderDemoSection = new ReorderDemoSection();
   readonly fetchDemo: FetchDemoSection = new FetchDemoSection();
   readonly externalDropDemo: ExternalDropDemoSection = new ExternalDropDemoSection();
+  private syncingVerticalPolicyState: bool = false;
+  private syncingHorizontalPolicyState: bool = false;
 
   constructor() {
-    this.view.readOnlyToggle.onChangedWith(this, (controller, state) => {
-      controller.view.textArea.readOnly(state != SemanticCheckedState.False);
+    this.view.readOnlyToggle.onChangedWith(this, (controller, event) => {
+      controller.view.textArea.readOnly(event.state != SemanticCheckedState.False);
       controller.syncStatus();
     });
-    this.view.wrappingToggle.onChangedWith(this, (controller, state) => {
-      const enabled = state != SemanticCheckedState.False;
+    this.view.wrappingToggle.onChangedWith(this, (controller, event) => {
+      const enabled = event.state != SemanticCheckedState.False;
       controller.view.textArea.wrapping(enabled);
       if (enabled) {
         controller.view.horizontalPolicyGroup.selectIndex(0);
@@ -65,79 +79,96 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
       controller.syncHorizontalPolicy();
       controller.syncStatus();
     });
-    this.view.alwaysVerticalToggle.onChangedWith(this, (controller, state) => {
-      if (state != SemanticCheckedState.False) {
+    this.view.acceptsTabToggle.onChangedWith(this, (controller, event) => {
+      controller.view.textArea.acceptsTab(event.state != SemanticCheckedState.False);
+      controller.syncStatus();
+    });
+    this.view.alwaysVerticalToggle.onChangedWith(this, (controller, event) => {
+      if (controller.syncingVerticalPolicyState) {
+        return;
+      }
+      if (event.state != SemanticCheckedState.False) {
         controller.view.neverVerticalToggle.check(false);
       }
       controller.syncVerticalPolicyFromCheckboxes();
     });
-    this.view.neverVerticalToggle.onChangedWith(this, (controller, state) => {
-      if (state != SemanticCheckedState.False) {
+    this.view.neverVerticalToggle.onChangedWith(this, (controller, event) => {
+      if (controller.syncingVerticalPolicyState) {
+        return;
+      }
+      if (event.state != SemanticCheckedState.False) {
         controller.view.alwaysVerticalToggle.check(false);
       }
       controller.syncVerticalPolicyFromCheckboxes();
     });
-    this.view.alwaysHorizontalToggle.onChangedWith(this, (controller, state) => {
-      if (state != SemanticCheckedState.False) {
+    this.view.alwaysHorizontalToggle.onChangedWith(this, (controller, event) => {
+      if (controller.syncingHorizontalPolicyState) {
+        return;
+      }
+      if (event.state != SemanticCheckedState.False) {
         controller.view.neverHorizontalToggle.check(false);
       }
       controller.syncHorizontalPolicyFromCheckboxes();
     });
-    this.view.neverHorizontalToggle.onChangedWith(this, (controller, state) => {
-      if (state != SemanticCheckedState.False) {
+    this.view.neverHorizontalToggle.onChangedWith(this, (controller, event) => {
+      if (controller.syncingHorizontalPolicyState) {
+        return;
+      }
+      if (event.state != SemanticCheckedState.False) {
         controller.view.alwaysHorizontalToggle.check(false);
       }
       controller.syncHorizontalPolicyFromCheckboxes();
     });
-    this.view.textArea.onFocusChangedWith(this, (controller, _focused) => {
+    this.view.textArea.onFocusChangedWith(this, (controller, _event) => {
       controller.syncStatus();
     });
-    this.view.textArea.onSelectionChangedWith(this, (controller, _start, _end) => {
+    this.view.textArea.onSelectionChangedWith(this, (controller, _event) => {
       controller.syncStatus();
     });
-    this.view.textArea.onChangedWith(this, (controller, _text) => {
+    this.view.textArea.onChangedWith(this, (controller, _event) => {
       controller.syncStatus();
     });
-    this.view.verticalPolicyGroup.onChangedWith(this, (controller, _value) => {
+    this.view.verticalPolicyGroup.onChangedWith(this, (controller, _event) => {
       controller.syncVerticalPolicy();
     });
-    this.view.horizontalPolicyGroup.onChangedWith(this, (controller, _value) => {
+    this.view.horizontalPolicyGroup.onChangedWith(this, (controller, _event) => {
       controller.syncHorizontalPolicy();
     });
-    this.view.lineHeightGroup.onChangedWith(this, (controller, _value) => {
+    this.view.lineHeightGroup.onChangedWith(this, (controller, _event) => {
       controller.syncLineHeight();
     });
-    this.view.fontModeGroup.onChangedWith(this, (controller, _value) => {
+    this.view.fontModeGroup.onChangedWith(this, (controller, _event) => {
       controller.syncFontMode();
     });
-    this.view.visibilityDropdown.onChangedWith(this, (controller, _item, _index) => {
+    this.view.visibilityDropdown.onChangedWith(this, (controller, _event) => {
       controller.syncVisibility();
     });
-    this.view.animationPreviewCalmButton.onClickWith(this, (controller) => {
+    this.view.animationPreviewCalmButton.onClickWith(this, (controller, _event) => {
       controller.setAnimationPreview(false);
     });
-    this.view.animationPreviewEmphasisButton.onClickWith(this, (controller) => {
+    this.view.animationPreviewEmphasisButton.onClickWith(this, (controller, _event) => {
       controller.setAnimationPreview(true);
     });
-    this.view.animationScrollTopButton.onClickWith(this, (controller) => {
+    this.view.animationScrollTopButton.onClickWith(this, (controller, _event) => {
       controller.animateScrollSamples("top", 0.0);
     });
-    this.view.animationScrollMiddleButton.onClickWith(this, (controller) => {
+    this.view.animationScrollMiddleButton.onClickWith(this, (controller, _event) => {
       controller.animateScrollSamples("midpoint", ANIMATION_SCROLL_MIDDLE_OFFSET);
     });
-    this.view.animationScrollBottomButton.onClickWith(this, (controller) => {
+    this.view.animationScrollBottomButton.onClickWith(this, (controller, _event) => {
       controller.animateScrollSamples("final", ANIMATION_SCROLL_FINAL_OFFSET);
     });
-    this.view.animationScrollTailButton.onClickWith(this, (controller) => {
+    this.view.animationScrollTailButton.onClickWith(this, (controller, _event) => {
       controller.animateScrollSamples("logical tail", ANIMATION_SCROLL_LOGICAL_TAIL_OFFSET);
     });
-    this.view.workerStartButton.onClickWith(this, (controller) => {
+    this.view.workerStartButton.onClickWith(this, (controller, _event) => {
       controller.startLargestPrimeCalculator();
     });
-    this.view.workerCancelButton.onClickWith(this, (controller) => {
+    this.view.workerCancelButton.onClickWith(this, (controller, _event) => {
       controller.cancelLargestPrimeCalculator();
     });
     this.syncFontMode();
+    this.view.textArea.acceptsTab(this.view.acceptsTabToggle.checked);
     this.syncVerticalPolicy();
     this.syncHorizontalPolicy();
     this.syncLineHeight();
@@ -199,6 +230,7 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
   }
 
   private syncVerticalPolicyFromCheckboxes(): void {
+    this.syncingVerticalPolicyState = true;
     if (this.view.neverVerticalToggle.checked) {
       this.view.verticalPolicyGroup.selectIndex(2);
     } else if (this.view.alwaysVerticalToggle.checked) {
@@ -206,11 +238,13 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
     } else {
       this.view.verticalPolicyGroup.selectIndex(0);
     }
+    this.syncingVerticalPolicyState = false;
     this.syncVerticalPolicy();
     this.syncStatus();
   }
 
   private syncHorizontalPolicyFromCheckboxes(): void {
+    this.syncingHorizontalPolicyState = true;
     if (this.view.neverHorizontalToggle.checked) {
       this.view.horizontalPolicyGroup.selectIndex(2);
     } else if (this.view.alwaysHorizontalToggle.checked) {
@@ -218,46 +252,55 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
     } else {
       this.view.horizontalPolicyGroup.selectIndex(0);
     }
+    this.syncingHorizontalPolicyState = false;
     this.syncHorizontalPolicy();
     this.syncStatus();
   }
 
   private syncVerticalPolicy(): void {
+    this.syncingVerticalPolicyState = true;
     const value = this.view.verticalPolicyGroup.selectedValue;
     if (value == "never") {
       this.view.textArea.verticalScrollbarVisibility(ScrollBarVisibility.Never);
       this.view.alwaysVerticalToggle.check(false);
       this.view.neverVerticalToggle.check(true);
+      this.syncingVerticalPolicyState = false;
       return;
     }
     if (value == "always") {
       this.view.textArea.verticalScrollbarVisibility(ScrollBarVisibility.Always);
       this.view.alwaysVerticalToggle.check(true);
       this.view.neverVerticalToggle.check(false);
+      this.syncingVerticalPolicyState = false;
       return;
     }
     this.view.textArea.verticalScrollbarVisibility(ScrollBarVisibility.Auto);
     this.view.alwaysVerticalToggle.check(false);
     this.view.neverVerticalToggle.check(false);
+    this.syncingVerticalPolicyState = false;
   }
 
   private syncHorizontalPolicy(): void {
+    this.syncingHorizontalPolicyState = true;
     const value = this.view.horizontalPolicyGroup.selectedValue;
     if (value == "never") {
       this.view.textArea.horizontalScrollbarVisibility(ScrollBarVisibility.Never);
       this.view.alwaysHorizontalToggle.check(false);
       this.view.neverHorizontalToggle.check(true);
+      this.syncingHorizontalPolicyState = false;
       return;
     }
     if (value == "always") {
       this.view.textArea.horizontalScrollbarVisibility(ScrollBarVisibility.Always);
       this.view.alwaysHorizontalToggle.check(true);
       this.view.neverHorizontalToggle.check(false);
+      this.syncingHorizontalPolicyState = false;
       return;
     }
     this.view.textArea.horizontalScrollbarVisibility(ScrollBarVisibility.Auto);
     this.view.alwaysHorizontalToggle.check(false);
     this.view.neverHorizontalToggle.check(false);
+    this.syncingHorizontalPolicyState = false;
   }
 
   private syncLineHeight(): void {
@@ -333,19 +376,19 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
     this.model.workerStateLabel = "running";
     this.view.workerProgressBar.value(0.0);
     this.view.workerDetailText.text("Largest-prime calculator is running for 5 seconds and yields once per second.");
-    const worker = Worker.start("largestPrimeCalculatorWorker")
-      .onProgress(this, (controller, message) => {
-        controller.handleWorkerProgress(message);
+    const worker = new Worker("./workers/advanced_controls_workers.wasm", "largestPrimeCalculatorWorker")
+      .onProgress(this, (controller, event) => {
+        controller.handleWorkerProgress(event);
       })
-      .onComplete(this, (controller, result) => {
-        controller.handleWorkerComplete(result);
+      .onComplete(this, (controller, event) => {
+        controller.handleWorkerComplete(event);
       })
-      .onError(this, (controller, message) => {
-        controller.handleWorkerError(message);
+      .onError(this, (controller, event) => {
+        controller.handleWorkerError(event);
       });
     this.model.activeWorker = worker;
     this.syncWorkerUi();
-    worker.sendString("advanced-controls-demo");
+    worker.start("advanced-controls-demo");
   }
 
   private cancelLargestPrimeCalculator(): void {
@@ -359,25 +402,26 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
     worker.cancel();
   }
 
-  private handleWorkerProgress(message: string): void {
-    this.model.workerProgressPercent = parseLeadingPercent(message);
+  private handleWorkerProgress(event: WorkerProgressEventArgs): void {
+    this.model.workerProgressPercent = parseLeadingPercent(event.message);
     this.model.workerStateLabel = "running";
     this.view.workerProgressBar.value(<f32>this.model.workerProgressPercent);
     this.view.workerDetailText.text("Prime search progress: " + this.model.workerProgressPercent.toString() + "%.");
     this.syncWorkerUi();
   }
 
-  private handleWorkerComplete(result: string): void {
+  private handleWorkerComplete(event: WorkerCompletedEventArgs): void {
     this.model.activeWorker = null;
     this.model.workerProgressPercent = 100;
     this.model.workerStateLabel = "complete";
     this.view.workerProgressBar.value(100.0);
-    this.view.workerDetailText.text("Largest prime after 5s: " + result);
+    this.view.workerDetailText.text("Largest prime after 5s: " + event.result);
     this.syncWorkerUi();
   }
 
-  private handleWorkerError(message: string): void {
+  private handleWorkerError(event: WorkerErrorEventArgs): void {
     this.model.activeWorker = null;
+    const message = event.message;
     if (message.indexOf("cancelled:") == 0) {
       const cancelledPercent = parseLeadingPercent(message);
       if (cancelledPercent > this.model.workerProgressPercent) {
@@ -424,6 +468,7 @@ export class AdvancedControlsController implements RoutePageLifecycleOwner {
     const summary =
       "Read-only: " + (this.view.textArea.isReadOnly ? "on" : "off") +
       " • Wrapping: " + (this.view.wrappingToggle.checked ? "on" : "off") +
+      " • Tabs: " + (this.view.acceptsTabToggle.checked ? "insert" : "traverse") +
       " • Visibility: " + this.visibilitySummaryLabel() +
       " • Vertical: " + this.view.verticalPolicyGroup.selectedValue +
       " • Horizontal: " + this.view.horizontalPolicyGroup.selectedValue +

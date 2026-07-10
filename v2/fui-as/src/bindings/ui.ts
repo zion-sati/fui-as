@@ -180,6 +180,42 @@ export function setFlexWrap(handle: u64, wrap: u32): void {
   ffi.ui_set_flex_wrap(handle, wrap);
 }
 
+export function prepareNode(handle: u64): u32 {
+  return ffi.ui_prepare_node(handle);
+}
+
+export function setDynamicTextCharset(handle: u64, charset: string): void {
+  const bytes = encodeUtf8(charset);
+  ffi.ui_set_dynamic_text_charset(handle, bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length);
+}
+
+export function registerTextInputMetadata(handle: u64, isPassword: bool, hostAutofillHint: string | null): void {
+  if (hostAutofillHint === null || hostAutofillHint.length == 0) {
+    ffi.fui_register_text_input_metadata(handle, isPassword, 0, 0);
+    return;
+  }
+  const bytes = encodeUtf8(hostAutofillHint);
+  ffi.fui_register_text_input_metadata(handle, isPassword, bytes.dataStart, <u32>bytes.length);
+}
+
+export function tryGetTextMetrics(handle: u64): Float32Array | null {
+  const values = new Float32Array(5);
+  const lineCount = new Uint32Array(1);
+  const found = ffi.ui_get_text_metrics(
+    handle,
+    values.dataStart,
+    values.dataStart + sizeof<f32>(),
+    values.dataStart + (sizeof<f32>() * 2),
+    lineCount.dataStart,
+    values.dataStart + (sizeof<f32>() * 4),
+  );
+  if (!found) {
+    return null;
+  }
+  unchecked(values[3] = <f32>unchecked(lineCount[0]));
+  return values;
+}
+
 export function gridSetColumns(handle: u64, values: Float32Array, types: Uint8Array): void {
   ffi.ui_grid_set_columns(
     handle,
@@ -263,8 +299,8 @@ export function setBackgroundBlur(handle: u64, blurSigma: f32): void {
   ffi.ui_set_background_blur(handle, blurSigma);
 }
 
-export function setImage(handle: u64, textureId: u32, objectFit: u32): void {
-  ffi.ui_set_image(handle, textureId, objectFit);
+export function setImage(handle: u64, textureId: u32, objectFit: u32, samplingKind: u32, maxAniso: u32): void {
+  ffi.ui_set_image(handle, textureId, objectFit, samplingKind, maxAniso);
 }
 
 export function setImageNine(
@@ -274,12 +310,14 @@ export function setImageNine(
   insetTop: f32,
   insetRight: f32,
   insetBottom: f32,
+  samplingKind: u32,
+  maxAniso: u32,
 ): void {
-  ffi.ui_set_image_nine(handle, textureId, insetLeft, insetTop, insetRight, insetBottom);
+  ffi.ui_set_image_nine(handle, textureId, insetLeft, insetTop, insetRight, insetBottom, samplingKind, maxAniso);
 }
 
-export function setSvg(handle: u64, svgId: u32, tintColor: u32): void {
-  ffi.ui_set_svg(handle, svgId, tintColor);
+export function setSvg(handle: u64, svgId: u32, tintColor: u32, samplingKind: u32, maxAniso: u32): void {
+  ffi.ui_set_svg(handle, svgId, tintColor, samplingKind, maxAniso);
 }
 
 export function setLinearGradient(
@@ -301,10 +339,9 @@ export function setLinearGradient(
     endX,
     endY,
     <u32>offsets.length,
+    offsets.length > 0 ? offsets.dataStart : 0,
+    colors.length > 0 ? colors.dataStart : 0,
   );
-  for (let i = 0; i < offsets.length; ++i) {
-    ffi.ui_push_linear_gradient_stop(handle, unchecked(offsets[i]), unchecked(colors[i]));
-  }
 }
 
 export function setClipToBounds(handle: u64, clip: bool): void {
@@ -313,6 +350,10 @@ export function setClipToBounds(handle: u64, clip: bool): void {
 
 export function setInteractive(handle: u64, flag: bool): void {
   ffi.ui_set_interactive(handle, flag);
+}
+
+export function setPreserveSelectionOnPointerDown(handle: u64, preserve: bool): void {
+  ffi.ui_set_preserve_selection_on_pointer_down(handle, preserve);
 }
 
 export function setScrollProxyTarget(handle: u64, scrollHandle: u64): void {
@@ -329,6 +370,10 @@ export function setShowScrollbars(handle: u64, showScrollbars: bool): void {
 
 export function setScrollFriction(handle: u64, friction: f32): void {
   ffi.ui_set_scroll_friction(handle, friction);
+}
+
+export function setSmoothScrolling(handle: u64, smoothScrolling: bool): void {
+  ffi.ui_set_smooth_scrolling(handle, smoothScrolling);
 }
 
 export function setFocusable(handle: u64, flag: bool, tabIndex: i32): void {
@@ -378,6 +423,10 @@ export function bitmapCommit(textureId: u32, bytes: Uint8Array, width: u32, heig
 
 export function bitmapRelease(textureId: u32): void {
   ffi.fui_bitmap_release(textureId);
+}
+
+export function renderNodeToRgba(handle: u64, width: u32, height: u32, outPtr: usize, capacity: u32, scale: f32, x: f32, y: f32): u32 {
+  return ffi.fui_render_node_to_rgba(handle, width, height, outPtr, capacity, scale, x, y);
 }
 
 export function loadFont(fontId: u32, url: string): void {
@@ -445,6 +494,14 @@ export function setEditable(handle: u64, editable: bool): void {
   ffi.ui_set_editable(handle, editable);
 }
 
+export function setEditorCommandKeys(handle: u64, enabled: bool): void {
+  ffi.ui_set_editor_command_keys(handle, enabled);
+}
+
+export function setEditorAcceptsTab(handle: u64, enabled: bool): void {
+  ffi.ui_set_editor_accepts_tab(handle, enabled);
+}
+
 export function setCaretColor(handle: u64, color: u32): void {
   ffi.ui_set_caret_color(handle, color);
 }
@@ -487,6 +544,82 @@ export function isPointInSelection(x: f32, y: f32): bool {
 
 export function setTextSelectionRange(handle: u64, selectionStart: u32, selectionEnd: u32): void {
   ffi.ui_set_text_selection_range(handle, selectionStart, selectionEnd);
+}
+
+export function selectWordAt(handle: u64, x: f32, y: f32): bool {
+  return ffi.ui_select_word_at(handle, x, y);
+}
+
+export function beginSelectionEndpointDrag(handle: u64, endpoint: u32): bool {
+  return ffi.ui_begin_selection_endpoint_drag(handle, endpoint);
+}
+
+export class TextRangeRect {
+  readonly x: f32;
+  readonly y: f32;
+  readonly width: f32;
+  readonly height: f32;
+
+  constructor(x: f32, y: f32, width: f32, height: f32) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+  }
+}
+
+export function getTextRangeRects(handle: u64, start: u32, end: u32): Array<TextRangeRect> {
+  const rectCount = ffi.ui_get_text_range_rect_count(handle, start, end);
+  if (rectCount == 0) {
+    return new Array<TextRangeRect>();
+  }
+  const rectWords = new StaticArray<f32>(<i32>rectCount * 4);
+  const copiedCount = ffi.ui_copy_text_range_rects(handle, start, end, changetype<usize>(rectWords), rectCount);
+  if (copiedCount == 0) {
+    return new Array<TextRangeRect>();
+  }
+  const rects = new Array<TextRangeRect>(copiedCount);
+  for (let index: u32 = 0; index < copiedCount; ++index) {
+    const base = <i32>index * 4;
+    unchecked(rects[<i32>index] = new TextRangeRect(
+      unchecked(rectWords[base]),
+      unchecked(rectWords[base + 1]),
+      unchecked(rectWords[base + 2]),
+      unchecked(rectWords[base + 3]),
+    ));
+  }
+  return rects;
+}
+
+export class TextSelectionEndpointRects {
+  readonly start: TextRangeRect;
+  readonly end: TextRangeRect;
+
+  constructor(start: TextRangeRect, end: TextRangeRect) {
+    this.start = start;
+    this.end = end;
+  }
+}
+
+export function getCrossSelectionEndpointRects(areaHandle: u64): TextSelectionEndpointRects | null {
+  const rectWords = new StaticArray<f32>(8);
+  if (!ffi.ui_copy_cross_selection_endpoint_rects(areaHandle, changetype<usize>(rectWords))) {
+    return null;
+  }
+  return new TextSelectionEndpointRects(
+    new TextRangeRect(
+      unchecked(rectWords[0]),
+      unchecked(rectWords[1]),
+      unchecked(rectWords[2]),
+      unchecked(rectWords[3]),
+    ),
+    new TextRangeRect(
+      unchecked(rectWords[4]),
+      unchecked(rectWords[5]),
+      unchecked(rectWords[6]),
+      unchecked(rectWords[7]),
+    ),
+  );
 }
 
 export function clearCurrentSelection(): void {
@@ -554,6 +687,18 @@ export function tryGetBounds(handle: u64): Float32Array | null {
   return found ? values : null;
 }
 
+export function tryGetVisibleBounds(handle: u64): Float32Array | null {
+  const values = new Float32Array(4);
+  const found = ffi.ui_get_visible_bounds(
+    handle,
+    values.dataStart,
+    values.dataStart + sizeof<f32>(),
+    values.dataStart + (sizeof<f32>() * 2),
+    values.dataStart + (sizeof<f32>() * 3),
+  );
+  return found ? values : null;
+}
+
 export function resizeWindow(width: f32, height: f32): void {
   ffi.ui_resize_window(width, height);
 }
@@ -568,4 +713,8 @@ export function getViewportWidth(): f32 {
 
 export function getViewportHeight(): f32 {
   return ffi.get_viewport_height();
+}
+
+export function getDevicePixelRatio(): f32 {
+  return ffi.get_device_pixel_ratio();
 }

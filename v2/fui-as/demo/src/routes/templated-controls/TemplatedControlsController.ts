@@ -14,32 +14,32 @@ export class TemplatedControlsController implements RoutePageLifecycleOwner {
   private houseButtonClicks: i32 = 0;
 
   constructor() {
-    this.view.houseButton.onClickWith(this, (controller) => {
+    this.view.houseButton.onClickWith(this, (controller, _event) => {
       controller.houseButtonClicks += 1;
       controller.syncSummary();
     });
-    this.view.houseCheckbox.onChangedWith(this, (controller, _state) => {
+    this.view.houseCheckbox.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.overrideCheckbox.onChangedWith(this, (controller, _state) => {
+    this.view.overrideCheckbox.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.houseSwitch.onChangedWith(this, (controller, _checked) => {
+    this.view.houseSwitch.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.modeGroup.onChangedWith(this, (controller, _value) => {
+    this.view.modeGroup.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.intensitySlider.onChangedWith(this, (controller, _value) => {
+    this.view.intensitySlider.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.houseDropdown.onChangedWith(this, (controller, _item, _index) => {
+    this.view.houseDropdown.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.houseTextInput.onChangedWith(this, (controller, _value) => {
+    this.view.houseTextInput.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
-    this.view.houseTextArea.onChangedWith(this, (controller, _value) => {
+    this.view.houseTextArea.onChangedWith(this, (controller, _event) => {
       controller.syncSummary();
     });
     this.syncSummary();

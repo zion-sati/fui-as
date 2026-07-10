@@ -1,4 +1,4 @@
-import { Disposable, TextArea, Theme, bindTheme, disposeAll } from "../../../../src/Fui";
+import { Border, Disposable, TextArea, Theme, bindTheme, disposeAll } from "../../../../src/Fui";
 import { DemoFieldRecipe, resolveDemoFieldRecipe } from "./recipes";
 
 export class DemoTextArea extends TextArea {
@@ -23,7 +23,7 @@ export class DemoTextArea extends TextArea {
     this
       .bgColor(style.background)
       .cornerRadius(style.radius)
-      .border(style.borderWidth, style.borderColor, style.borderStyle);
+      .borderConfig(new Border(style.borderWidth, style.borderColor, style.borderStyle));
   }
 
   private trackDemoTheme(disposable: Disposable): void {

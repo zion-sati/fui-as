@@ -1,5 +1,6 @@
 import { FlexBox } from "./FlexBox";
 import { DrawContext } from "../drawing/DrawContext";
+import { NodeType } from "../core/ffi";
 import * as ui from "../bindings/ui";
 import { markNeedsCommit } from "../core/FrameScheduler";
 
@@ -35,7 +36,7 @@ export abstract class CustomDrawable extends FlexBox {
   abstract draw(ctx: DrawContext): void;
 
   build(): u64 {
-    this.buildStyledNode(0); // 0 = NodeType.FlexBox
+    this.buildStyledNode(NodeType.FlexBox);
     ui.setCustomDrawable(this.handle, true);
     return this.handle;
   }
@@ -49,6 +50,12 @@ export abstract class CustomDrawable extends FlexBox {
    * render.
    */
   markDirty(): void {
+    if (this.handle !== 0) {
+      const visibleBounds = ui.tryGetVisibleBounds(this.handle);
+      if (visibleBounds === null || unchecked(visibleBounds[2]) <= 0.0 || unchecked(visibleBounds[3]) <= 0.0) {
+        return;
+      }
+    }
     markNeedsCommit();
   }
 }

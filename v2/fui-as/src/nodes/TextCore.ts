@@ -1,7 +1,7 @@
 import * as ui from "../bindings/ui";
 import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
-import { Node } from "../core/Node";
+import { PointerClickEventArgs, PointerEventArgs, Node, SelectionChangedEventArgs, TextChangedEventArgs } from "../core/Node";
 import { warn } from "../core/Logger";
 import { Theme, activeTheme } from "../core/Theme";
 import { FontFamily, FontStack, FontStyle, FontWeight } from "../core/Typography";
@@ -78,6 +78,62 @@ export class TextProps {
   hasSelectable: bool = false;
 }
 
+function utf8CodeUnitByteLength(codeUnit: u32): u32 {
+  if (codeUnit <= 0x7F) {
+    return 1;
+  }
+  if (codeUnit <= 0x7FF) {
+    return 2;
+  }
+  return 3;
+}
+
+function utf8CodePointByteLength(codePoint: u32): u32 {
+  if (codePoint <= 0x7F) {
+    return 1;
+  }
+  if (codePoint <= 0x7FF) {
+    return 2;
+  }
+  if (codePoint <= 0xFFFF) {
+    return 3;
+  }
+  return 4;
+}
+
+function readCodePoint(text: string, index: i32): u32 {
+  const first = <u32>text.charCodeAt(index);
+  if (first < 0xD800 || first > 0xDBFF || index + 1 >= text.length) {
+    return first;
+  }
+  const second = <u32>text.charCodeAt(index + 1);
+  if (second < 0xDC00 || second > 0xDFFF) {
+    return first;
+  }
+  return 0x10000 + ((first - 0xD800) << 10) + (second - 0xDC00);
+}
+
+function codePointStringLength(codePoint: u32): i32 {
+  return codePoint > 0xFFFF ? 2 : 1;
+}
+
+function stringOffsetFromUtf8ByteOffset(text: string, byteOffset: u32): i32 {
+  let bytes: u32 = 0;
+  let cursor = 0;
+  while (cursor < text.length) {
+    const codePoint = readCodePoint(text, cursor);
+    const byteLength = codePoint > 0xFFFF
+      ? utf8CodePointByteLength(codePoint)
+      : utf8CodeUnitByteLength(codePoint);
+    if (bytes + byteLength > byteOffset) {
+      break;
+    }
+    bytes += byteLength;
+    cursor += codePointStringLength(codePoint);
+  }
+  return cursor;
+}
+
 export class TextCore extends Node {
   private contentValue: string;
   private widthValue: f32 = 0.0;
@@ -133,13 +189,17 @@ export class TextCore extends Node {
   private hasObscured: bool = false;
   private editableValue: bool = false;
   private hasEditable: bool = false;
+  private editorCommandKeysValue: bool = false;
+  private hasEditorCommandKeys: bool = false;
+  private editorAcceptsTabValue: bool = false;
+  private hasEditorAcceptsTab: bool = false;
   private caretColorValue: u32 = 0;
   private hasCaretColor: bool = false;
   private selectableValue: bool = false;
   private selectionColor: u32 = 0;
   private hasSelectable: bool = false;
-  private textChangedCb: ((text: string) => void) | null = null;
-  private selectionChangedCb: ((start: u32, end: u32) => void) | null = null;
+  private textChangedCb: ((event: TextChangedEventArgs) => void) | null = null;
+  private selectionChangedCb: ((event: SelectionChangedEventArgs) => void) | null = null;
   private selectionStartValue: u32 = 0;
   private selectionEndValue: u32 = 0;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
@@ -326,14 +386,15 @@ export class TextCore extends Node {
     return this;
   }
 
-  font(fontId: u32, size: f32): this {
+  /** @internal */
+  _fontId(fontId: u32, size: f32): this {
     this.usesDirectFontId = true;
     this.fontFamilyValue = null;
     this.fontId = fontId;
     this.fontSizeValue = size;
     this.hasFont = true;
     if (fontId == 0) {
-      warn("Typography", "Text.font() received font id 0; the text will render with the default font fallback.");
+      warn("Typography", "Text._fontId() received font id 0; the text will render with the default font fallback.");
     }
     if (this.hasBuiltHandle()) {
       this.applyResolvedFont();
@@ -342,7 +403,7 @@ export class TextCore extends Node {
   }
 
   fontStack(stack: FontStack, size: f32): this {
-    this.font(stack.id, size);
+    this._fontId(stack.id, size);
     return this;
   }
 
@@ -495,6 +556,26 @@ export class TextCore extends Node {
     return this;
   }
 
+  _editorCommandKeys(flag: bool = true): this {
+    this.editorCommandKeysValue = flag;
+    this.hasEditorCommandKeys = true;
+    if (this.hasBuiltHandle()) {
+      ui.setEditorCommandKeys(this.handle, flag);
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
+  _editorAcceptsTab(flag: bool = true): this {
+    this.editorAcceptsTabValue = flag;
+    this.hasEditorAcceptsTab = true;
+    if (this.hasBuiltHandle()) {
+      ui.setEditorAcceptsTab(this.handle, flag);
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
   caretColor(color: u32): this {
     this.caretColorValue = color;
     this.hasCaretColor = true;
@@ -522,27 +603,27 @@ export class TextCore extends Node {
     return this;
   }
 
-  onTextChanged(cb: (text: string) => void): this {
+  onTextChanged(cb: (event: TextChangedEventArgs) => void): this {
     this.textChangedCb = cb;
     return this;
   }
 
-  onSelectionChanged(cb: (start: u32, end: u32) => void): this {
+  onSelectionChanged(cb: (event: SelectionChangedEventArgs) => void): this {
     this.selectionChangedCb = cb;
     return this;
   }
 
-  onClick(cb: () => void): this {
-    super.onClick(cb);
+  onPointerClick(cb: (event: PointerClickEventArgs) => void): this {
+    super.onPointerClick(cb);
     return this;
   }
 
-  onPointerEnter(cb: () => void): this {
+  onPointerEnter(cb: (event: PointerEventArgs) => void): this {
     super.onPointerEnter(cb);
     return this;
   }
 
-  onPointerLeave(cb: () => void): this {
+  onPointerLeave(cb: (event: PointerEventArgs) => void): this {
     super.onPointerLeave(cb);
     return this;
   }
@@ -620,6 +701,12 @@ export class TextCore extends Node {
     if (this.hasEditable) {
       ui.setEditable(this.handle, this.editableValue);
     }
+    if (this.hasEditorCommandKeys) {
+      ui.setEditorCommandKeys(this.handle, this.editorCommandKeysValue);
+    }
+    if (this.hasEditorAcceptsTab) {
+      ui.setEditorAcceptsTab(this.handle, this.editorAcceptsTabValue);
+    }
     if (this.hasSelectable) {
       ui.setSelectable(this.handle, this.selectableValue, this.selectionColor);
     }
@@ -639,6 +726,15 @@ export class TextCore extends Node {
       return this.hasWidth && this.widthUnit == Unit.Percent ? this.widthValue : -1.0;
     }
     return this.hasHeight && this.heightUnit == Unit.Percent ? this.heightValue : -1.0;
+  }
+
+  _requiredFontIds(): Array<u32> {
+    const fontIds = new Array<u32>();
+    const fontId = this.resolveFontId();
+    if (fontId != 0) {
+      fontIds.push(fontId);
+    }
+    return fontIds;
   }
 
   private handleThemeChanged(theme: Theme): void {
@@ -685,20 +781,19 @@ export class TextCore extends Node {
     this.contentValue = text;
     const callback = this.textChangedCb;
     if (callback !== null) {
-      callback(text);
+      callback(new TextChangedEventArgs(text));
     }
   }
 
   _handleTextReplaced(start: u32, end: u32, text: string): void {
-    const length = this.contentValue.length;
-    const clampedStart = min<u32>(start, <u32>length);
-    const clampedEnd = min<u32>(max<u32>(start, end), <u32>length);
-    const prefix = this.contentValue.substring(0, <i32>clampedStart);
-    const suffix = this.contentValue.substring(<i32>clampedEnd);
+    const startOffset = stringOffsetFromUtf8ByteOffset(this.contentValue, start);
+    const endOffset = stringOffsetFromUtf8ByteOffset(this.contentValue, max<u32>(start, end));
+    const prefix = this.contentValue.substring(0, startOffset);
+    const suffix = this.contentValue.substring(endOffset);
     this.contentValue = prefix + text + suffix;
     const callback = this.textChangedCb;
     if (callback !== null) {
-      callback(this.contentValue);
+      callback(new TextChangedEventArgs(this.contentValue));
     }
   }
 
@@ -707,7 +802,7 @@ export class TextCore extends Node {
     this.selectionEndValue = end;
     const callback = this.selectionChangedCb;
     if (callback !== null) {
-      callback(start, end);
+      callback(new SelectionChangedEventArgs(start, end));
     }
   }
 

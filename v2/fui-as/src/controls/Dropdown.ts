@@ -1,13 +1,12 @@
 import * as ui from "../bindings/ui";
 import { HandlerAction } from "../core/Action";
-import { Callback2, Handler2 } from "../core/BoundCallback";
+import { Callback1, Handler1 } from "../core/BoundCallback";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { EventRouter, GlobalKeyHandler } from "../core/EventRouter";
 import { FocusAdornerManager } from "../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../core/FocusVisibility";
 import {
   AlignItems,
-  BorderStyle,
   CursorStyle,
   FlexDirection,
   KeyEventType,
@@ -17,11 +16,11 @@ import {
 } from "../core/ffi";
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
-import { Node } from "../core/Node";
+import { DropdownChangedEventArgs, Node } from "../core/Node";
 import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState";
 import { registerScrollHook } from "../core/ScrollHooks";
-import { FlexBox, Portal, ScrollBarVisibility, ScrollBox, ScrollView } from "../nodes";
-import { bind2 } from "../core/bind";
+import { FlexBox, ScrollView } from "../nodes";
+import { bind1 } from "../core/bind";
 import { DropdownSizing } from "./ControlSizing";
 import { DropdownColors } from "./DropdownColors";
 import { getControlTemplates } from "./ControlTemplateSet";
@@ -37,18 +36,13 @@ import {
   DropdownFieldTemplate,
   DropdownFieldVisualState,
 } from "./internal/DropdownFieldPresenter";
+import { DropdownOptionRowTemplate } from "./internal/DropdownOptionRowPresenter";
 import {
-  createDefaultDropdownOptionRowPresenter,
-  DropdownOptionRowPresenter,
-  DropdownOptionRowTemplate,
-  DropdownOptionRowVisualState,
-} from "./internal/DropdownOptionRowPresenter";
-import { PopupPresenter } from "./internal/PopupPresenter";
+  SELECTABLE_POPUP_LIST_PANEL_PADDING,
+  SelectablePopupList,
+  SelectablePopupListOwner,
+} from "./internal/SelectablePopupList";
 
-const PANEL_EDGE_PADDING: f32 = 8.0;
-const OPTION_HEIGHT: f32 = 34.0;
-const PANEL_PADDING: f32 = 4.0;
-const UNLIMITED_VISIBLE_ITEMS: i32 = 0;
 const DEFAULT_PANEL_BACKGROUND_BLUR_SIGMA: f32 = 10.0;
 const DROPDOWN_PERSISTED_CODEC = new PersistedInt32Codec();
 
@@ -78,115 +72,31 @@ const DROPDOWN_PERSISTED_STATE = new PersistedDropdownState();
 
 function createFieldPresenter(template: DropdownFieldTemplate | null, sizing: DropdownSizing | null = null): DropdownFieldPresenter {
   if (template !== null) {
-    return template.create();
+    return template.create(sizing);
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.dropdownField : null;
   return appTemplate === null
     ? createDefaultDropdownFieldPresenter(sizing)
-    : appTemplate.create();
+    : appTemplate.create(sizing);
 }
 
 function createChevronPresenter(template: DropdownChevronTemplate | null, sizing: DropdownSizing | null = null): DropdownChevronPresenter {
   if (template !== null) {
-    return template.create();
+    return template.create(sizing);
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.dropdownChevron : null;
   return appTemplate === null
     ? createDefaultDropdownChevronPresenter(sizing)
-    : appTemplate.create();
-}
-
-function createOptionRowPresenter(template: DropdownOptionRowTemplate | null, sizing: DropdownSizing | null = null): DropdownOptionRowPresenter {
-  if (template !== null) {
-    return template.create();
-  }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.dropdownOptionRow : null;
-  return appTemplate === null
-    ? createDefaultDropdownOptionRowPresenter(sizing)
-    : appTemplate.create();
+    : appTemplate.create(sizing);
 }
 
 export class DropdownItem {
   constructor(readonly value: string, readonly label: string = value) {}
 }
 
-class DropdownOptionNode extends FlexBox {
-  private presenter: DropdownOptionRowPresenter;
-  private owner: Dropdown | null = null;
-  private slotIndex: i32 = -1;
-  private currentLabel: string = "";
-
-  constructor(template: DropdownOptionRowTemplate | null, sizing: DropdownSizing | null) {
-    super();
-    this.presenter = createOptionRowPresenter(template, sizing);
-    this.semanticRole(SemanticRole.ListItem);
-    this.width(100.0, Unit.Percent);
-    this.cursor(CursorStyle.Pointer);
-    this.focusable(false);
-    this.requireInteractive();
-    this.child(this.presenter.root);
-    this.syncPresenterLayout();
-  }
-
-  bindOwner(owner: Dropdown, slotIndex: i32): this {
-    this.owner = owner;
-    this.slotIndex = slotIndex;
-    return this;
-  }
-
-  label(label: string): this {
-    this.currentLabel = label;
-    this.semanticLabel(label);
-    this.presenter.labelNode.text(label);
-    return this;
-  }
-
-  template(template: DropdownOptionRowTemplate | null, sizing: DropdownSizing | null): void {
-    const previousPresenter = this.presenter;
-    const nextPresenter = createOptionRowPresenter(template, sizing);
-    this.presenter = nextPresenter;
-    this.removeChildNode(previousPresenter.root);
-    this.addChildNode(nextPresenter.root);
-    previousPresenter.root.dispose();
-    nextPresenter.labelNode.text(this.currentLabel);
-    this.syncPresenterLayout();
-  }
-
-  get rowHeight(): f32 {
-    return this.presenter.metrics.height;
-  }
-
-  applyTheme(theme: Theme, highlighted: bool, selected: bool, enabled: bool, colors: DropdownColors | null): void {
-    this.semanticSelected(selected);
-    this.semanticDisabled(!enabled);
-    this.presenter.apply(theme, new DropdownOptionRowVisualState(highlighted, selected, enabled), colors);
-  }
-
-  _handlePointerEvent(eventType: PointerEventType, x: f32, y: f32, modifiers: u32 = 0): void {
-    super._handlePointerEvent(eventType, x, y, modifiers);
-    const owner = this.owner;
-    if (owner === null) {
-      return;
-    }
-    if (eventType == PointerEventType.Enter) {
-      owner.highlightIndex(this.slotIndex);
-      return;
-    }
-    if (eventType == PointerEventType.Up) {
-      owner.selectHighlighted();
-    }
-  }
-
-  private syncPresenterLayout(): void {
-    this.height(this.presenter.metrics.height, Unit.Pixel);
-    this.presenter.root.fillSize();
-  }
-}
-
-export class Dropdown extends FlexBox implements GlobalKeyHandler {
+export class Dropdown extends FlexBox implements GlobalKeyHandler, SelectablePopupListOwner {
   private static activeInstance: Dropdown | null = null;
   private static scrollHookRegistered: bool = false;
 
@@ -195,14 +105,9 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   private optionRowTemplateValue: DropdownOptionRowTemplate | null = null;
   private sizingValue: DropdownSizing | null = null;
   private colorsValue: DropdownColors | null = null;
-  private fieldPresenter: DropdownFieldPresenter;
-  private chevronPresenter: DropdownChevronPresenter;
-  private readonly popupRoot: Portal;
-  private readonly panelNode: FlexBox;
-  private readonly popupPresenter: PopupPresenter;
-  private readonly popupScrollBox: ScrollBox;
-  private readonly optionsHost: FlexBox;
-  private readonly optionNodes: Array<DropdownOptionNode> = new Array<DropdownOptionNode>();
+  private fieldPresenter: DropdownFieldPresenter = changetype<DropdownFieldPresenter>(0);
+  private chevronPresenter: DropdownChevronPresenter = changetype<DropdownChevronPresenter>(0);
+  private popupList: SelectablePopupList = changetype<SelectablePopupList>(0);
   private readonly itemsValue: Array<DropdownItem> = new Array<DropdownItem>();
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private disposed: bool = false;
@@ -213,48 +118,23 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   private keyFilterToken: u32 = 0;
   private selectedIndexValue: i32 = -1;
   private highlightedIndexValue: i32 = -1;
-  private maxVisibleItemsValue: i32 = UNLIMITED_VISIBLE_ITEMS;
-  private popupWidthValue: f32 = 0.0;
   private popupPanelColorValue: u32 = 0x00000000;
   private popupPanelBackgroundBlurSigmaValue: f32 = DEFAULT_PANEL_BACKGROUND_BLUR_SIGMA;
   private popupPanelColorOverridden: bool = false;
   private popupPanelBackgroundBlurOverridden: bool = false;
-  private changedCallback: ((item: DropdownItem, index: i32) => void) | null = null;
-  private changedBinding: Callback2<DropdownItem, i32> | null = null;
+  private changedCallback: ((event: DropdownChangedEventArgs<DropdownItem>) => void) | null = null;
+  private changedBinding: Callback1<DropdownChangedEventArgs<DropdownItem>> | null = null;
 
   constructor() {
     super();
     Dropdown.ensureScrollHook();
     const fieldPresenter = createFieldPresenter(null, null);
     const chevronPresenter = createChevronPresenter(null, null);
-    const popupRoot = new Portal()
-      .positionAbsolute()
-      .position(0.0, 0.0)
-      .width(100.0, Unit.Percent)
-      .height(100.0, Unit.Percent) as Portal;
-    const popupScrollBox = new ScrollBox()
-      .scrollEnabledX(false)
-      .scrollEnabledY(true)
-      .horizontalScrollbarVisibility(ScrollBarVisibility.Never)
-      .verticalScrollbarVisibility(ScrollBarVisibility.Auto);
-    const optionsHost = new FlexBox()
-      .flexDirection(FlexDirection.Column);
-    const panelNode = new FlexBox()
-      .positionAbsolute()
-      .flexDirection(FlexDirection.Column);
-    const popupPresenter = new PopupPresenter(popupRoot, panelNode);
+    const popupList = new SelectablePopupList(this);
     this.fieldPresenter = fieldPresenter;
     this.chevronPresenter = chevronPresenter;
-    this.popupRoot = popupRoot;
-    this.panelNode = panelNode;
-    this.popupPresenter = popupPresenter;
-    this.popupScrollBox = popupScrollBox;
-    this.optionsHost = optionsHost;
-    popupPresenter.overlayNode.onClickWith(this, (dropdown) => dropdown.close());
-    optionsHost.semanticRole(SemanticRole.List);
-    optionsHost.semanticLabel("Dropdown options");
-    popupScrollBox.child(optionsHost);
-    panelNode.child(popupScrollBox);
+    this.popupList = popupList;
+    popupList.popupPresenter.overlayNode.onPointerClickWith(this, (dropdown, _event) => dropdown.close());
     this.semanticRole(SemanticRole.ComboBox);
     this.focusable(true);
     this.requireInteractive();
@@ -265,7 +145,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     fieldPresenter.root.fillWidth();
     fieldPresenter.chevronHost.child(chevronPresenter.root);
     this.child(fieldPresenter.root);
-    this.child(this.popupRoot);
+    this.child(this.popupList.root);
     this.track(activeTheme.addAction(new HandlerAction<Dropdown, Theme>(this, (dropdown: Dropdown, _theme: Theme): void => {
       dropdown.handleThemeChanged();
     })));
@@ -292,51 +172,43 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     } else if (this.selectedIndexValue < 0 && this.itemsValue.length > 0) {
       this.selectedIndexValue = 0;
     }
-    this.ensureOptionNodes();
+    this.popupList.refreshPanelLayout();
     this.syncValueLabel();
     this.handleThemeChanged();
     return this;
   }
 
-  onChanged(callback: ((item: DropdownItem, index: i32) => void) | null): this {
+  onChanged(callback: ((event: DropdownChangedEventArgs<DropdownItem>) => void) | null): this {
     this.changedCallback = callback;
     this.changedBinding = null;
     return this;
   }
 
-  bindChanged<Owner>(owner: Owner, handler: Handler2<Owner, DropdownItem, i32>): this {
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, DropdownChangedEventArgs<DropdownItem>>): this {
     this.changedCallback = null;
-    this.changedBinding = bind2<Owner, DropdownItem, i32>(owner, handler);
+    this.changedBinding = bind1<Owner, DropdownChangedEventArgs<DropdownItem>>(owner, handler);
     return this;
   }
 
-  onChangedWith<Owner>(owner: Owner, handler: Handler2<Owner, DropdownItem, i32>): this {
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, DropdownChangedEventArgs<DropdownItem>>): this {
     this.bindChanged(owner, handler);
     return this;
   }
 
   maxVisibleItems(count: i32): this {
-    if (count <= 0) {
-      warn("Layout", "Dropdown.maxVisibleItems() received " + count.toString() + "; using unlimited visible items.");
-    }
-    this.maxVisibleItemsValue = count > 0 ? count : UNLIMITED_VISIBLE_ITEMS;
-    this.refreshPanelLayout();
+    this.popupList.maxVisibleItems(count);
     return this;
   }
 
   popupWidth(value: f32): this {
-    if (value <= 0.0) {
-      warn("Layout", "Dropdown.popupWidth() received " + value.toString() + "; clamping to 0.0.");
-    }
-    this.popupWidthValue = value > 0.0 ? value : 0.0;
-    this.refreshPanelLayout();
+    this.popupList.popupWidth(value);
     return this;
   }
 
   popupPanelColor(color: u32): this {
     this.popupPanelColorOverridden = true;
     this.popupPanelColorValue = color;
-    this.panelNode.bgColor(color);
+    this.popupList.panelNode.bgColor(color);
     return this;
   }
 
@@ -346,7 +218,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       warn("Layout", "Dropdown.popupPanelBackgroundBlur() received " + sigma.toString() + "; clamping to 0.0.");
     }
     this.popupPanelBackgroundBlurSigmaValue = sigma >= 0.0 ? sigma : 0.0;
-    this.panelNode.backgroundBlur(this.popupPanelBackgroundBlurSigmaValue);
+    this.popupList.panelNode.backgroundBlur(this.popupPanelBackgroundBlurSigmaValue);
     return this;
   }
 
@@ -366,12 +238,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       this.fieldPresenter.chevronHost.addChildNode(nextPresenter.root);
       previousPresenter.root.dispose();
     }
-    if (this.usesDefaultOptionRowPresenter()) {
-      for (let index = 0; index < this.optionNodes.length; ++index) {
-        unchecked(this.optionNodes[index]).template(this.optionRowTemplateValue, this.sizingValue);
-      }
-      this.refreshPanelLayout();
-    }
+    this.popupList.sizing(this.sizingValue);
     this.syncValueLabel();
     this.handleThemeChanged();
     return this;
@@ -379,6 +246,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
 
   colors(colors: DropdownColors | null): this {
     this.colorsValue = colors;
+    this.popupList.colors(colors);
     this.handleThemeChanged();
     return this;
   }
@@ -410,11 +278,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   optionRowTemplate(template: DropdownOptionRowTemplate | null): this {
     this.close();
     this.optionRowTemplateValue = template;
-    for (let index = 0; index < this.optionNodes.length; ++index) {
-      unchecked(this.optionNodes[index]).template(template, this.sizingValue);
-    }
-    this.refreshPanelLayout();
-    this.syncOptionVisuals();
+    this.popupList.optionRowTemplate(template);
     return this;
   }
 
@@ -459,15 +323,8 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   }
 
   highlightIndex(index: i32): void {
-    if (index < 0 || index >= this.itemsValue.length || this.highlightedIndexValue == index) {
-      if (index < 0 || index >= this.itemsValue.length) {
-        warn("Layout", "Dropdown.highlightIndex() received " + index.toString() + " outside the available item range.");
-      }
-      return;
-    }
-    this.highlightedIndexValue = index;
-    this.syncOptionVisuals();
-    this.ensureHighlightedVisible();
+    this.popupList.highlightIndex(index);
+    this.highlightedIndexValue = this.popupList.highlightedIndex;
   }
 
   selectHighlighted(): void {
@@ -583,6 +440,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     if (index == -1) {
       this.selectedIndexValue = -1;
       this.highlightedIndexValue = -1;
+      this.popupList.setHighlightedIndex(-1);
       this.syncValueLabel();
       this.handleThemeChanged();
       return;
@@ -609,6 +467,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     const changed = this.selectedIndexValue != clampedIndex;
     this.selectedIndexValue = clampedIndex;
     this.highlightedIndexValue = clampedIndex;
+    this.popupList.setHighlightedIndex(clampedIndex);
     this.syncValueLabel();
     this.handleThemeChanged();
     if (emit && changed) {
@@ -622,13 +481,14 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       return;
     }
     const item = unchecked(this.itemsValue[this.selectedIndexValue]);
+    const event = new DropdownChangedEventArgs<DropdownItem>(item, this.selectedIndexValue);
     const callback = this.changedCallback;
     if (callback !== null) {
-      callback(item, this.selectedIndexValue);
+      callback(event);
     }
     const binding = this.changedBinding;
     if (binding !== null) {
-      binding.invoke(item, this.selectedIndexValue);
+      binding.invoke(event);
     }
   }
 
@@ -636,24 +496,22 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     if (this.openState || this.itemsValue.length == 0 || this.builtHandle == 0) {
       return;
     }
-    this.ensureOptionNodes();
-    this.rebuildPanel();
+    const initialHighlight = this.selectedIndexValue >= 0
+      ? this.selectedIndexValue
+      : (this.itemsValue.length > 0 ? 0 : -1);
+    this.popupList.setHighlightedIndex(initialHighlight);
+    this.highlightedIndexValue = this.popupList.highlightedIndex;
     const bounds = this.tryGetViewportBounds();
     if (bounds !== null) {
-      const width = unchecked(bounds[2]);
-      const height = unchecked(bounds[3]);
-      this.positionPanel(unchecked(bounds[0]), unchecked(bounds[1]), width, height);
+      if (!this.popupList.open(unchecked(bounds[0]), unchecked(bounds[1]), unchecked(bounds[2]), unchecked(bounds[3]), initialHighlight)) {
+        return;
+      }
+      this.highlightedIndexValue = this.popupList.highlightedIndex;
     }
     this.openState = true;
     Dropdown.activeInstance = this;
     this.semanticExpanded(true);
     this.requestSemanticAnnouncement();
-    if (this.selectedIndexValue >= 0) {
-      this.highlightedIndexValue = this.selectedIndexValue;
-    } else if (this.itemsValue.length > 0) {
-      this.highlightedIndexValue = 0;
-    }
-    this.syncOptionVisuals();
     if (this.keyFilterToken == 0) {
       this.keyFilterToken = EventRouter.pushKeyFilter(this);
     }
@@ -717,21 +575,11 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     return right > svX && bottom > svY && x < svRight && y < svBottom;
   }
 
-  private positionPanel(triggerX: f32, triggerY: f32, triggerWidth: f32, triggerHeight: f32): void {
-    const popupWidth = this.resolvePopupWidth(triggerWidth);
-    const panelHeight = this.resolveViewportClampedPanelOuterHeight();
-    this.panelNode.width(popupWidth, Unit.Pixel);
-    this.panelNode.height(panelHeight, Unit.Pixel);
-    this.popupScrollBox.width(100.0, Unit.Percent);
-    this.popupScrollBox.height(<f32>Math.max(0.0, panelHeight - (PANEL_PADDING * 2.0)), Unit.Pixel);
-    this.popupPresenter.showAnchored(triggerX, triggerY, triggerWidth, triggerHeight, popupWidth, panelHeight);
-  }
-
   private close(): void {
-    if (!this.openState && !this.popupPresenter.isOpen) {
+    if (!this.openState && !this.popupList.isOpen) {
       return;
     }
-    this.popupPresenter.hide();
+    this.popupList.close();
     this.openState = false;
     if (Dropdown.activeInstance === this) {
       Dropdown.activeInstance = null;
@@ -743,18 +591,6 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       this.keyFilterToken = 0;
     }
     this.handleThemeChanged();
-  }
-
-  private rebuildPanel(): void {
-    for (let index = 0; index < this.optionNodes.length; ++index) {
-      this.optionsHost.removeChildNode(unchecked(this.optionNodes[index]));
-    }
-    for (let index = 0; index < this.itemsValue.length; ++index) {
-      const optionNode = unchecked(this.optionNodes[index]);
-      optionNode.label(unchecked(this.itemsValue[index]).label);
-      this.optionsHost.addChildNode(optionNode);
-    }
-    this.refreshPanelLayout();
   }
 
   private syncValueLabel(): void {
@@ -769,33 +605,15 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
   }
 
   private syncOptionVisuals(): void {
-    const theme = activeTheme.value;
-    for (let index = 0; index < this.itemsValue.length; ++index) {
-      unchecked(this.optionNodes[index]).applyTheme(
-        theme,
-        index == this.highlightedIndexValue,
-        index == this.selectedIndexValue,
-        this.isEnabled,
-        this.colorsValue,
-      );
-    }
+    this.popupList.syncOptionVisuals();
   }
 
   private moveHighlight(delta: i32): void {
-    if (this.itemsValue.length == 0) {
-      return;
+    if (this.popupList.highlightedIndex < 0 && this.selectedIndexValue >= 0) {
+      this.popupList.setHighlightedIndex(this.selectedIndexValue);
     }
-    let nextIndex = this.highlightedIndexValue;
-    if (nextIndex < 0) {
-      nextIndex = this.selectedIndexValue >= 0 ? this.selectedIndexValue : 0;
-    }
-    nextIndex += delta;
-    if (nextIndex < 0) {
-      nextIndex = this.itemsValue.length - 1;
-    } else if (nextIndex >= this.itemsValue.length) {
-      nextIndex = 0;
-    }
-    this.highlightIndex(nextIndex);
+    this.popupList.moveHighlight(delta);
+    this.highlightedIndexValue = this.popupList.highlightedIndex;
   }
 
   private clearItems(): void {
@@ -803,85 +621,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     this.itemsValue.length = 0;
     this.selectedIndexValue = -1;
     this.highlightedIndexValue = -1;
-  }
-
-  private ensureOptionNodes(): void {
-    while (this.optionNodes.length < this.itemsValue.length) {
-      const optionNode = new DropdownOptionNode(this.optionRowTemplateValue, this.sizingValue).bindOwner(this, this.optionNodes.length);
-      this.optionNodes.push(optionNode);
-    }
-  }
-
-  private resolveOptionRowHeight(): f32 {
-    if (this.optionNodes.length == 0) {
-      const sizing = this.sizingValue;
-      if (
-        sizing !== null &&
-        sizing.hasOptionHeight &&
-        this.usesDefaultOptionRowPresenter()
-      ) {
-        return sizing.optionHeightPx;
-      }
-      return OPTION_HEIGHT;
-    }
-    return unchecked(this.optionNodes[0]).rowHeight;
-  }
-
-  private resolveVisibleItemCount(): i32 {
-    if (this.maxVisibleItemsValue <= 0 || this.itemsValue.length <= this.maxVisibleItemsValue) {
-      return this.itemsValue.length;
-    }
-    return this.maxVisibleItemsValue;
-  }
-
-  private resolvePanelOuterHeight(): f32 {
-    return <f32>this.resolveVisibleItemCount() * this.resolveOptionRowHeight() + (PANEL_PADDING * 2.0);
-  }
-
-  private resolveViewportClampedPanelOuterHeight(): f32 {
-    const maxHeight = <f32>Math.max(PANEL_EDGE_PADDING, ui.getViewportHeight() - (PANEL_EDGE_PADDING * 2.0));
-    return <f32>Math.min(this.resolvePanelOuterHeight(), maxHeight);
-  }
-
-  private resolvePopupWidth(triggerWidth: f32): f32 {
-    return this.popupWidthValue > 0.0 ? this.popupWidthValue : triggerWidth;
-  }
-
-  private refreshPanelLayout(): void {
-    this.optionsHost.width(100.0, Unit.Percent);
-    this.optionsHost.height(<f32>this.itemsValue.length * this.resolveOptionRowHeight(), Unit.Pixel);
-    this.popupScrollBox.width(100.0, Unit.Percent);
-    this.popupScrollBox.height(
-      <f32>Math.max(0.0, this.resolveViewportClampedPanelOuterHeight() - (PANEL_PADDING * 2.0)),
-      Unit.Pixel,
-    );
-    if (this.openState) {
-      const bounds = this.tryGetViewportBounds();
-      if (bounds !== null) {
-        this.positionPanel(unchecked(bounds[0]), unchecked(bounds[1]), unchecked(bounds[2]), unchecked(bounds[3]));
-      }
-      this.ensureHighlightedVisible();
-    }
-  }
-
-  private ensureHighlightedVisible(): void {
-    if (!this.openState || this.highlightedIndexValue < 0) {
-      return;
-    }
-    const visibleHeight = <f32>Math.max(0.0, this.resolveViewportClampedPanelOuterHeight() - (PANEL_PADDING * 2.0));
-    if (visibleHeight <= 0.0) {
-      return;
-    }
-    const rowHeight = this.resolveOptionRowHeight();
-    const itemTop = <f32>this.highlightedIndexValue * rowHeight;
-    const itemBottom = itemTop + rowHeight;
-    let nextOffset = this.popupScrollBox.scrollState.offsetY.value;
-    if (itemTop < nextOffset) {
-      nextOffset = itemTop;
-    } else if (itemBottom > nextOffset + visibleHeight) {
-      nextOffset = itemBottom - visibleHeight;
-    }
-    this.popupScrollBox.setRuntimeScrollOffset(0.0, nextOffset);
+    this.popupList.clear();
   }
 
   private handleThemeChanged(): void {
@@ -897,7 +637,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     }
     this.cursor(this.isEnabled ? CursorStyle.Pointer : CursorStyle.Default);
     this.cornerRadius(0.0);
-    this.border(0.0, 0x00000000, BorderStyle.Solid);
+    this.border(0.0, 0x00000000);
     this.padding(0.0, 0.0, 0.0, 0.0);
     this.bgColor(0x00000000);
     this.opacity(this.isEnabled ? 1.0 : 0.6);
@@ -923,11 +663,16 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
         this.isEnabled,
       ),
     );
-    this.panelNode
-      .padding(PANEL_PADDING, PANEL_PADDING, PANEL_PADDING, PANEL_PADDING)
+    this.popupList.panelNode
+      .padding(
+        SELECTABLE_POPUP_LIST_PANEL_PADDING,
+        SELECTABLE_POPUP_LIST_PANEL_PADDING,
+        SELECTABLE_POPUP_LIST_PANEL_PADDING,
+        SELECTABLE_POPUP_LIST_PANEL_PADDING,
+      )
       .cornerRadius(theme.spacing.sm)
       .bgColor(this.popupPanelColorValue)
-      .border(1.0, theme.contextMenu.panelBorderColor, BorderStyle.Solid)
+      .border(1.0, theme.contextMenu.panelBorderColor)
       .backgroundBlur(this.popupPanelBackgroundBlurSigmaValue)
       .dropShadow(
         theme.contextMenu.panelShadowColor,
@@ -936,7 +681,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
         theme.contextMenu.shadowBlur,
         theme.contextMenu.shadowSpread,
       );
-    this.popupScrollBox.bgColor(0x00000000);
+    this.popupList.popupScrollBox.bgColor(0x00000000);
     this.syncOptionVisuals();
     this.syncFocusChrome(theme);
   }
@@ -950,7 +695,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
       return;
     }
     this.disposed = true;
-    this.popupPresenter.dispose();
+    this.popupList.dispose();
     disposeAll(this.disposables);
     FocusAdornerManager.hideOwner(this);
   }
@@ -971,7 +716,7 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     nextFieldPresenter.chevronHost.addChildNode(nextChevronPresenter.root);
     const children = new Array<Node>();
     children.push(nextFieldPresenter.root);
-    children.push(this.popupRoot);
+    children.push(this.popupList.root);
     this.replaceChildren(children);
     previousFieldRoot.dispose();
   }
@@ -992,11 +737,34 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler {
     return templateSet === null || templateSet.dropdownChevron === null;
   }
 
-  private usesDefaultOptionRowPresenter(): bool {
-    if (this.optionRowTemplateValue !== null) {
-      return false;
-    }
-    const templateSet = getControlTemplates();
-    return templateSet === null || templateSet.dropdownOptionRow === null;
+  getPopupListItemCount(): i32 {
+    return this.itemsValue.length;
+  }
+
+  getPopupListItemLabel(index: i32): string {
+    return unchecked(this.itemsValue[index]).label;
+  }
+
+  isPopupListItemSelected(index: i32): bool {
+    return index == this.selectedIndexValue;
+  }
+
+  isPopupListEnabled(): bool {
+    return this.isEnabled;
+  }
+
+  popupListHighlightIndex(index: i32): void {
+    this.highlightIndex(index);
+  }
+
+  popupListActivateIndex(index: i32): void {
+    this.highlightIndex(index);
+    this.selectHighlighted();
+  }
+
+  popupListPointerDown(_index: i32): void {
+  }
+
+  popupListPointerUp(_index: i32): void {
   }
 }

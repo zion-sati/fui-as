@@ -1,4 +1,4 @@
-import { BorderStyle, SemanticCheckedState, Unit } from "../../core/ffi";
+import { AlignItems, JustifyContent, SemanticCheckedState, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox, Svg } from "../../nodes";
 import { LabeledControlSizing } from "../ControlSizing";
@@ -9,7 +9,7 @@ import {
   PressableIndicatorVisualState,
 } from "./PressableIndicatorPresenter";
 
-const CHECKBOX_CHECK_SVG_URL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 14 14'><path d='M3.25 8.25 6.35 11.35 12.75 4.95' fill='none' stroke='%23000000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>";
+const CHECKBOX_CHECK_SVG_URL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 14 14'><path d='M2.25 7.15 5.35 10.25 11.75 3.85' fill='none' stroke='%23000000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>";
 
 class CheckboxIndicatorMetrics extends PressableIndicatorMetrics {
   constructor(
@@ -56,7 +56,7 @@ export abstract class CheckboxIndicatorPresenter extends PressableIndicatorPrese
 }
 
 export abstract class CheckboxIndicatorTemplate {
-  abstract create(): CheckboxIndicatorPresenter;
+  abstract create(sizing?: LabeledControlSizing | null): CheckboxIndicatorPresenter;
 }
 
 class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
@@ -67,14 +67,14 @@ class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
     const root = new FlexBox()
       .width(metrics.indicatorSize, Unit.Pixel)
       .height(metrics.indicatorSize, Unit.Pixel)
-      .alignItems(1)
-      .justifyContent(1);
+      .alignItems(AlignItems.Center)
+      .justifyContent(JustifyContent.Center);
     super(root, metrics);
     this.geometry = metrics;
     const markHost = new FlexBox()
       .fillSize()
-      .alignItems(1)
-      .justifyContent(1);
+      .alignItems(AlignItems.Center)
+      .justifyContent(JustifyContent.Center);
     const markNode = new Svg();
     markNode
       .width(metrics.checkMarkSize, Unit.Pixel)
@@ -102,7 +102,7 @@ class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
       background = theme.colors.background;
     }
     this.root.cornerRadius(geometry.cornerRadius);
-    this.root.border(1.0, borderColor, BorderStyle.Solid);
+    this.root.border(1.0, borderColor);
     this.root.bgColor(background);
     if (markVisible) {
       this.markNode.source(CHECKBOX_CHECK_SVG_URL);
@@ -119,8 +119,8 @@ class DefaultCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
 }
 
 class DefaultCheckboxIndicatorTemplate extends CheckboxIndicatorTemplate {
-  create(): CheckboxIndicatorPresenter {
-    return new DefaultCheckboxIndicatorPresenter();
+  create(sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
+    return createDefaultCheckboxIndicatorPresenter(sizing);
   }
 }
 

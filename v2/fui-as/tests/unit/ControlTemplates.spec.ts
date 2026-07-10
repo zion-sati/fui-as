@@ -14,6 +14,7 @@ import {
   CursorStyle,
   KeyEventType,
   LabeledControlColors,
+  LabeledControlSizing,
   PointerEventType,
   PressableIndicatorMetrics,
   RadioButton,
@@ -98,7 +99,7 @@ class TrackingCheckboxPresenter extends CheckboxIndicatorPresenter {
     this.lastState = state;
     const accent = state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);
     this.root.cornerRadius(14.0);
-    this.root.border(2.0, accent, BorderStyle.Solid);
+    this.root.border(2.0, accent);
     this.root.bgColor(theme.colors.surface);
     this.fillNode.cornerRadius(state.checkedState == SemanticCheckedState.Mixed ? 3.0 : 6.0);
     this.fillNode.width(state.checkedState == SemanticCheckedState.Mixed ? 14.0 : 12.0, Unit.Pixel);
@@ -111,7 +112,7 @@ class TrackingCheckboxPresenter extends CheckboxIndicatorPresenter {
 class TrackingCheckboxTemplate extends CheckboxIndicatorTemplate {
   readonly created: Array<TrackingCheckboxPresenter> = new Array<TrackingCheckboxPresenter>();
 
-  create(): CheckboxIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
     const presenter = new TrackingCheckboxPresenter();
     this.created.push(presenter);
     return presenter;
@@ -144,7 +145,7 @@ class TrackingRadioPresenter extends RadioIndicatorPresenter {
       ? (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent))
       : theme.colors.border;
     this.root.cornerRadius(13.0);
-    this.root.border(2.0, accent, BorderStyle.Solid);
+    this.root.border(2.0, accent);
     this.root.bgColor(theme.colors.surface);
     this.dotNode.cornerRadius(5.0);
     this.dotNode.bgColor(accent);
@@ -155,7 +156,7 @@ class TrackingRadioPresenter extends RadioIndicatorPresenter {
 class TrackingRadioTemplate extends RadioIndicatorTemplate {
   readonly created: Array<TrackingRadioPresenter> = new Array<TrackingRadioPresenter>();
 
-  create(): RadioIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
     const presenter = new TrackingRadioPresenter();
     this.created.push(presenter);
     return presenter;
@@ -188,7 +189,7 @@ class TrackingSwitchPresenter extends SwitchIndicatorPresenter {
       ? (state.pressed ? theme.colors.accentPressed : (state.hovered ? theme.colors.accentHovered : theme.colors.accent))
       : theme.colors.border;
     this.root.cornerRadius(15.0);
-    this.root.border(2.0, accent, BorderStyle.Solid);
+    this.root.border(2.0, accent);
     this.root.bgColor(theme.colors.surface);
     this.thumbNode.position(state.checked ? 30.0 : 4.0, 3.0);
     this.thumbNode.cornerRadius(9.0);
@@ -199,7 +200,7 @@ class TrackingSwitchPresenter extends SwitchIndicatorPresenter {
 class TrackingSwitchTemplate extends SwitchIndicatorTemplate {
   readonly created: Array<TrackingSwitchPresenter> = new Array<TrackingSwitchPresenter>();
 
-  create(): SwitchIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): SwitchIndicatorPresenter {
     const presenter = new TrackingSwitchPresenter();
     this.created.push(presenter);
     return presenter;
@@ -229,7 +230,7 @@ class TrackingButtonPresenter extends ButtonPresenter {
       : (state.hovered ? theme.colors.accentHovered : theme.colors.accent);
     this.host
       .cornerRadius(14.0)
-      .border(2.0, accent, BorderStyle.Solid)
+      .border(2.0, accent)
       .padding(12.0, 8.0, 12.0, 8.0)
       .bgColor(theme.colors.surface);
     this.contentRoot
@@ -238,7 +239,8 @@ class TrackingButtonPresenter extends ButtonPresenter {
       .alignItems(1)
       .justifyContent(1);
     this.labelNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(theme.fonts.sizeBody)
       .textColor(accent);
   }
 }
@@ -270,7 +272,7 @@ class TrackingTextInputPresenter extends TextInputPresenter {
     this.lastState = state;
     this.host
       .cornerRadius(state.multiline ? 18.0 : 14.0)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, theme.colors.accent)
       .padding(this.inset, this.inset, this.inset, this.inset)
       .bgColor(theme.colors.surface);
     this.editorHost.cursor(state.enabled ? CursorStyle.Text : CursorStyle.Default);

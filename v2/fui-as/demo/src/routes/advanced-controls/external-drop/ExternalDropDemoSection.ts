@@ -1,4 +1,5 @@
 import {
+  ClickEventArgs,
   Button,
   BrowserFile,
   Column,
@@ -7,6 +8,7 @@ import {
   ExternalDropEventArgs,
   ExternalDropItemInfo,
   ExternalDropItemKind,
+  FileErrorEventArgs,
   File,
   FileWorkerProcessProgress,
   FileWorkerProcessRequest,
@@ -31,7 +33,6 @@ import {
   demoPrimaryText,
 } from "../../../design-system";
 
-const FONT_REGULAR: u32 = 1;
 
 function verticalSpacer(height: f32): FlexBox {
   return new FlexBox().fillWidth().height(height, Unit.Pixel);
@@ -53,7 +54,7 @@ function externalDropDrop(owner: ExternalDropDemoSection, args: ExternalDropEven
   owner.handleExternalDrop(args);
 }
 
-function startDroppedFileCopy(owner: ExternalDropDemoSection): void {
+function startDroppedFileCopy(owner: ExternalDropDemoSection, _event: ClickEventArgs): void {
   owner.startDroppedFileCopy();
 }
 
@@ -65,31 +66,32 @@ function handleCopyComplete(owner: ExternalDropDemoSection, result: FileWorkerPr
   owner.handleCopyComplete(result);
 }
 
-function handleCopyError(owner: ExternalDropDemoSection, message: string): void {
-  owner.handleCopyError(message);
+function handleCopyError(owner: ExternalDropDemoSection, event: FileErrorEventArgs): void {
+  owner.handleCopyError(event.message);
 }
 
 export class ExternalDropDemoSection {
   readonly statusText: Text = new DemoText("", DemoTextRecipe.StatusValue)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
   readonly itemsText: Text = new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(4) as Text;
   readonly capabilityText: Text = new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 14.0)
+    .fontSize(14.0)
     .maxLines(3) as Text;
   readonly hintText: Text = new DemoText(
     "Drop a file here, then choose Save dropped file copy. This demo keeps the save picker on the main thread, reads the dropped file in a dedicated Worker, and transfers each ArrayBuffer chunk back with a postMessage transfer list before writing it into the picked target file.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(6) as Text;
   readonly copyButton: Button = new Button("Save dropped file copy")
+    .onClickWith<ExternalDropDemoSection>(this, startDroppedFileCopy)
     .fillWidth()
     .height(48.0, Unit.Pixel)
     .padding(14.0, 14.0, 14.0, 14.0)
     .cornerRadius(16.0)
-    .onClickWith<ExternalDropDemoSection>(this, startDroppedFileCopy) as Button;
+    as Button;
 
   readonly dropTarget: FlexBox = new FlexBox()
     .fillWidth()
@@ -105,12 +107,12 @@ export class ExternalDropDemoSection {
     .semanticLabel("External file drop target") as FlexBox;
 
   private readonly dropTitleText: Text = new DemoText("Drop files here", DemoTextRecipe.SectionTitle)
-    .font(FONT_REGULAR, 18.0) as Text;
+    .fontSize(18.0) as Text;
   private readonly dropBodyText: Text = new DemoText(
     "The drop target receives a first-class BrowserFile handle, then the sample copies it through a Worker-read plus picker-write pipeline. Chunk payloads hop back with zero-copy transfer-list handoff.",
     DemoTextRecipe.Supporting,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(3) as Text;
   private readonly sectionBody!: FlexBox;
   private readonly lastItems: Array<ExternalDropItemInfo> = new Array<ExternalDropItemInfo>();
@@ -236,6 +238,7 @@ export class ExternalDropDemoSection {
     }
     const suggestedName = this.resolveCopyFileName(file);
     this.activeCopyRequest = File.processFileInWorker(file)
+      .worker("./workers/advanced_controls_workers.wasm", "fileProcessorWorker")
       .saveToPickedFile(suggestedName)
       .onProgressWith<ExternalDropDemoSection>(this, handleCopyProgress)
       .onCompleteWith<ExternalDropDemoSection>(this, handleCopyComplete)

@@ -1,8 +1,10 @@
 import { Callback1, Handler1 } from "../core/BoundCallback";
 import { SemanticCheckedState, SemanticRole } from "../core/ffi";
+import { SwitchChangedEventArgs } from "../core/Node";
 import { PersistedBoolCodec, PersistedValueState } from "../core/PersistedState";
 import { bind1 } from "../core/bind";
 import { activeTheme } from "../core/Theme";
+import { LabeledControlSizing } from "./ControlSizing";
 import { getControlTemplates } from "./ControlTemplateSet";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
 import {
@@ -30,24 +32,25 @@ class PersistedSwitchState extends PersistedValueState<Switch, bool> {
 
 const SWITCH_PERSISTED_STATE = new PersistedSwitchState();
 
-function createIndicatorPresenter(template: SwitchIndicatorTemplate | null): SwitchIndicatorPresenter {
+function createIndicatorPresenter(template: SwitchIndicatorTemplate | null, sizing: LabeledControlSizing | null = null): SwitchIndicatorPresenter {
   if (template !== null) {
-    return template.create();
+    return template.create(sizing);
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.switchIndicator : null;
-  return (appTemplate === null ? defaultSwitchIndicatorTemplate : appTemplate).create();
+  return (appTemplate === null ? defaultSwitchIndicatorTemplate : appTemplate).create(sizing);
 }
 
 export class Switch extends PressableLabeledControl {
   private indicatorPresenter: SwitchIndicatorPresenter;
   private templateOverride: SwitchIndicatorTemplate | null = null;
+  private sizingValue: LabeledControlSizing | null = null;
   private checkedValue: bool = false;
-  private changedCallback: ((checked: bool) => void) | null = null;
-  private changedBinding: Callback1<bool> | null = null;
+  private changedCallback: ((event: SwitchChangedEventArgs) => void) | null = null;
+  private changedBinding: Callback1<SwitchChangedEventArgs> | null = null;
 
   constructor(label: string) {
-    const indicatorPresenter = createIndicatorPresenter(null);
+    const indicatorPresenter = createIndicatorPresenter(null, null);
     super(SemanticRole.Switch, label, indicatorPresenter.root);
     this.indicatorPresenter = indicatorPresenter;
     this.semanticChecked(SemanticCheckedState.False);
@@ -60,31 +63,42 @@ export class Switch extends PressableLabeledControl {
   }
 
   check(flag: bool): this {
-    this.updateChecked(flag, false);
+    this.updateChecked(flag, true, false);
     return this;
   }
 
-  template(template: SwitchIndicatorTemplate | null): this {
-    this.templateOverride = template;
-    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride);
+  sizing(sizing: LabeledControlSizing | null): this {
+    this.sizingValue = sizing;
+    this.setLabelFontSizeOverride(
+      sizing !== null && sizing.hasLabelFontSize ? sizing.labelFontSizePx : 0.0,
+    );
+    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
     this.replaceIndicatorRoot(this.indicatorPresenter.root);
     this.syncVisualState();
     return this;
   }
 
-  onChanged(callback: ((checked: bool) => void) | null): this {
+  template(template: SwitchIndicatorTemplate | null): this {
+    this.templateOverride = template;
+    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
+    this.replaceIndicatorRoot(this.indicatorPresenter.root);
+    this.syncVisualState();
+    return this;
+  }
+
+  onChanged(callback: ((event: SwitchChangedEventArgs) => void) | null): this {
     this.changedCallback = callback;
     this.changedBinding = null;
     return this;
   }
 
-  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, SwitchChangedEventArgs>): this {
     this.changedCallback = null;
-    this.changedBinding = bind1<Owner, bool>(owner, handler);
+    this.changedBinding = bind1<Owner, SwitchChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, SwitchChangedEventArgs>): this {
     this.bindChanged(owner, handler);
     return this;
   }
@@ -108,10 +122,10 @@ export class Switch extends PressableLabeledControl {
   }
 
   _applyPersistedChecked(next: bool): void {
-    this.updateChecked(next, true);
+    this.updateChecked(next, true, false);
   }
 
-  private updateChecked(next: bool, emit: bool): void {
+  private updateChecked(next: bool, emit: bool, announce: bool = emit): void {
     if (this.checkedValue == next) {
       return;
     }
@@ -119,14 +133,17 @@ export class Switch extends PressableLabeledControl {
     this.semanticChecked(next ? SemanticCheckedState.True : SemanticCheckedState.False);
     this.syncVisualState();
     if (emit) {
-      this.requestSemanticAnnouncement();
+      if (announce) {
+        this.requestSemanticAnnouncement();
+      }
+      const event = new SwitchChangedEventArgs(next);
       const callback = this.changedCallback;
       if (callback !== null) {
-        callback(next);
+        callback(event);
       }
       const binding = this.changedBinding;
       if (binding !== null) {
-        binding.invoke(next);
+        binding.invoke(event);
       }
     }
   }

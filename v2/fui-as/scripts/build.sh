@@ -13,11 +13,11 @@ WORKER_BOOTSTRAP_BUILD="${PACKAGE_DIR}/build/worker-bootstrap.js"
 WORKER_BOOTSTRAP_MAP_BUILD="${PACKAGE_DIR}/build/worker-bootstrap.js.map"
 WORKER_HOST_SERVICES_BUILD="${PACKAGE_DIR}/build/worker-host-services.js"
 WORKER_HOST_SERVICES_MAP_BUILD="${PACKAGE_DIR}/build/worker-host-services.js.map"
-WORKER_MANIFEST_BUILD="${PACKAGE_DIR}/build/worker-manifest.json"
 FILE_PROCESSING_WORKER_BUILD="${PACKAGE_DIR}/build/file-processing-worker.js"
 FILE_PROCESSING_WORKER_MAP_BUILD="${PACKAGE_DIR}/build/file-processing-worker.js.map"
 HOST_SERVICE_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-services.mjs"
 HOST_EVENT_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-events.mjs"
+ABI_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-abi.mjs"
 RUNTIME_CONFIG_FILE="effindom-runtime-config.js"
 DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
 LOADING_OVERLAY_STYLES_FILE="${PACKAGE_DIR}/browser/loading-overlay-styles.html"
@@ -36,6 +36,30 @@ else
   echo "Could not locate tsc in node_modules/.bin." >&2
   exit 1
 fi
+
+ESBUILD_RUNTIME_ALIAS_ARGS=()
+if [ -f "${REPO_ROOT}/v2/browser-bridge/src/index.ts" ]; then
+  ESBUILD_RUNTIME_ALIAS_ARGS+=(
+    "--alias:@effindomv2/runtime=${REPO_ROOT}/v2/browser-bridge/src/index.ts"
+    "--alias:@effindomv2/runtime/core-types=${REPO_ROOT}/v2/browser-bridge/src/core-types.ts"
+  )
+fi
+
+generate_abi() {
+  npx esbuild "${REPO_ROOT}/v2/abi/generate.ts" \
+    --bundle \
+    --format=esm \
+    --platform=node \
+    --target=node20 \
+    --packages=external \
+    --outfile="${ABI_GENERATOR_BUILD}"
+
+  node "${ABI_GENERATOR_BUILD}" fui-as-ui
+  node "${ABI_GENERATOR_BUILD}" fui-as-host
+  node "${ABI_GENERATOR_BUILD}" fui-as-enums
+}
+
+generate_abi
 
 "${TSC_BIN}" -p tsconfig.json --noEmit
 
@@ -119,6 +143,10 @@ find_worker_entries() {
 
 resolve_runtime_dist_dir() {
   local candidate=""
+  local public_runtime_dir="${REPO_ROOT}/public/v2/browser-bridge"
+  local package_runtime_dir="${REPO_ROOT}/v2/browser-bridge/dist"
+  local public_manifest="${public_runtime_dir}/effindom.v2.manifest.json"
+  local package_manifest="${package_runtime_dir}/effindom.v2.manifest.json"
   local candidates=()
 
   if [ -n "${EFFINDOM_RUNTIME_DIST_DIR:-}" ]; then
@@ -126,11 +154,17 @@ resolve_runtime_dist_dir() {
   fi
 
   candidates+=(
-    "${REPO_ROOT}/public/v2/browser-bridge"
-    "${REPO_ROOT}/v2/browser-bridge/dist"
+    "${public_runtime_dir}"
+    "${package_runtime_dir}"
     "${PACKAGE_DIR}/node_modules/@effindomv2/runtime/dist"
     "${REPO_ROOT}/node_modules/@effindomv2/runtime/dist"
   )
+
+  if [ -f "${public_manifest}" ] && [ -f "${package_manifest}" ] && ! cmp -s "${public_manifest}" "${package_manifest}"; then
+    echo "Note: using ${public_runtime_dir} for monorepo runtime assets." >&2
+    echo "      ${package_runtime_dir} is a staged package copy and may be stale." >&2
+    echo "      For ABI changes, run repo-root ./build.sh (or npm run build:v2:abi)." >&2
+  fi
 
   for candidate in "${candidates[@]}"; do
     if [ -f "${candidate}/bridge.js" ] && [ -f "${candidate}/effindom.v2.manifest.json" ] && [ -d "${candidate}/runtime" ]; then
@@ -144,8 +178,9 @@ resolve_runtime_dist_dir() {
   echo "  - \$EFFINDOM_RUNTIME_DIST_DIR" >&2
   echo "  - ${PACKAGE_DIR}/node_modules/@effindomv2/runtime/dist" >&2
   echo "  - ${REPO_ROOT}/node_modules/@effindomv2/runtime/dist" >&2
-  echo "  - ${REPO_ROOT}/v2/browser-bridge/dist" >&2
   echo "  - ${REPO_ROOT}/public/v2/browser-bridge" >&2
+  echo "  - ${REPO_ROOT}/v2/browser-bridge/dist" >&2
+  echo "Monorepo note: repo-root ./build.sh (or npm run build:v2:abi) refreshes the runtime assets used here." >&2
   echo "Install @effindomv2/runtime or build runtime assets first." >&2
   exit 1
 }
@@ -158,7 +193,8 @@ write_runtime_config() {
 
   cat > "${destination}/${RUNTIME_CONFIG_FILE}" <<EOF
 window.__effindomRuntime = Object.assign({}, window.__effindomRuntime, {
-  manifestUrl: '${manifest_url}',
+  manifestUrl: new URL('${manifest_url}', document.currentScript && document.currentScript.src ? document.currentScript.src : document.baseURI).toString(),
+  buildMode: 'debug',
 });
 EOF
 }
@@ -222,43 +258,6 @@ build_workers() {
   done < <(find_worker_entries)
 }
 
-write_worker_manifest() {
-  local tmp_entries
-  tmp_entries="$(mktemp)"
-  local worker_entry=""
-  while IFS= read -r worker_entry; do
-    [ -n "${worker_entry}" ] || continue
-    local worker_name
-    worker_name="$(basename "${worker_entry}" .ts)"
-    local export_name=""
-    while IFS= read -r export_name; do
-      [ -n "${export_name}" ] || continue
-      if grep -q "^${export_name} " "${tmp_entries}" 2>/dev/null; then
-        echo "Duplicate worker export name: ${export_name}" >&2
-        rm -f "${tmp_entries}"
-        exit 1
-      fi
-      echo "${export_name} ./workers/${worker_name}.wasm" >> "${tmp_entries}"
-    done < <(rg 'export function ([A-Za-z_][A-Za-z0-9_]*)\s*\(' "${worker_entry}" -or '$1')
-  done < <(find_worker_entries)
-
-  {
-    printf '{\n  "version": 1,\n  "entries": {\n'
-    local first=1
-    local line=""
-    sort "${tmp_entries}" | while IFS=' ' read -r entry_name entry_path; do
-      [ -n "${entry_name}" ] || continue
-      if [ "${first}" -eq 0 ]; then
-        printf ',\n'
-      fi
-      first=0
-      printf '    "%s": "%s"' "${entry_name}" "${entry_path}"
-    done
-    printf '\n  }\n}\n'
-  } > "${WORKER_MANIFEST_BUILD}"
-  rm -f "${tmp_entries}"
-}
-
 copy_worker_assets() {
   local destination="$1"
   rm -rf "${destination}/workers"
@@ -273,7 +272,6 @@ copy_worker_assets() {
   cp "${WORKER_BOOTSTRAP_MAP_BUILD}" "${destination}/worker-bootstrap.js.map"
   cp "${WORKER_HOST_SERVICES_BUILD}" "${destination}/worker-host-services.js"
   cp "${WORKER_HOST_SERVICES_MAP_BUILD}" "${destination}/worker-host-services.js.map"
-  cp "${WORKER_MANIFEST_BUILD}" "${destination}/worker-manifest.json"
 }
 
 generate_host_services "demo/src/host-services.ts" "demoHostServices" "demo/src/generated/HostServices.ts"
@@ -289,7 +287,6 @@ build_app "demo/src/routes/templated-controls.ts" "${DEMO_OUT_DIR}/templated-con
 build_app "demo/src/routes/demo_scrollbar_gutter.ts" "${DEMO_OUT_DIR}/scrollbar-gutter.wasm"
 build_app "demo/src/routes/demo_immediate_drawing.ts" "${DEMO_OUT_DIR}/immediate-drawing.wasm"
 build_workers
-write_worker_manifest
 
 npx esbuild "${SMOKE_FIXTURE_DIR}/harness.ts" \
   --bundle \
@@ -297,6 +294,7 @@ npx esbuild "${SMOKE_FIXTURE_DIR}/harness.ts" \
   --platform=browser \
   --target=es2020 \
   --minify \
+  "${ESBUILD_RUNTIME_ALIAS_ARGS[@]}" \
   --outfile="${OUT_DIR}/harness.js" \
   --sourcemap
 
@@ -306,15 +304,17 @@ npx esbuild "${PACKAGE_DIR}/demo/harness.ts" \
   --platform=browser \
   --target=es2020 \
   --minify \
+  "${ESBUILD_RUNTIME_ALIAS_ARGS[@]}" \
   --outfile="${DEMO_OUT_DIR}/harness.js" \
   --sourcemap
 
-npx esbuild "${BROWSER_SRC_DIR}/file-processing-worker.ts" \
+npx esbuild "${REPO_ROOT}/v2/browser-bridge/src/managed-harness/file-processing-worker.ts" \
   --bundle \
   --format=iife \
   --platform=browser \
   --target=es2020 \
   --minify \
+  "${ESBUILD_RUNTIME_ALIAS_ARGS[@]}" \
   --outfile="${FILE_PROCESSING_WORKER_BUILD}" \
   --sourcemap
 
@@ -323,12 +323,13 @@ cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${OUT_DIR}/file-processing-worker.js.m
 cp "${FILE_PROCESSING_WORKER_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js"
 cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js.map"
 
-npx esbuild "${BROWSER_SRC_DIR}/worker-bootstrap.ts" \
+npx esbuild "${REPO_ROOT}/v2/browser-bridge/src/managed-harness/worker-bootstrap.ts" \
   --bundle \
   --format=iife \
   --platform=browser \
   --target=es2020 \
   --minify \
+  "${ESBUILD_RUNTIME_ALIAS_ARGS[@]}" \
   --outfile="${WORKER_BOOTSTRAP_BUILD}" \
   --sourcemap
 

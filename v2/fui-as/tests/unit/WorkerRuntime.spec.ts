@@ -1,7 +1,7 @@
 import { Worker } from "../../src/worker/Worker";
 import { WorkerJob } from "../../src/worker/WorkerJob";
 import { demoWorkerClockWallClockSinceEpochMs } from "../../demo/src/generated/WorkerHostServices";
-import { __resetWorkerRuntimeForTests, __setWorkerInputForTests } from "../../src/worker/Worker";
+import { resetWorkerRuntime } from "../../src/worker/Worker";
 import {
   getCallArg,
   findCall,
@@ -15,14 +15,20 @@ import {
   setTimerNow,
 } from "./FfiTestImports";
 
+let lastWorkerRuntimeEntryInput = "";
+
+function captureWorkerRuntimeEntryInput(value: string): void {
+  lastWorkerRuntimeEntryInput = value;
+}
+
 class TestWorkerJob extends WorkerJob {
   starts: i32 = 0;
   runs: i32 = 0;
   input: string = "";
 
-  protected onStart(): void {
+  protected onStart(input: string): void {
     this.starts += 1;
-    this.input = this.receiveMessage();
+    this.input = input;
   }
 
   run(): void {
@@ -38,18 +44,18 @@ class TestWorkerJob extends WorkerJob {
 
 describe("Worker runtime", () => {
   afterEach(() => {
-    __resetWorkerRuntimeForTests();
-    __setWorkerInputForTests("");
+    resetWorkerRuntime();
     setWorkerCancelled(false);
     resetCalls();
   });
 
-  it("reads the inbound worker message once and caches it", () => {
-    __setWorkerInputForTests("hello");
+  it("decodes the inbound worker entry argument", () => {
+    const bytes = Uint8Array.wrap(String.UTF8.encode("hello", false));
+    lastWorkerRuntimeEntryInput = "";
 
-    expect<string>(Worker.receiveMessage()).toBe("hello");
-    __setWorkerInputForTests("changed");
-    expect<string>(Worker.receiveMessage()).toBe("hello");
+    Worker.entry(bytes.dataStart, <u32>bytes.length, captureWorkerRuntimeEntryInput);
+
+    expect<string>(lastWorkerRuntimeEntryInput).toBe("hello");
   });
 
   it("reports progress and completion through worker host imports", () => {
@@ -90,10 +96,9 @@ describe("Worker runtime", () => {
   });
 
   it("WorkerJob keeps resumable state on one persistent instance", () => {
-    __setWorkerInputForTests("hello");
     const job = new TestWorkerJob();
 
-    let active: TestWorkerJob | null = WorkerJob.resume<TestWorkerJob>(job);
+    let active: TestWorkerJob | null = WorkerJob.resume<TestWorkerJob>(job, "hello");
     expect<bool>(active !== null).toBe(true);
     expect<i32>(job.starts).toBe(1);
     expect<i32>(job.runs).toBe(1);
@@ -102,7 +107,7 @@ describe("Worker runtime", () => {
     expect<i32>(lastWorkerYieldCount()).toBe(1);
 
     resetCalls();
-    active = WorkerJob.resume<TestWorkerJob>(job);
+    active = WorkerJob.resume<TestWorkerJob>(job, "changed");
     expect<bool>(active === null).toBe(true);
     expect<i32>(job.starts).toBe(1);
     expect<i32>(job.runs).toBe(2);

@@ -144,12 +144,12 @@ export function generateDemoTheme(isDark: bool, accentColor: u32): Theme {
   const base = generateTheme(isDark, accentColor);
   const spacing = new Spacing(6.0, 10.0, 16.0, 24.0, 34.0);
   const fonts = new Fonts(
-    base.fonts.body,
-    base.fonts.heading,
+    base.fonts.bodyStack,
+    base.fonts.headingStack,
     16.0,
     26.0,
-    base.fonts.mono,
-    base.fonts.monoBold,
+    base.fonts.monoStack,
+    base.fonts.monoBoldStack,
     15.0,
     base.fonts.bodyFamily,
     base.fonts.headingFamily,
@@ -192,7 +192,6 @@ export function generateDemoTheme(isDark: bool, accentColor: u32): Theme {
         demoSectionBackground(base),
         demoPrimaryText(base),
         isDark ? 12.0 : 10.0,
-        fonts.body,
         fonts.bodyFamily,
         14.0,
         36.0,
@@ -208,7 +207,6 @@ export function generateDemoTheme(isDark: bool, accentColor: u32): Theme {
       demoStrongSurfaceShadow(base),
       isDark ? 14.0 : 12.0,
       demoPrimaryText(base),
-      fonts.body,
       fonts.bodyFamily,
       14.0,
       320.0,

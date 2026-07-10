@@ -147,10 +147,20 @@ export function span(text: string): RichTextSpan {
 
 const STYLE_RUN_WORD_STRIDE: i32 = 7;
 
+function pushUniqueFontId(fontIds: Array<u32>, fontId: u32): void {
+  if (fontId == 0) {
+    return;
+  }
+  for (let index = 0; index < fontIds.length; ++index) {
+    if (unchecked(fontIds[index]) == fontId) {
+      return;
+    }
+  }
+  fontIds.push(fontId);
+}
+
 export class RichText extends Text {
   private hasBaseFontValue: bool = false;
-  private baseUsesDirectFontId: bool = false;
-  private baseFontIdValue: u32 = 0;
   private baseFontFamilyValue: FontFamily | null = null;
   private hasBaseFontSizeValue: bool = false;
   private baseFontSizeValue: f32 = 0.0;
@@ -176,27 +186,17 @@ export class RichText extends Text {
     return this;
   }
 
-  font(fontId: u32, size: f32): this {
+  fontStack(stack: FontStack, size: f32): this {
     this.hasBaseFontValue = true;
-    this.baseUsesDirectFontId = true;
-    this.baseFontIdValue = fontId;
-    this.baseFontFamilyValue = null;
+    this.baseFontFamilyValue = FontFamily.withRegularStack(stack);
     this.hasBaseFontSizeValue = true;
     this.baseFontSizeValue = size;
-    if (fontId == 0) {
-      warn("Typography", "RichText.font() received font id 0; the text will render with the default font fallback.");
-    }
     this.rebuildAttributedText();
     return this;
   }
 
-  fontStack(stack: FontStack, size: f32): this {
-    return this.font(stack.id, size);
-  }
-
   fontFamily(family: FontFamily): this {
     this.hasBaseFontValue = true;
-    this.baseUsesDirectFontId = false;
     this.baseFontFamilyValue = family;
     this.rebuildAttributedText();
     return this;
@@ -247,6 +247,23 @@ export class RichText extends Text {
     return this.fragmentsValue([span(content)]);
   }
 
+  _requiredFontIds(): Array<u32> {
+    const fontIds = super._requiredFontIds();
+    const fonts = activeTheme.value.fonts;
+    const defaultFamily = this.baseFontFamilyValue !== null ? changetype<FontFamily>(this.baseFontFamilyValue) : fonts.bodyFamily;
+    const defaultWeight = this.hasBaseFontWeightValue ? this.baseFontWeightValue : FontWeight.Regular;
+    const defaultStyle = this.hasBaseFontStyleValue ? this.baseFontStyleValue : FontStyle.Normal;
+    for (let i = 0; i < this.fragments.length; ++i) {
+      const piece = unchecked(this.fragments[i]);
+      const pieceFamily = piece._hasFontFamily() ? piece._fontFamilyOr(defaultFamily) : defaultFamily;
+      const pieceWeight = piece._fontWeightOr(defaultWeight);
+      const pieceStyle = piece._fontStyleOr(defaultStyle);
+      const resolvedFontId = pieceFamily.resolve(pieceWeight, pieceStyle);
+      pushUniqueFontId(fontIds, resolvedFontId);
+    }
+    return fontIds;
+  }
+
   private rebuildAttributedText(): void {
     const fonts = activeTheme.value.fonts;
     const defaultFamily = this.baseFontFamilyValue !== null ? changetype<FontFamily>(this.baseFontFamilyValue) : fonts.bodyFamily;
@@ -255,14 +272,10 @@ export class RichText extends Text {
     const defaultSize = this.hasBaseFontSizeValue ? this.baseFontSizeValue : fonts.sizeBody;
     const defaultColor = this.hasBaseColorValue ? this.baseColorValue : activeTheme.value.colors.textPrimary;
     if (this.hasBaseFontValue || this.fragments.length > 0) {
-      if (this.baseUsesDirectFontId) {
-        super.font(this.baseFontIdValue, defaultSize);
-      } else {
-        super.font(
-          defaultFamily.resolve(defaultWeight, defaultStyle),
-          defaultSize,
-        );
-      }
+      super._fontId(
+        defaultFamily.resolve(defaultWeight, defaultStyle),
+        defaultSize,
+      );
     }
     super.textColor(defaultColor);
     let merged = "";
@@ -285,9 +298,7 @@ export class RichText extends Text {
       const pieceFamily = piece._hasFontFamily() ? piece._fontFamilyOr(defaultFamily) : defaultFamily;
       const pieceWeight = piece._fontWeightOr(defaultWeight);
       const pieceStyle = piece._fontStyleOr(defaultStyle);
-      const resolvedFontId = this.baseUsesDirectFontId && !piece._hasFontFamily()
-       ? this.baseFontIdValue
-       : pieceFamily.resolve(pieceWeight, pieceStyle);
+      const resolvedFontId = pieceFamily.resolve(pieceWeight, pieceStyle);
       if (resolvedFontId == 0) {
        warn(
          "Typography",

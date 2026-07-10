@@ -8,12 +8,11 @@ describe("ContextMenuBasic", () => {
     EventRouter.reset();
     resetCalls();
 
-    const menu = new ContextMenu();
-    menu.build();
-
     const items = new Array<MenuItem>();
     items.push(new MenuItem("Reload Page", ContextMenuAction.ReloadPage));
-    menu.show(items, 24.0, 36.0);
+    const menu = new ContextMenu(items);
+    menu.build();
+    menu.show(null, 24.0, 36.0);
 
     expect<i32>(findCall(CALL_ADD_CHILD)).toBeGreaterThan(-1);
 

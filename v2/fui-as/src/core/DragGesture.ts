@@ -1,3 +1,4 @@
+import { KeyModifier } from "./ffi";
 import { Signal } from "./Signal";
 
 const DEFAULT_DRAG_THRESHOLD: f32 = 4.0;
@@ -11,7 +12,7 @@ export class DragStartedEvent {
   constructor(
     readonly x: f32 = 0.0,
     readonly y: f32 = 0.0,
-    readonly modifiers: u32 = 0,
+    readonly modifiers: KeyModifier = 0,
   ) {}
 }
 
@@ -23,7 +24,7 @@ export class DragDeltaEvent {
     readonly deltaY: f32 = 0.0,
     readonly totalDeltaX: f32 = 0.0,
     readonly totalDeltaY: f32 = 0.0,
-    readonly modifiers: u32 = 0,
+    readonly modifiers: KeyModifier = 0,
   ) {}
 }
 
@@ -33,7 +34,7 @@ export class DragCompletedEvent {
     readonly y: f32 = 0.0,
     readonly totalDeltaX: f32 = 0.0,
     readonly totalDeltaY: f32 = 0.0,
-    readonly modifiers: u32 = 0,
+    readonly modifiers: KeyModifier = 0,
     readonly cancelled: bool = false,
   ) {}
 }
@@ -53,7 +54,7 @@ export class DragGesture {
   private lastPointerY: f32 = 0.0;
   private lastDispatchedX: f32 = 0.0;
   private lastDispatchedY: f32 = 0.0;
-  private lastModifiers: u32 = 0;
+  private lastModifiers: KeyModifier = 0;
 
   constructor(private readonly host: DragGestureHost) {}
 
@@ -66,7 +67,7 @@ export class DragGesture {
     return this;
   }
 
-  handlePointerDown(x: f32, y: f32, modifiers: u32 = 0): void {
+  handlePointerDown(x: f32, y: f32, modifiers: KeyModifier = 0): void {
     if (this.pointerDownValue) {
       this.cancel();
     }
@@ -85,7 +86,7 @@ export class DragGesture {
     }
   }
 
-  handlePointerMove(x: f32, y: f32, modifiers: u32 = 0): void {
+  handlePointerMove(x: f32, y: f32, modifiers: KeyModifier = 0): void {
     if (!this.pointerDownValue) {
       return;
     }
@@ -101,7 +102,7 @@ export class DragGesture {
     this.emitDelta(x, y, modifiers);
   }
 
-  handlePointerUp(x: f32, y: f32, modifiers: u32 = 0): void {
+  handlePointerUp(x: f32, y: f32, modifiers: KeyModifier = 0): void {
     if (!this.pointerDownValue) {
       return;
     }

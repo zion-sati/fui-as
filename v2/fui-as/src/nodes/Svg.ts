@@ -11,6 +11,7 @@ import {
 import { Action, HandlerAction } from "../core/Action";
 import * as ui from "../bindings/ui";
 import { NodeType, SemanticRole, Unit } from "../core/ffi";
+import { ImageSampling } from "../core/ImageSampling";
 import { Signal } from "../core/Signal";
 import { FlexBox, FlexBoxProps } from "./FlexBox";
 
@@ -18,6 +19,7 @@ export class Svg extends FlexBox {
   private svgIdValue: u32;
   private sourceUrlValue: string = "";
   private tintColorValue: u32 = 0;
+  private samplingValue: ImageSampling = ImageSampling.linear();
   private ownedSvgAssetId: u32 = 0;
   private requestedWidthValue: f32 = 0.0;
   private requestedWidthUnit: Unit = Unit.Auto;
@@ -119,6 +121,15 @@ export class Svg extends FlexBox {
     return this;
   }
 
+  sampling(sampling: ImageSampling): this {
+    this.samplingValue = sampling;
+    if (this.hasBuiltHandle()) {
+      this.applySvgSource();
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
   altText(value: string): this {
     this.semanticRole(SemanticRole.Image);
     this.semanticLabel(value);
@@ -163,7 +174,13 @@ export class Svg extends FlexBox {
   }
 
   private applySvgSource(): void {
-    ui.setSvg(this.handle, this.svgIdValue, this.tintColorValue);
+    ui.setSvg(
+      this.handle,
+      this.svgIdValue,
+      this.tintColorValue,
+      <u32>this.samplingValue.kind,
+      this.samplingValue.maxAniso,
+    );
   }
 
   private applyResolvedSizing(): void {

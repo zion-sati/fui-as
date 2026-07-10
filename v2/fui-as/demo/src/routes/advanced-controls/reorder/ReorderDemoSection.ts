@@ -2,6 +2,7 @@ import {
   AlignItems,
   Column,
   CursorStyle,
+  DragCompletedEventArgs,
   DragDataObject,
   DragDropEffects,
   DragEventArgs,
@@ -59,7 +60,6 @@ import {
   normalizeReorderInsertionIndex,
 } from "./ReorderDemoLogic";
 
-const FONT_REGULAR: u32 = 1;
 const AUTOSCROLL_TIMER_ID: u32 = 4101;
 const AUTOSCROLL_DELAY_MS: i32 = 16;
 const PREVIEW_WIDTH_PX: f32 = 272.0;
@@ -78,8 +78,8 @@ function rowDragData(owner: ReorderRowView): DragDataObject | null {
   return owner.provideDragData();
 }
 
-function rowDragCompleted(owner: ReorderRowView, effect: DragDropEffects): void {
-  owner.handleDragCompleted(effect);
+function rowDragCompleted(owner: ReorderRowView, event: DragCompletedEventArgs): void {
+  owner.handleDragCompleted(event.effect);
 }
 
 function rowDragOver(owner: ReorderRowView, args: DragEventArgs): DropProposal {
@@ -108,16 +108,16 @@ class ReorderRowView {
     .cornerRadius(REORDER_MARKER_HEIGHT_PX * 0.5)
     .opacity(0.0) as FlexBox;
   readonly gripLabel: Text = new DemoText("Drag", DemoTextRecipe.StatusValue)
-    .font(FONT_REGULAR, 14.0)
+    .fontSize(14.0)
     .cursor(CursorStyle.Grab)
     .bindDragData<ReorderRowView>(this, rowDragData)
     .dragAllowedEffects(DragDropEffects.Move)
     .onDragCompletedWith<ReorderRowView>(this, rowDragCompleted) as Text;
   readonly grip!: FlexBox;
   readonly titleText: Text = new DemoText("", DemoTextRecipe.Body)
-    .font(FONT_REGULAR, 16.0) as Text;
+    .fontSize(16.0) as Text;
   readonly detailText: Text = new DemoText("", DemoTextRecipe.Hint)
-    .font(FONT_REGULAR, 14.0)
+    .fontSize(14.0)
     .maxLines(2) as Text;
   readonly card!: FlexBox;
   readonly slot!: FlexBox;
@@ -244,20 +244,20 @@ export class ReorderDemoSection {
     .flexDirection(FlexDirection.Column);
   readonly scrollBox: DemoScrollBox;
   readonly orderStatusText: Text = new DemoText("", DemoTextRecipe.StatusValue)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
   readonly dragStatusText: Text = new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
   readonly viewportStatusText: Text = new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
   readonly previewCaptionText: Text = new DemoText("Dragging", DemoTextRecipe.Hint)
-    .font(FONT_REGULAR, 13.0) as Text;
+    .fontSize(13.0) as Text;
   readonly previewTitleText: Text = new DemoText("", DemoTextRecipe.Body)
-    .font(FONT_REGULAR, 16.0) as Text;
+    .fontSize(16.0) as Text;
   readonly previewDetailText: Text = new DemoText("", DemoTextRecipe.Hint)
-    .font(FONT_REGULAR, 14.0)
+    .fontSize(14.0)
     .maxLines(2) as Text;
   readonly previewEffectText: Text = new DemoText("", DemoTextRecipe.StatusValue)
-    .font(FONT_REGULAR, 13.0) as Text;
+    .fontSize(13.0) as Text;
   readonly previewGhost: FlexBox = new FlexBox()
     .positionAbsolute()
     .width(PREVIEW_WIDTH_PX, Unit.Pixel)
@@ -287,7 +287,7 @@ export class ReorderDemoSection {
     "Drag a grip to reorder the list. Hold near the viewport edge (or just beyond it) to auto-scroll the inner ScrollBox while the outer route page stays scrollable.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(4) as Text;
   readonly endMarker: FlexBox = new FlexBox()
     .fillWidth()
@@ -295,7 +295,7 @@ export class ReorderDemoSection {
     .cornerRadius(REORDER_MARKER_HEIGHT_PX * 0.5)
     .opacity(0.0) as FlexBox;
   readonly endDropText: Text = new DemoText("Drop at end of reorder list", DemoTextRecipe.Hint)
-    .font(FONT_REGULAR, 14.0) as Text;
+    .fontSize(14.0) as Text;
   readonly endDropZone!: FlexBox;
 
   private readonly sectionBody!: FlexBox;

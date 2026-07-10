@@ -30,6 +30,7 @@ import {
   fui_set_pointer_capture,
   HandleValue,
   KeyEventType,
+  KeyModifier,
   Orientation,
   PointerEventType,
   SemanticCheckedState,
@@ -42,6 +43,442 @@ export enum DragDropEffects {
   Copy = 1,
   Move = 2,
   Link = 4,
+}
+
+export enum WheelDeltaMode {
+  Pixel = 0,
+  Line = 1,
+  Page = 2,
+}
+
+export enum PointerType {
+  Unknown = 0,
+  Mouse = 1,
+  Touch = 2,
+  Pen = 3,
+}
+
+export enum PointerButton {
+  None = -1,
+  Primary = 0,
+  Auxiliary = 1,
+  Secondary = 2,
+  Back = 3,
+  Forward = 4,
+}
+
+export enum PointerButtons {
+  None = 0,
+  Primary = 1 << 0,
+  Secondary = 1 << 1,
+  Auxiliary = 1 << 2,
+  Back = 1 << 3,
+  Forward = 1 << 4,
+}
+
+function isPrimaryActivationPointer(event: PointerEventArgs): bool {
+  return event.button == 0 || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
+}
+
+export enum GestureIntent {
+  None = 0,
+  Pan = 1,
+  Pinch = 2,
+  PanAndPinch = 3,
+}
+
+export enum GestureEventPhase {
+  Begin = 1,
+  Update = 2,
+  End = 3,
+  Cancel = 4,
+}
+
+export enum GestureEventKind {
+  None = 0,
+  Pan = 1,
+  Pinch = 2,
+}
+
+export class GestureEventArgs {
+  readonly phase: GestureEventPhase;
+  readonly kind: GestureEventKind;
+  readonly sceneX: f32;
+  readonly sceneY: f32;
+  readonly deltaX: f32;
+  readonly deltaY: f32;
+  readonly scale: f32;
+  readonly pointerCount: i32;
+  x: f32;
+  y: f32;
+  handled: bool = false;
+
+  constructor(
+    phase: GestureEventPhase,
+    kind: GestureEventKind,
+    sceneX: f32,
+    sceneY: f32,
+    deltaX: f32,
+    deltaY: f32,
+    scale: f32,
+    pointerCount: i32,
+  ) {
+    this.phase = phase;
+    this.kind = kind;
+    this.sceneX = sceneX;
+    this.sceneY = sceneY;
+    this.deltaX = deltaX;
+    this.deltaY = deltaY;
+    this.scale = scale;
+    this.pointerCount = pointerCount;
+    this.x = sceneX;
+    this.y = sceneY;
+  }
+}
+
+export type PanGestureEventArgs = GestureEventArgs;
+export type PinchGestureEventArgs = GestureEventArgs;
+
+export const DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS: i32 = 500;
+export const DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE: f32 = 10.0;
+
+export class LongPressEventArgs {
+  readonly sceneX: f32;
+  readonly sceneY: f32;
+  readonly pointerId: i32;
+  readonly pointerType: PointerType;
+  readonly modifiers: KeyModifier;
+  readonly durationMs: i32;
+  x: f32;
+  y: f32;
+  handled: bool = false;
+
+  constructor(
+    sceneX: f32,
+    sceneY: f32,
+    pointerId: i32,
+    pointerType: PointerType,
+    modifiers: KeyModifier,
+    durationMs: i32,
+  ) {
+    this.sceneX = sceneX;
+    this.sceneY = sceneY;
+    this.x = sceneX;
+    this.y = sceneY;
+    this.pointerId = pointerId;
+    this.pointerType = pointerType;
+    this.modifiers = modifiers;
+    this.durationMs = durationMs;
+  }
+}
+
+export class LongPressGesture {
+  private minimumDurationMsValue: i32 = DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS;
+  private movementToleranceValue: f32 = DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE;
+  private recognizedCallback: ((event: LongPressEventArgs) => void) | null = null;
+  private recognizedBinding: Callback1<LongPressEventArgs> | null = null;
+
+  static create(): LongPressGesture {
+    return new LongPressGesture();
+  }
+
+  minimumDuration(ms: i32): LongPressGesture {
+    this.minimumDurationMsValue = ms < 0 ? 0 : ms;
+    return this;
+  }
+
+  movementTolerance(px: f32): LongPressGesture {
+    this.movementToleranceValue = px < 0.0 ? 0.0 : px;
+    return this;
+  }
+
+  onRecognized(cb: ((event: LongPressEventArgs) => void) | null): LongPressGesture {
+    this.recognizedCallback = cb;
+    this.recognizedBinding = null;
+    return this;
+  }
+
+  onRecognizedWith<Owner>(owner: Owner, handler: Handler1<Owner, LongPressEventArgs>): LongPressGesture {
+    this.recognizedCallback = null;
+    this.recognizedBinding = bind1<Owner, LongPressEventArgs>(owner, handler);
+    return this;
+  }
+
+  get minimumDurationMs(): i32 {
+    return this.minimumDurationMsValue;
+  }
+
+  get movementTolerancePx(): f32 {
+    return this.movementToleranceValue;
+  }
+
+  get callback(): ((event: LongPressEventArgs) => void) | null {
+    return this.recognizedCallback;
+  }
+
+  get binding(): Callback1<LongPressEventArgs> | null {
+    return this.recognizedBinding;
+  }
+
+  get hasHandler(): bool {
+    return this.recognizedCallback !== null || this.recognizedBinding !== null;
+  }
+}
+
+export class PointerEventArgs {
+  readonly eventType: PointerEventType;
+  readonly sceneX: f32;
+  readonly sceneY: f32;
+  readonly pointerId: i32;
+  readonly pointerType: PointerType;
+  readonly button: PointerButton;
+  readonly buttons: PointerButtons;
+  readonly modifiers: KeyModifier;
+  readonly pressure: f32;
+  readonly width: f32;
+  readonly height: f32;
+  readonly clickCount: i32;
+  x: f32;
+  y: f32;
+  handled: bool = false;
+
+  constructor(
+    eventType: PointerEventType,
+    sceneX: f32,
+    sceneY: f32,
+    modifiers: KeyModifier = 0,
+    pointerId: i32 = -1,
+    pointerType: PointerType = PointerType.Unknown,
+    button: PointerButton = PointerButton.None,
+    buttons: PointerButtons = PointerButtons.None,
+    pressure: f32 = 0.0,
+    width: f32 = 0.0,
+    height: f32 = 0.0,
+    clickCount: i32 = 0,
+  ) {
+    this.eventType = eventType;
+    this.sceneX = sceneX;
+    this.sceneY = sceneY;
+    this.x = sceneX;
+    this.y = sceneY;
+    this.modifiers = modifiers;
+    this.pointerId = pointerId;
+    this.pointerType = pointerType;
+    this.button = button;
+    this.buttons = buttons;
+    this.pressure = pressure;
+    this.width = width;
+    this.height = height;
+    this.clickCount = clickCount;
+  }
+}
+
+export class PointerClickEventArgs {
+  readonly sceneX: f32;
+  readonly sceneY: f32;
+  readonly pointerType: PointerType;
+  readonly button: PointerButton;
+  readonly buttons: PointerButtons;
+  readonly modifiers: KeyModifier;
+  readonly clickCount: i32;
+  x: f32;
+  y: f32;
+  handled: bool = false;
+
+  constructor(
+    sceneX: f32,
+    sceneY: f32,
+    pointerType: PointerType = PointerType.Unknown,
+    button: PointerButton = PointerButton.None,
+    buttons: PointerButtons = PointerButtons.None,
+    modifiers: KeyModifier = 0,
+    clickCount: i32 = 0,
+  ) {
+    this.sceneX = sceneX;
+    this.sceneY = sceneY;
+    this.x = sceneX;
+    this.y = sceneY;
+    this.pointerType = pointerType;
+    this.button = button;
+    this.buttons = buttons;
+    this.modifiers = modifiers;
+    this.clickCount = clickCount;
+  }
+}
+
+export class ClickEventArgs {
+  static readonly Empty: ClickEventArgs = new ClickEventArgs();
+}
+
+export class KeyEventArgs {
+  readonly eventType: KeyEventType;
+  readonly key: string;
+  readonly modifiers: KeyModifier;
+  handled: bool = false;
+
+  constructor(
+    eventType: KeyEventType,
+    key: string,
+    modifiers: KeyModifier = 0,
+  ) {
+    this.eventType = eventType;
+    this.key = key;
+    this.modifiers = modifiers;
+  }
+}
+
+export class FocusChangedEventArgs {
+  readonly focused: bool;
+
+  constructor(focused: bool) {
+    this.focused = focused;
+  }
+}
+
+export class HoverChangedEventArgs {
+  readonly hovered: bool;
+
+  constructor(hovered: bool) {
+    this.hovered = hovered;
+  }
+}
+
+export class TextChangedEventArgs {
+  readonly text: string;
+
+  constructor(text: string) {
+    this.text = text;
+  }
+}
+
+export class SelectionChangedEventArgs {
+  readonly start: u32;
+  readonly end: u32;
+
+  constructor(start: u32, end: u32) {
+    this.start = start;
+    this.end = end;
+  }
+}
+
+export class CheckboxChangedEventArgs {
+  readonly state: SemanticCheckedState;
+  readonly checked: bool;
+
+  constructor(state: SemanticCheckedState) {
+    this.state = state;
+    this.checked = state == SemanticCheckedState.True;
+  }
+}
+
+export class SwitchChangedEventArgs {
+  readonly checked: bool;
+
+  constructor(checked: bool) {
+    this.checked = checked;
+  }
+}
+
+export class RadioButtonChangedEventArgs {
+  readonly checked: bool;
+
+  constructor(checked: bool) {
+    this.checked = checked;
+  }
+}
+
+export class RadioGroupChangedEventArgs {
+  readonly value: string;
+
+  constructor(value: string) {
+    this.value = value;
+  }
+}
+
+export class SliderChangedEventArgs {
+  readonly value: f32;
+
+  constructor(value: f32) {
+    this.value = value;
+  }
+}
+
+export class DropdownChangedEventArgs<TItem> {
+  readonly item: TItem;
+  readonly index: i32;
+
+  constructor(item: TItem, index: i32) {
+    this.item = item;
+    this.index = index;
+  }
+}
+
+export class ComboBoxChangedEventArgs<TItem> {
+  readonly item: TItem;
+  readonly index: i32;
+
+  constructor(item: TItem, index: i32) {
+    this.item = item;
+    this.index = index;
+  }
+}
+
+export class DragCompletedEventArgs {
+  readonly effect: DragDropEffects;
+
+  constructor(effect: DragDropEffects) {
+    this.effect = effect;
+  }
+}
+
+export class ContextMenuEventArgs {
+  readonly target: Node | null;
+  readonly x: f32;
+  readonly y: f32;
+
+  constructor(target: Node | null, x: f32, y: f32) {
+    this.target = target;
+    this.x = x;
+    this.y = y;
+  }
+}
+
+export class VisibilityChangedEventArgs {
+  readonly visible: bool;
+
+  constructor(visible: bool) {
+    this.visible = visible;
+  }
+}
+
+export class WheelEventArgs {
+  readonly sceneX: f32;
+  readonly sceneY: f32;
+  readonly deltaX: f32;
+  readonly deltaY: f32;
+  readonly deltaMode: WheelDeltaMode;
+  readonly modifiers: KeyModifier;
+  x: f32;
+  y: f32;
+  handled: bool = false;
+
+  constructor(
+    sceneX: f32,
+    sceneY: f32,
+    deltaX: f32,
+    deltaY: f32,
+    deltaMode: WheelDeltaMode,
+    modifiers: KeyModifier,
+  ) {
+    this.sceneX = sceneX;
+    this.sceneY = sceneY;
+    this.x = sceneX;
+    this.y = sceneY;
+    this.deltaX = deltaX;
+    this.deltaY = deltaY;
+    this.deltaMode = deltaMode;
+    this.modifiers = modifiers;
+  }
 }
 
 const DRAG_DROP_TEXT_FORMAT = "text/plain";
@@ -96,8 +533,8 @@ export class DragSession {
   readonly allowedEffects: DragDropEffects;
   private currentEffectValue: DragDropEffects = DragDropEffects.None;
   private activeValue: bool = true;
-  private completedCallback: ((effect: DragDropEffects) => void) | null = null;
-  private completedBinding: Callback1<DragDropEffects> | null = null;
+  private completedCallback: ((event: DragCompletedEventArgs) => void) | null = null;
+  private completedBinding: Callback1<DragCompletedEventArgs> | null = null;
 
   constructor(source: Node, data: DragDataObject, allowedEffects: DragDropEffects) {
     this.source = source;
@@ -113,15 +550,15 @@ export class DragSession {
     return this.activeValue;
   }
 
-  onCompleted(cb: ((effect: DragDropEffects) => void) | null): DragSession {
+  onCompleted(cb: ((event: DragCompletedEventArgs) => void) | null): DragSession {
     this.completedCallback = cb;
     this.completedBinding = null;
     return this;
   }
 
-  onCompletedWith<Owner>(owner: Owner, handler: Handler1<Owner, DragDropEffects>): DragSession {
+  onCompletedWith<Owner>(owner: Owner, handler: Handler1<Owner, DragCompletedEventArgs>): DragSession {
     this.completedCallback = null;
-    this.completedBinding = bind1<Owner, DragDropEffects>(owner, handler);
+    this.completedBinding = bind1<Owner, DragCompletedEventArgs>(owner, handler);
     return this;
   }
 
@@ -142,14 +579,15 @@ export class DragSession {
     }
     this.activeValue = false;
     this.currentEffectValue = effect;
+    const event = new DragCompletedEventArgs(effect);
     const callback = this.completedCallback;
     if (callback !== null) {
-      callback(effect);
+      callback(event);
       return;
     }
     const binding = this.completedBinding;
     if (binding !== null) {
-      binding.invoke(effect);
+      binding.invoke(event);
     }
   }
 }
@@ -158,9 +596,9 @@ export class DragEventArgs {
   readonly session: DragSession;
   readonly x: f32;
   readonly y: f32;
-  readonly modifiers: u32;
+  readonly modifiers: KeyModifier;
 
-  constructor(session: DragSession, x: f32, y: f32, modifiers: u32) {
+  constructor(session: DragSession, x: f32, y: f32, modifiers: KeyModifier) {
     this.session = session;
     this.x = x;
     this.y = y;
@@ -202,10 +640,10 @@ export class ExternalDropItemInfo {
 export class ExternalDropEventArgs {
   readonly x: f32;
   readonly y: f32;
-  readonly modifiers: u32;
+  readonly modifiers: KeyModifier;
   readonly items: Array<ExternalDropItemInfo>;
 
-  constructor(x: f32, y: f32, modifiers: u32, items: Array<ExternalDropItemInfo>) {
+  constructor(x: f32, y: f32, modifiers: KeyModifier, items: Array<ExternalDropItemInfo>) {
     this.x = x;
     this.y = y;
     this.modifiers = modifiers;
@@ -214,6 +652,7 @@ export class ExternalDropEventArgs {
 }
 
 export abstract class Node implements DragGestureHost, Disposable {
+  protected static pendingPointerEventArgs: PointerEventArgs | null = null;
   protected handle: u64 = <u64>HandleValue.Invalid;
   protected childNodes: Array<Node> = new Array<Node>();
   protected retainedParent: Node | null = null;
@@ -243,18 +682,36 @@ export abstract class Node implements DragGestureHost, Disposable {
   private semanticValueMax: f32 = 0.0;
   private semanticOrientationValue: Orientation = Orientation.None;
   private portalFlag: bool = false;
-  private clickCallback: (() => void) | null = null;
-  private clickBinding: Callback0 | null = null;
-  private pointerDownCallback: ((x: f32, y: f32) => void) | null = null;
-  private pointerMoveCallback: ((x: f32, y: f32) => void) | null = null;
-  private pointerUpCallback: ((x: f32, y: f32) => void) | null = null;
-  private pointerEnterCallback: (() => void) | null = null;
-  private pointerLeaveCallback: (() => void) | null = null;
+  private pointerClickCallback: ((event: PointerClickEventArgs) => void) | null = null;
+  private pointerClickBinding: Callback1<PointerClickEventArgs> | null = null;
+  private pointerDownEventCallback: ((event: PointerEventArgs) => void) | null = null;
+  private pointerDownEventBinding: Callback1<PointerEventArgs> | null = null;
+  private pointerMoveEventCallback: ((event: PointerEventArgs) => void) | null = null;
+  private pointerMoveEventBinding: Callback1<PointerEventArgs> | null = null;
+  private pointerUpEventCallback: ((event: PointerEventArgs) => void) | null = null;
+  private pointerUpEventBinding: Callback1<PointerEventArgs> | null = null;
+  private pointerEnterEventCallback: ((event: PointerEventArgs) => void) | null = null;
+  private pointerEnterEventBinding: Callback1<PointerEventArgs> | null = null;
+  private pointerLeaveEventCallback: ((event: PointerEventArgs) => void) | null = null;
+  private pointerLeaveEventBinding: Callback1<PointerEventArgs> | null = null;
+  private pointerCancelEventCallback: ((event: PointerEventArgs) => void) | null = null;
+  private pointerCancelEventBinding: Callback1<PointerEventArgs> | null = null;
+  private wheelCallback: ((event: WheelEventArgs) => void) | null = null;
+  private wheelBinding: Callback1<WheelEventArgs> | null = null;
+  private gestureIntentValue: GestureIntent = GestureIntent.None;
+  private panGestureCallback: ((event: PanGestureEventArgs) => void) | null = null;
+  private panGestureBinding: Callback1<PanGestureEventArgs> | null = null;
+  private pinchGestureCallback: ((event: PinchGestureEventArgs) => void) | null = null;
+  private pinchGestureBinding: Callback1<PinchGestureEventArgs> | null = null;
+  private longPressGestureCallback: ((event: LongPressEventArgs) => void) | null = null;
+  private longPressGestureBinding: Callback1<LongPressEventArgs> | null = null;
+  private longPressMinimumDurationMsValue: i32 = DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS;
+  private longPressMovementToleranceValue: f32 = DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE;
   private dragDataCallback: (() => DragDataObject | null) | null = null;
   private dragDataBinding: ResultCallback0<DragDataObject | null> | null = null;
   private dragAllowedEffectsValue: DragDropEffects = DragDropEffects.Copy;
-  private dragCompletedCallback: ((effect: DragDropEffects) => void) | null = null;
-  private dragCompletedBinding: Callback1<DragDropEffects> | null = null;
+  private dragCompletedCallback: ((event: DragCompletedEventArgs) => void) | null = null;
+  private dragCompletedBinding: Callback1<DragCompletedEventArgs> | null = null;
   private dropAllowedValue: bool = false;
   private dragEnterCallback: ((args: DragEventArgs) => DropProposal) | null = null;
   private dragEnterBinding: ResultCallback1<DragEventArgs, DropProposal> | null = null;
@@ -275,16 +732,21 @@ export abstract class Node implements DragGestureHost, Disposable {
   private externalDropBinding: Callback1<ExternalDropEventArgs> | null = null;
   private dragGestureValue: DragGesture | null = null;
   private dragClickPending: bool = false;
-  private contextMenuCallback: ((target: Node | null, x: f32, y: f32) => void) | null = null;
+  private dragClickPendingCount: i32 = 0;
+  private clickPending: bool = false;
+  private clickPendingCount: i32 = 0;
+  private contextMenuCallback: ((event: ContextMenuEventArgs) => void) | null = null;
   private contextMenuDisabledValue: bool = false;
   private focusableFlag: bool = false;
   private focusableTabIndex: i32 = 0;
-  private focusChangedCb: ((focused: bool) => void) | null = null;
-  private focusChangedBinding: Callback1<bool> | null = null;
-  private keyDownCb: ((key: string, mods: u32) => void) | null = null;
-  private keyDownBinding: Callback2<string, u32> | null = null;
-  private keyUpCb: ((key: string, mods: u32) => void) | null = null;
+  private focusChangedCb: ((event: FocusChangedEventArgs) => void) | null = null;
+  private focusChangedBinding: Callback1<FocusChangedEventArgs> | null = null;
+  private keyDownCb: ((event: KeyEventArgs) => void) | null = null;
+  private keyDownBinding: Callback1<KeyEventArgs> | null = null;
+  private keyUpCb: ((event: KeyEventArgs) => void) | null = null;
+  private keyUpBinding: Callback1<KeyEventArgs> | null = null;
   private hasPointerCallbacks: bool = false;
+  private preserveSelectionOnPointerDownValue: bool = false;
   private cursorValue: CursorStyle = CursorStyle.Default;
   private ownEnabled: bool = true;
   private inheritedEnabled: bool = true;
@@ -364,8 +826,32 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this.contextMenuDisabledValue;
   }
 
-  get contextMenuHandler(): ((target: Node | null, x: f32, y: f32) => void) | null {
+  get isSelectableText(): bool {
+    return false;
+  }
+
+  get isEditableText(): bool {
+    return false;
+  }
+
+  get contextMenuHandler(): ((event: ContextMenuEventArgs) => void) | null {
     return this.contextMenuCallback;
+  }
+
+  get gestureIntentValueForRouting(): GestureIntent {
+    return this.gestureIntentValue;
+  }
+
+  get hasLongPressGestureForRouting(): bool {
+    return this.longPressGestureCallback !== null || this.longPressGestureBinding !== null;
+  }
+
+  get longPressMinimumDurationMsForRouting(): i32 {
+    return this.longPressMinimumDurationMsValue;
+  }
+
+  get longPressMovementToleranceForRouting(): f32 {
+    return this.longPressMovementToleranceValue;
   }
 
   getChildAt(index: i32): Node | null {
@@ -595,53 +1081,206 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this;
   }
 
-  onClick(cb: () => void): this {
-    this.clickCallback = cb;
-    this.clickBinding = null;
+  onPointerClick(cb: (event: PointerClickEventArgs) => void): this {
+    this.pointerClickCallback = cb;
+    this.pointerClickBinding = null;
     this.requireInteractive();
     return this;
   }
 
-  bindClick<Owner>(owner: Owner, handler: Handler0<Owner>): this {
-    this.clickCallback = null;
-    this.clickBinding = bind0<Owner>(owner, handler);
+  bindPointerClick<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
+    this.pointerClickCallback = null;
+    this.pointerClickBinding = bind1<Owner, PointerClickEventArgs>(owner, handler);
     this.requireInteractive();
     return this;
   }
 
-  onClickWith<Owner>(owner: Owner, handler: Handler0<Owner>): this {
-    this.bindClick(owner, handler);
+  onPointerClickWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
+    this.bindPointerClick(owner, handler);
     return this;
   }
 
-  onPointerDown(cb: (x: f32, y: f32) => void): this {
-    this.pointerDownCallback = cb;
+  onPointerDown(cb: (event: PointerEventArgs) => void): this {
+    this.pointerDownEventCallback = cb;
+    this.pointerDownEventBinding = null;
     this.requireInteractive();
     return this;
   }
 
-  onPointerMove(cb: (x: f32, y: f32) => void): this {
-    this.pointerMoveCallback = cb;
+  onPointerDownWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerEventArgs>): this {
+    this.pointerDownEventCallback = null;
+    this.pointerDownEventBinding = bind1<Owner, PointerEventArgs>(owner, handler);
     this.requireInteractive();
     return this;
   }
 
-  onPointerUp(cb: (x: f32, y: f32) => void): this {
-    this.pointerUpCallback = cb;
+  onPointerMove(cb: (event: PointerEventArgs) => void): this {
+    this.pointerMoveEventCallback = cb;
+    this.pointerMoveEventBinding = null;
     this.requireInteractive();
     return this;
   }
 
-  onPointerEnter(cb: () => void): this {
-    this.pointerEnterCallback = cb;
+  onPointerMoveWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerEventArgs>): this {
+    this.pointerMoveEventCallback = null;
+    this.pointerMoveEventBinding = bind1<Owner, PointerEventArgs>(owner, handler);
     this.requireInteractive();
     return this;
   }
 
-  onPointerLeave(cb: () => void): this {
-    this.pointerLeaveCallback = cb;
+  onPointerUp(cb: (event: PointerEventArgs) => void): this {
+    this.pointerUpEventCallback = cb;
+    this.pointerUpEventBinding = null;
     this.requireInteractive();
     return this;
+  }
+
+  onPointerUpWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerEventArgs>): this {
+    this.pointerUpEventCallback = null;
+    this.pointerUpEventBinding = bind1<Owner, PointerEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerEnter(cb: (event: PointerEventArgs) => void): this {
+    this.pointerEnterEventCallback = cb;
+    this.pointerEnterEventBinding = null;
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerEnterWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerEventArgs>): this {
+    this.pointerEnterEventCallback = null;
+    this.pointerEnterEventBinding = bind1<Owner, PointerEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerLeave(cb: (event: PointerEventArgs) => void): this {
+    this.pointerLeaveEventCallback = cb;
+    this.pointerLeaveEventBinding = null;
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerLeaveWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerEventArgs>): this {
+    this.pointerLeaveEventCallback = null;
+    this.pointerLeaveEventBinding = bind1<Owner, PointerEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerCancel(cb: (event: PointerEventArgs) => void): this {
+    this.pointerCancelEventCallback = cb;
+    this.pointerCancelEventBinding = null;
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerCancelWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerEventArgs>): this {
+    this.pointerCancelEventCallback = null;
+    this.pointerCancelEventBinding = bind1<Owner, PointerEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onWheel(cb: (event: WheelEventArgs) => void): this {
+    this.wheelCallback = cb;
+    this.wheelBinding = null;
+    this.requireInteractive();
+    return this;
+  }
+
+  bindWheel<Owner>(owner: Owner, handler: Handler1<Owner, WheelEventArgs>): this {
+    this.wheelCallback = null;
+    this.wheelBinding = bind1<Owner, WheelEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onWheelWith<Owner>(owner: Owner, handler: Handler1<Owner, WheelEventArgs>): this {
+    this.bindWheel(owner, handler);
+    return this;
+  }
+
+  panGesture(cb: ((event: PanGestureEventArgs) => void) | null): this {
+    this.panGestureCallback = cb;
+    this.panGestureBinding = null;
+    this.updateRecognizerGestureIntent();
+    return this;
+  }
+
+  panGestureWith<Owner>(owner: Owner, handler: Handler1<Owner, PanGestureEventArgs>): this {
+    this.panGestureCallback = null;
+    this.panGestureBinding = bind1<Owner, PanGestureEventArgs>(owner, handler);
+    this.updateRecognizerGestureIntent();
+    return this;
+  }
+
+  pinchGesture(cb: ((event: PinchGestureEventArgs) => void) | null): this {
+    this.pinchGestureCallback = cb;
+    this.pinchGestureBinding = null;
+    this.updateRecognizerGestureIntent();
+    return this;
+  }
+
+  pinchGestureWith<Owner>(owner: Owner, handler: Handler1<Owner, PinchGestureEventArgs>): this {
+    this.pinchGestureCallback = null;
+    this.pinchGestureBinding = bind1<Owner, PinchGestureEventArgs>(owner, handler);
+    this.updateRecognizerGestureIntent();
+    return this;
+  }
+
+  longPressGesture(cb: ((event: LongPressEventArgs) => void) | null): this {
+    this.longPressGestureCallback = cb;
+    this.longPressGestureBinding = null;
+    this.longPressMinimumDurationMsValue = DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS;
+    this.longPressMovementToleranceValue = DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE;
+    if (cb !== null) {
+      this.requireInteractive();
+    }
+    return this;
+  }
+
+  longPressGestureWith<Owner>(owner: Owner, handler: Handler1<Owner, LongPressEventArgs>): this {
+    this.longPressGestureCallback = null;
+    this.longPressGestureBinding = bind1<Owner, LongPressEventArgs>(owner, handler);
+    this.longPressMinimumDurationMsValue = DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS;
+    this.longPressMovementToleranceValue = DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE;
+    this.requireInteractive();
+    return this;
+  }
+
+  longPressRecognizer(gesture: LongPressGesture | null): this {
+    if (gesture === null) {
+      this.longPressGestureCallback = null;
+      this.longPressGestureBinding = null;
+      this.longPressMinimumDurationMsValue = DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS;
+      this.longPressMovementToleranceValue = DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE;
+      return this;
+    }
+    this.longPressGestureCallback = gesture.callback;
+    this.longPressGestureBinding = gesture.binding;
+    this.longPressMinimumDurationMsValue = gesture.minimumDurationMs;
+    this.longPressMovementToleranceValue = gesture.movementTolerancePx;
+    if (gesture.hasHandler) {
+      this.requireInteractive();
+    }
+    return this;
+  }
+
+  private updateRecognizerGestureIntent(): void {
+    let intent = GestureIntent.None;
+    if (this.panGestureCallback !== null || this.panGestureBinding !== null) {
+      intent = <GestureIntent>(<u32>intent | <u32>GestureIntent.Pan);
+    }
+    if (this.pinchGestureCallback !== null || this.pinchGestureBinding !== null) {
+      intent = <GestureIntent>(<u32>intent | <u32>GestureIntent.Pinch);
+    }
+    this.gestureIntentValue = intent;
+    if (intent != GestureIntent.None) {
+      this.requireInteractive();
+    }
   }
 
   dragAllowedEffects(effects: DragDropEffects): this {
@@ -675,15 +1314,15 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this;
   }
 
-  onDragCompleted(cb: ((effect: DragDropEffects) => void) | null): this {
+  onDragCompleted(cb: ((event: DragCompletedEventArgs) => void) | null): this {
     this.dragCompletedCallback = cb;
     this.dragCompletedBinding = null;
     return this;
   }
 
-  onDragCompletedWith<Owner>(owner: Owner, handler: Handler1<Owner, DragDropEffects>): this {
+  onDragCompletedWith<Owner>(owner: Owner, handler: Handler1<Owner, DragCompletedEventArgs>): this {
     this.dragCompletedCallback = null;
-    this.dragCompletedBinding = bind1<Owner, DragDropEffects>(owner, handler);
+    this.dragCompletedBinding = bind1<Owner, DragCompletedEventArgs>(owner, handler);
     return this;
   }
 
@@ -836,6 +1475,22 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this;
   }
 
+  preserveSelectionOnPointerDown(preserve: bool = true): this {
+    if (this.preserveSelectionOnPointerDownValue == preserve) {
+      return this;
+    }
+    this.preserveSelectionOnPointerDownValue = preserve;
+    if (this.hasBuiltHandle()) {
+      ui.setPreserveSelectionOnPointerDown(this.handle, preserve);
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
+  get preservesSelectionOnPointerDownForRouting(): bool {
+    return this.preserveSelectionOnPointerDownValue;
+  }
+
   toolTipText(text: string): this {
     this.toolTip(ToolTip.text(text));
     return this;
@@ -846,7 +1501,7 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this;
   }
 
-  onContextMenu(cb: ((target: Node | null, x: f32, y: f32) => void) | null): this {
+  onContextMenu(cb: ((event: ContextMenuEventArgs) => void) | null): this {
     this.contextMenuCallback = cb;
     return this;
   }
@@ -896,42 +1551,54 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this;
   }
 
-  onFocusChanged(cb: (focused: bool) => void): this {
+  onFocusChanged(cb: (event: FocusChangedEventArgs) => void): this {
     this.focusChangedCb = cb;
     this.focusChangedBinding = null;
     return this;
   }
 
-  bindFocusChanged<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  bindFocusChanged<Owner>(owner: Owner, handler: Handler1<Owner, FocusChangedEventArgs>): this {
     this.focusChangedCb = null;
-    this.focusChangedBinding = bind1<Owner, bool>(owner, handler);
+    this.focusChangedBinding = bind1<Owner, FocusChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onFocusChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  onFocusChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, FocusChangedEventArgs>): this {
     this.bindFocusChanged(owner, handler);
     return this;
   }
 
-  onKeyDown(cb: (key: string, mods: u32) => void): this {
+  onKeyDown(cb: (event: KeyEventArgs) => void): this {
     this.keyDownCb = cb;
     this.keyDownBinding = null;
     return this;
   }
 
-  bindKeyDown<Owner>(owner: Owner, handler: Handler2<Owner, string, u32>): this {
+  bindKeyDown<Owner>(owner: Owner, handler: Handler1<Owner, KeyEventArgs>): this {
     this.keyDownCb = null;
-    this.keyDownBinding = bind2<Owner, string, u32>(owner, handler);
+    this.keyDownBinding = bind1<Owner, KeyEventArgs>(owner, handler);
     return this;
   }
 
-  onKeyDownWith<Owner>(owner: Owner, handler: Handler2<Owner, string, u32>): this {
+  onKeyDownWith<Owner>(owner: Owner, handler: Handler1<Owner, KeyEventArgs>): this {
     this.bindKeyDown(owner, handler);
     return this;
   }
 
-  onKeyUp(cb: (key: string, mods: u32) => void): this {
+  onKeyUp(cb: (event: KeyEventArgs) => void): this {
     this.keyUpCb = cb;
+    this.keyUpBinding = null;
+    return this;
+  }
+
+  bindKeyUp<Owner>(owner: Owner, handler: Handler1<Owner, KeyEventArgs>): this {
+    this.keyUpCb = null;
+    this.keyUpBinding = bind1<Owner, KeyEventArgs>(owner, handler);
+    return this;
+  }
+
+  onKeyUpWith<Owner>(owner: Owner, handler: Handler1<Owner, KeyEventArgs>): this {
+    this.bindKeyUp(owner, handler);
     return this;
   }
 
@@ -1083,12 +1750,17 @@ export abstract class Node implements DragGestureHost, Disposable {
 
   protected finishBuild(): void {
     this.disposedValue = false;
+    this.lastEffectiveEnabled = this.isEnabled;
+    this.lastEffectiveVisibility = this.effectiveVisibility();
     EventRouter.register(this.handle, this);
     if (this.focusableFlag && this.isEnabled && this.isVisible) {
       ui.setFocusable(this.handle, this.focusableFlag, this.focusableTabIndex);
     }
     if (this.hasPointerCallbacks && this.isEnabled && this.isVisible) {
       ui.setInteractive(this.handle, true);
+    }
+    if (this.preserveSelectionOnPointerDownValue) {
+      ui.setPreserveSelectionOnPointerDown(this.handle, true);
     }
   }
 
@@ -1206,13 +1878,14 @@ export abstract class Node implements DragGestureHost, Disposable {
   }
 
   _notifyDragCompleted(effect: DragDropEffects): void {
+    const event = new DragCompletedEventArgs(effect);
     const callback = this.dragCompletedCallback;
     if (callback !== null) {
-      callback(effect);
+      callback(event);
     } else {
       const binding = this.dragCompletedBinding;
       if (binding !== null) {
-        binding.invoke(effect);
+        binding.invoke(event);
       }
     }
   }
@@ -1415,6 +2088,10 @@ export abstract class Node implements DragGestureHost, Disposable {
     return this.attachedPropertyKey;
   }
 
+  _requiredFontIds(): Array<u32> {
+    return new Array<u32>();
+  }
+
   _capturePersistedStateTree(): void {
     this.capturePersistedState();
     for (let index = 0; index < this.childNodes.length; ++index) {
@@ -1470,20 +2147,34 @@ export abstract class Node implements DragGestureHost, Disposable {
     }
   }
 
-  private fireClick(): void {
-    const callback = this.clickCallback;
+  private fireClick(count: i32, event: PointerEventArgs): void {
+    const clickEvent = new PointerClickEventArgs(
+      event.sceneX,
+      event.sceneY,
+      event.pointerType,
+      event.button,
+      event.buttons,
+      event.modifiers,
+      count > 0 ? count : 1,
+    );
+    clickEvent.x = event.x;
+    clickEvent.y = event.y;
+    const callback = this.pointerClickCallback;
     if (callback !== null) {
-      callback();
+      callback(clickEvent);
       return;
     }
-    const binding = this.clickBinding;
+    const binding = this.pointerClickBinding;
     if (binding !== null) {
-      binding.invoke();
+      binding.invoke(clickEvent);
     }
   }
 
   private cancelDragState(): void {
     this.dragClickPending = false;
+    this.dragClickPendingCount = 0;
+    this.clickPending = false;
+    this.clickPendingCount = 0;
     const gesture = this.dragGestureValue;
     if (gesture !== null) {
       gesture.cancel();
@@ -1491,82 +2182,323 @@ export abstract class Node implements DragGestureHost, Disposable {
   }
 
   _handlePointerEvent(eventType: PointerEventType, _x: f32, _y: f32, _modifiers: u32 = 0): void {
+    const pending = Node.pendingPointerEventArgs;
+    let event = pending !== null
+      ? changetype<PointerEventArgs>(pending)
+      : new PointerEventArgs(eventType, _x, _y, _modifiers);
+    if (pending === event) {
+      Node.pendingPointerEventArgs = null;
+    }
+    this.handlePointerEventCore(event);
+  }
+
+  _handlePointerEventWithArgs(event: PointerEventArgs): void {
+    this.handlePointerEventCore(event);
+  }
+
+  _handleBubbledPointerEvent(event: PointerEventArgs): bool {
+    if (!this.isEnabled || !this.isVisible) {
+      return false;
+    }
+    const nodeX: f32 = this.hasBuiltHandle() ? (event.sceneX - this.getBounds()[0]) : event.sceneX;
+    const nodeY: f32 = this.hasBuiltHandle() ? (event.sceneY - this.getBounds()[1]) : event.sceneY;
+    event.x = nodeX;
+    event.y = nodeY;
+    this.invokePointerEventCallback(event);
+    if (!event.handled) {
+      if (event.eventType == PointerEventType.Down) {
+        const isPrimaryButton = isPrimaryActivationPointer(event);
+        this.clickPending = isPrimaryButton && (this.pointerClickCallback !== null || this.pointerClickBinding !== null);
+        this.clickPendingCount = event.clickCount;
+      } else if (event.eventType == PointerEventType.Up) {
+        if (this.clickPending) {
+          this.fireClick(this.clickPendingCount, event);
+        }
+        this.clickPending = false;
+        this.clickPendingCount = 0;
+      } else if (event.eventType == PointerEventType.Leave || event.eventType == PointerEventType.Cancel) {
+        this.clickPending = false;
+        this.clickPendingCount = 0;
+      }
+    }
+    return event.handled;
+  }
+
+  static _dispatchPointerEventWithArgs(node: Node, event: PointerEventArgs): void {
+    Node.pendingPointerEventArgs = event;
+    node._handlePointerEvent(event.eventType, event.sceneX, event.sceneY, event.modifiers);
+    if (Node.pendingPointerEventArgs === event) {
+      Node.pendingPointerEventArgs = null;
+    }
+  }
+
+  private handlePointerEventCore(event: PointerEventArgs): void {
     if (!this.isEnabled || !this.isVisible) {
       return;
     }
+    const _x = event.sceneX;
+    const _y = event.sceneY;
+    const _modifiers = event.modifiers;
+    const nodeX: f32 = this.hasBuiltHandle() ? (_x - this.getBounds()[0]) : _x;
+    const nodeY: f32 = this.hasBuiltHandle() ? (_y - this.getBounds()[1]) : _y;
+    event.x = nodeX;
+    event.y = nodeY;
+    const eventType = event.eventType;
     if (eventType == PointerEventType.Down) {
       ToolTipManager.handlePointerDown(this);
+      this.invokePointerEventCallback(event);
+      if (event.handled) {
+        return;
+      }
       const dragGesture = this._hasDragSource() ? this.dragGestureValue : null;
-      if (dragGesture !== null) {
-        dragGesture.handlePointerDown(_x, _y, _modifiers);
-        this.dragClickPending = this.clickCallback !== null || this.clickBinding !== null;
+      const isPrimaryButton = isPrimaryActivationPointer(event);
+      if (dragGesture !== null && isPrimaryButton) {
+        dragGesture.handlePointerDown(nodeX, nodeY, _modifiers);
+        this.dragClickPending = this.pointerClickCallback !== null || this.pointerClickBinding !== null;
+        this.dragClickPendingCount = event.clickCount;
+        this.clickPending = false;
+        this.clickPendingCount = 0;
       } else {
         this.dragClickPending = false;
-      }
-      const pointerDown = this.pointerDownCallback;
-      if (pointerDown !== null) {
-        pointerDown(_x, _y);
-      }
-      if (dragGesture === null) {
-        this.fireClick();
+        this.dragClickPendingCount = 0;
+        this.clickPending = isPrimaryButton && (this.pointerClickCallback !== null || this.pointerClickBinding !== null);
+        this.clickPendingCount = event.clickCount;
       }
       return;
     }
     if (eventType == PointerEventType.Move) {
       ToolTipManager.handlePointerMove(this, _x, _y);
+      this.invokePointerEventCallback(event);
+      if (event.handled) {
+        return;
+      }
       const dragGesture = this.dragGestureValue;
       if (dragGesture !== null && (this._hasDragSource() || dragGesture.isDragging)) {
-        dragGesture.handlePointerMove(_x, _y, _modifiers);
-      }
-      const callback = this.pointerMoveCallback;
-      if (callback !== null) {
-        callback(_x, _y);
+        dragGesture.handlePointerMove(nodeX, nodeY, _modifiers);
       }
       return;
     }
     if (eventType == PointerEventType.Up) {
+      this.invokePointerEventCallback(event);
+      if (event.handled) {
+        this.dragClickPending = false;
+        this.dragClickPendingCount = 0;
+        this.clickPending = false;
+        this.clickPendingCount = 0;
+        return;
+      }
       const dragGesture = this.dragGestureValue;
       const dragGestureActive = dragGesture !== null && (this._hasDragSource() || dragGesture.isDragging);
       const canFirePendingClick = this.dragClickPending && (!dragGestureActive || !changetype<DragGesture>(dragGesture).isDragging);
+      const canFireClick = this.clickPending;
       if (dragGestureActive) {
-        changetype<DragGesture>(dragGesture).handlePointerUp(_x, _y, _modifiers);
+        changetype<DragGesture>(dragGesture).handlePointerUp(nodeX, nodeY, _modifiers);
       }
-      const callback = this.pointerUpCallback;
-      if (callback !== null) {
-        callback(_x, _y);
+      if (canFireClick) {
+        this.fireClick(this.clickPendingCount, event);
       }
+      this.clickPending = false;
+      this.clickPendingCount = 0;
       if (canFirePendingClick) {
-        this.fireClick();
+        this.fireClick(this.dragClickPendingCount, event);
       }
       this.dragClickPending = false;
+      this.dragClickPendingCount = 0;
       return;
     }
     if (eventType == PointerEventType.Enter) {
-      const callback = this.pointerEnterCallback;
-      if (callback !== null) {
-        callback();
+      this.invokePointerEventCallback(event);
+      if (event.handled) {
+        return;
       }
       ToolTipManager.handlePointerEnter(this, this.toolTipValue, _x, _y);
       return;
     }
     if (eventType == PointerEventType.Leave) {
-      const callback = this.pointerLeaveCallback;
-      if (callback !== null) {
-        callback();
+      this.invokePointerEventCallback(event);
+      if (event.handled) {
+        this.dragClickPending = false;
+        this.clickPending = false;
+        this.clickPendingCount = 0;
+        ToolTipManager.handlePointerLeave(this);
+        return;
       }
       this.dragClickPending = false;
+      this.clickPending = false;
+      this.clickPendingCount = 0;
+      ToolTipManager.handlePointerLeave(this);
+      return;
+    }
+    if (eventType == PointerEventType.Cancel) {
+      this.invokePointerEventCallback(event);
+      if (event.handled) {
+        this.cancelDragState();
+        ToolTipManager.handlePointerLeave(this);
+        return;
+      }
+      this.cancelDragState();
       ToolTipManager.handlePointerLeave(this);
     }
   }
 
+  private invokePointerEventCallback(event: PointerEventArgs): void {
+    if (event.eventType == PointerEventType.Down) {
+      const callback = this.pointerDownEventCallback;
+      if (callback !== null) {
+        callback(event);
+      }
+      const binding = this.pointerDownEventBinding;
+      if (binding !== null) {
+        binding.invoke(event);
+      }
+      return;
+    }
+    if (event.eventType == PointerEventType.Move) {
+      const callback = this.pointerMoveEventCallback;
+      if (callback !== null) {
+        callback(event);
+      }
+      const binding = this.pointerMoveEventBinding;
+      if (binding !== null) {
+        binding.invoke(event);
+      }
+      return;
+    }
+    if (event.eventType == PointerEventType.Up) {
+      const callback = this.pointerUpEventCallback;
+      if (callback !== null) {
+        callback(event);
+      }
+      const binding = this.pointerUpEventBinding;
+      if (binding !== null) {
+        binding.invoke(event);
+      }
+      return;
+    }
+    if (event.eventType == PointerEventType.Enter) {
+      const callback = this.pointerEnterEventCallback;
+      if (callback !== null) {
+        callback(event);
+      }
+      const binding = this.pointerEnterEventBinding;
+      if (binding !== null) {
+        binding.invoke(event);
+      }
+      return;
+    }
+    if (event.eventType == PointerEventType.Leave) {
+      const callback = this.pointerLeaveEventCallback;
+      if (callback !== null) {
+        callback(event);
+      }
+      const binding = this.pointerLeaveEventBinding;
+      if (binding !== null) {
+        binding.invoke(event);
+      }
+      return;
+    }
+    if (event.eventType == PointerEventType.Cancel) {
+      const callback = this.pointerCancelEventCallback;
+      if (callback !== null) {
+        callback(event);
+      }
+      const binding = this.pointerCancelEventBinding;
+      if (binding !== null) {
+        binding.invoke(event);
+      }
+    }
+  }
+
+  _handleWheelEvent(event: WheelEventArgs): bool {
+    if (!this.isEnabled || !this.isVisible) {
+      return false;
+    }
+    const bounds = this.hasBuiltHandle() ? this.getBounds() : new Float32Array(4);
+    event.x = event.sceneX - unchecked(bounds[0]);
+    event.y = event.sceneY - unchecked(bounds[1]);
+    const callback = this.wheelCallback;
+    if (callback !== null) {
+      callback(event);
+    }
+    const binding = this.wheelBinding;
+    if (binding !== null) {
+      binding.invoke(event);
+    }
+    return event.handled;
+  }
+
+  _handleGestureEvent(event: GestureEventArgs): bool {
+    if (!this.isEnabled || !this.isVisible) {
+      return false;
+    }
+    const bounds = this.hasBuiltHandle() ? this.getBounds() : new Float32Array(4);
+    event.x = event.sceneX - unchecked(bounds[0]);
+    event.y = event.sceneY - unchecked(bounds[1]);
+    if (event.kind == GestureEventKind.Pan) {
+      const panCallback = this.panGestureCallback;
+      if (panCallback !== null) {
+        panCallback(event);
+      }
+      const panBinding = this.panGestureBinding;
+      if (panBinding !== null) {
+        panBinding.invoke(event);
+      }
+    } else if (event.kind == GestureEventKind.Pinch) {
+      const pinchCallback = this.pinchGestureCallback;
+      if (pinchCallback !== null) {
+        pinchCallback(event);
+      }
+      const pinchBinding = this.pinchGestureBinding;
+      if (pinchBinding !== null) {
+        pinchBinding.invoke(event);
+      }
+    }
+    return event.handled;
+  }
+
+  _handleBubbledGestureEvent(event: GestureEventArgs): bool {
+    return this._handleGestureEvent(event);
+  }
+
+  static _dispatchGestureEventWithArgs(node: Node, event: GestureEventArgs): void {
+    node._handleGestureEvent(event);
+  }
+
+  _handleLongPressEvent(event: LongPressEventArgs): bool {
+    if (!this.isEnabled || !this.isVisible) {
+      return false;
+    }
+    const bounds = this.hasBuiltHandle() ? this.getBounds() : new Float32Array(4);
+    event.x = event.sceneX - unchecked(bounds[0]);
+    event.y = event.sceneY - unchecked(bounds[1]);
+    const callback = this.longPressGestureCallback;
+    if (callback !== null) {
+      callback(event);
+    }
+    const binding = this.longPressGestureBinding;
+    if (binding !== null) {
+      binding.invoke(event);
+    }
+    return event.handled;
+  }
+
+  _handleBubbledLongPressEvent(event: LongPressEventArgs): bool {
+    return this._handleLongPressEvent(event);
+  }
+
+  static _dispatchLongPressEventWithArgs(node: Node, event: LongPressEventArgs): void {
+    node._handleLongPressEvent(event);
+  }
+
   _handleFocusChanged(focused: bool): void {
+    const event = new FocusChangedEventArgs(focused);
     const callback = this.focusChangedCb;
     if (callback !== null) {
-      callback(focused);
+      callback(event);
     }
     const binding = this.focusChangedBinding;
     if (binding !== null) {
-      binding.invoke(focused);
+      binding.invoke(event);
     }
     ToolTipManager.handleFocusChanged(this, this.toolTipValue, focused);
   }
@@ -1575,15 +2507,16 @@ export abstract class Node implements DragGestureHost, Disposable {
     if (!this.isEnabled || !this.isVisible) {
       return false;
     }
+    const event = new KeyEventArgs(eventType, key, modifiers);
     if (eventType == KeyEventType.Down) {
       const callback = this.keyDownCb;
       if (callback !== null) {
-        callback(key, modifiers);
+        callback(event);
         return true;
       }
       const binding = this.keyDownBinding;
       if (binding !== null) {
-        binding.invoke(key, modifiers);
+        binding.invoke(event);
         return true;
       }
       return false;
@@ -1591,7 +2524,12 @@ export abstract class Node implements DragGestureHost, Disposable {
     if (eventType == KeyEventType.Up) {
       const callback = this.keyUpCb;
       if (callback !== null) {
-        callback(key, modifiers);
+        callback(event);
+        return true;
+      }
+      const binding = this.keyUpBinding;
+      if (binding !== null) {
+        binding.invoke(event);
         return true;
       }
     }
@@ -1618,6 +2556,10 @@ export abstract class Node implements DragGestureHost, Disposable {
   protected requireInteractive(): void {
     if (!this.hasPointerCallbacks) {
       this.hasPointerCallbacks = true;
+    }
+    if (this.hasBuiltHandle() && this.isEnabled && this.isVisible) {
+      ui.setInteractive(this.handle, true);
+      this.notifyRetainedMutation();
     }
   }
 

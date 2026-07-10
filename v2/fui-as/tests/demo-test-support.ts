@@ -2,19 +2,19 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { expect, type Page } from '@playwright/test';
+import { expect,type Page } from '@playwright/test';
 
+import type { BridgeState, EffinDomCallbacks } from '@effindomv2/runtime';
 import type { HarnessDebugApi } from '../browser/src/common-harness';
-import { parseBounds, parseGlyphRuns } from './command-buffer';
-import { startStaticServer, type StaticServerHandle } from './static_server';
+import { startStaticServer,type StaticServerHandle } from './static_server';
 
-export { fs, path };
+export { fs,path };
 
 declare global {
   interface Window {
-    __fuiAsReady?: boolean;
-    __fuiAsError?: string;
-    __fuiAsState?: {
+    __fuiReady?: boolean;
+    __fuiError?: string;
+    __fuiState?: {
       readonly commandWordCount: number;
       readonly commandWords: readonly number[];
       readonly rootHandle: string | null;
@@ -26,8 +26,10 @@ declare global {
       readonly docStart: number;
       readonly docEnd: number;
     };
-    __fuiDemoSelectionText?: string;
+    __fuiSelectionText?: string;
     __fui_debug?: HarnessDebugApi;
+    __effindomCallbacks?: EffinDomCallbacks;
+    EffinDomBrowserBridge?: BridgeState;
   }
 }
 
@@ -77,10 +79,10 @@ export async function readScenePixel(page: Page, x: number, y: number): Promise<
         const clampedY = Math.max(0, Math.min(overlay.height - 1, Math.round(sampleY)));
         const pixel = context.getImageData(clampedX, clampedY, 1, 1).data;
         return {
-          red: pixel[0] ?? 0,
-          green: pixel[1] ?? 0,
-          blue: pixel[2] ?? 0,
-          alpha: pixel[3] ?? 0,
+          red: pixel[0],
+          green: pixel[1],
+          blue: pixel[2],
+          alpha: pixel[3],
         };
       }
     }
@@ -110,10 +112,10 @@ export async function readScenePixel(page: Page, x: number, y: number): Promise<
     const clampedY = Math.max(0, Math.min(probe.height - 1, Math.round(sampleY)));
     const pixel = context.getImageData(clampedX, clampedY, 1, 1).data;
     return {
-      red: pixel[0] ?? 0,
-      green: pixel[1] ?? 0,
-      blue: pixel[2] ?? 0,
-      alpha: pixel[3] ?? 0,
+      red: pixel[0],
+      green: pixel[1],
+      blue: pixel[2],
+      alpha: pixel[3],
     };
   }, { sampleX: x, sampleY: y });
 }
@@ -174,10 +176,10 @@ export async function readSceneRegionSignature(
           const pixel = context.getImageData(probeX, probeY, 1, 1).data;
           parts.push(
             [
-              pixel[0] ?? 0,
-              pixel[1] ?? 0,
-              pixel[2] ?? 0,
-              pixel[3] ?? 0,
+              pixel[0],
+              pixel[1],
+              pixel[2],
+              pixel[3],
             ].join(':'),
           );
         }
@@ -272,14 +274,14 @@ export async function readHiddenTextEditorState(page: Page): Promise<{
       (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) &&
       activeElement.dataset.effindomHiddenEditor === 'true'
         ? activeElement
-        : document.querySelector('input[data-effindom-hidden-editor="true"], textarea[data-effindom-hidden-editor="true"]')
-    ) as HTMLInputElement | HTMLTextAreaElement | null;
+        : document.querySelector<HTMLInputElement | HTMLTextAreaElement>('input[data-effindom-hidden-editor="true"], textarea[data-effindom-hidden-editor="true"]')
+    );
     if (editor === null) {
       return null;
     }
     const activeEditorWindow = window.__bridgeActiveEditorWindow;
     const start = editor.selectionStart ?? 0;
-    const end = editor.selectionEnd ?? 0;
+    const end = editor.selectionEnd ?? start;
     const docStart = activeEditorWindow?.docStart ?? 0;
     return {
       tagName: editor.tagName.toLowerCase(),
@@ -289,20 +291,20 @@ export async function readHiddenTextEditorState(page: Page): Promise<{
       absoluteStart: docStart + start,
       absoluteEnd: docStart + end,
       docStart,
-      docEnd: activeEditorWindow?.docEnd ?? (docStart + editor.value.length),
+      docEnd: activeEditorWindow === undefined ? docStart + editor.value.length : activeEditorWindow.docEnd,
       focused: document.activeElement === editor,
       direction: editor.selectionDirection,
     };
   });
 }
 
-export async function waitForDemoReady(page: Page, timeout: number = 5000): Promise<void> {
+export async function waitForDemoReady(page: Page, timeout = 5000): Promise<void> {
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      if (window.__fuiAsError !== undefined) {
-        return `error:${window.__fuiAsError}`;
+      if (window.__fuiError !== undefined) {
+        return `error:${window.__fuiError}`;
       }
-      return window.__fuiAsReady === true ? 'ready' : 'pending';
+      return window.__fuiReady === true ? 'ready' : 'pending';
     });
   }, { timeout }).toBe('ready');
 }
@@ -347,10 +349,7 @@ export async function readTopVisibleListItemIndex(page: Page): Promise<number> {
       throw new Error('Expected visible virtual list item labels.');
     }
     candidates.sort((left, right) => left.y - right.y);
-    const label = candidates[0]?.label ?? null;
-    if (label === null) {
-      throw new Error('Expected top visible virtual list item label.');
-    }
+    const label = candidates[0].label;
     return Number.parseInt(label.slice('Item '.length), 10);
   });
 }
@@ -359,7 +358,59 @@ export async function findSemanticBounds(page: Page, label: string): Promise<{ x
   return await page.evaluate((targetLabel: string) => {
     const node = (window.__bridgeSemanticTree ?? []).find((item) =>
       item.label === targetLabel || item.label.startsWith(targetLabel + ','));
-    return node?.bounds ?? null;
+    if (node === undefined) {
+      return null;
+    }
+    const runtime = window.EffinDomBrowserBridge?.getRuntime();
+    const canvas = document.getElementById('fui-canvas');
+    if (runtime === undefined || runtime === null || !(canvas instanceof HTMLCanvasElement)) {
+      return node.bounds;
+    }
+    const targetHandle = BigInt(node.handle);
+    const stride = 6;
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (let y = Math.floor(stride / 2); y < canvas.height; y += stride) {
+      for (let x = Math.floor(stride / 2); x < canvas.width; x += stride) {
+        if (runtime.getHandleFromPoint(x, y) !== targetHandle) {
+          continue;
+        }
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+      if (node.state.multiline !== true) {
+        const ui = runtime.ui;
+        const ptr = BigInt(Number(ui._malloc(16)));
+        const offset = Number(ptr);
+        try {
+          const found = ui._ui_get_bounds(targetHandle, ptr, ptr + 4n, ptr + 8n, ptr + 12n);
+          if (found !== 0) {
+            const view = new DataView(ui.HEAPU8.buffer);
+            return {
+              x: view.getFloat32(offset, true),
+              y: view.getFloat32(offset + 4, true),
+              width: view.getFloat32(offset + 8, true),
+              height: view.getFloat32(offset + 12, true),
+            };
+          }
+        } finally {
+          ui._free(ptr);
+        }
+      }
+      return node.bounds;
+    }
+    return {
+      x: Math.max(0, minX - (stride / 2)),
+      y: Math.max(0, minY - (stride / 2)),
+      width: Math.min(canvas.width, maxX + (stride / 2)) - Math.max(0, minX - (stride / 2)),
+      height: Math.min(canvas.height, maxY + (stride / 2)) - Math.max(0, minY - (stride / 2)),
+    };
   }, label);
 }
 
@@ -456,7 +507,8 @@ export async function readClipboardSnapshot(page: Page): Promise<{
 }> {
   return await page.evaluate(async () => {
     const text = await navigator.clipboard.readText();
-    if (navigator.clipboard.read === undefined) {
+    const clipboard = navigator.clipboard as Omit<Clipboard, 'read'> & { read?: Clipboard['read'] };
+    if (clipboard.read === undefined) {
       return {
         text,
         types: ['text/plain'],
@@ -464,9 +516,8 @@ export async function readClipboardSnapshot(page: Page): Promise<{
         richJson: null,
       };
     }
-    const items = await navigator.clipboard.read();
-    const item = items[0];
-    if (item === undefined) {
+    const items = await clipboard.read();
+    if (items.length === 0) {
       return {
         text,
         types: [],
@@ -474,6 +525,7 @@ export async function readClipboardSnapshot(page: Page): Promise<{
         richJson: null,
       };
     }
+    const item = items[0];
     const types = [...item.types].sort();
     const html = item.types.includes('text/html')
       ? await (await item.getType('text/html')).text()
@@ -623,10 +675,10 @@ export async function dragSemanticLabelToSemanticLabel(
   page: Page,
   sourceLabel: string,
   targetLabel: string,
-  sourceXFraction: number = 0.5,
-  sourceYFraction: number = 0.5,
-  targetXFraction: number = 0.5,
-  targetYFraction: number = 0.5,
+  sourceXFraction = 0.5,
+  sourceYFraction = 0.5,
+  targetXFraction = 0.5,
+  targetYFraction = 0.5,
 ): Promise<void> {
   const sourceBounds = await findSemanticBounds(page, sourceLabel);
   const targetBounds = await findSemanticBounds(page, targetLabel);
@@ -656,14 +708,16 @@ export async function readHiddenInputSelection(page: Page): Promise<{
       (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) &&
       activeElement.dataset.effindomHiddenEditor === 'true'
         ? activeElement
-        : document.querySelector('input[data-effindom-hidden-editor="true"], textarea[data-effindom-hidden-editor="true"]')
-    ) as HTMLInputElement | HTMLTextAreaElement | null;
+        : document.querySelector<HTMLInputElement | HTMLTextAreaElement>('input[data-effindom-hidden-editor="true"], textarea[data-effindom-hidden-editor="true"]')
+    );
     if (editor === null) {
       return null;
     }
+    const start = editor.selectionStart ?? 0;
+    const end = editor.selectionEnd ?? start;
     return {
-      start: editor.selectionStart ?? 0,
-      end: editor.selectionEnd ?? 0,
+      start,
+      end,
       focused: document.activeElement === editor,
       direction: editor.selectionDirection,
     };
@@ -687,8 +741,8 @@ export async function setHiddenTextInputSelection(page: Page, start: number, end
       (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) &&
       activeElement.dataset.effindomHiddenEditor === 'true'
         ? activeElement
-        : document.querySelector('input[data-effindom-hidden-editor="true"], textarea[data-effindom-hidden-editor="true"]')
-    ) as HTMLInputElement | HTMLTextAreaElement | null;
+        : document.querySelector<HTMLInputElement | HTMLTextAreaElement>('input[data-effindom-hidden-editor="true"], textarea[data-effindom-hidden-editor="true"]')
+    );
     if (editor === null) {
       throw new Error('Expected hidden bridge editor.');
     }
@@ -698,6 +752,8 @@ export async function setHiddenTextInputSelection(page: Page, start: number, end
     if (runtime !== null && runtime !== undefined && activeHandle !== null && window.__effindomCallbacks?.onSelectionChanged !== undefined) {
       const handleArg = runtime.ui.usesMemory64 === true ? BigInt(activeHandle) : Number(activeHandle);
       window.__effindomCallbacks.onSelectionChanged(handleArg, selectionStart, selectionEnd);
+      runtime.commitFrame();
+      runtime.flushPendingCommit();
     }
     const nextDocStart = window.__bridgeActiveEditorWindow?.docStart ?? 0;
     editor.focus();
@@ -727,13 +783,14 @@ export async function scrollSemanticLabelIntoView(page: Page, label: string): Pr
       y: (canvasBox?.y ?? 0) + Math.max(56, Math.min((canvasBox?.height ?? 0) - 56, (canvasBox?.height ?? 0) * 0.2)),
     },
   ];
-  for (let attempt = 0; attempt < 26; attempt += 1) {
+  for (let attempt = 0; attempt < 42; attempt += 1) {
     const probe = probePoints[attempt % probePoints.length] ?? probePoints[0];
     const bounds = await findSemanticBounds(page, label);
     if (bounds === null) {
       const searchDirection = attempt < 18 ? 1 : -1;
+      const searchDistance = attempt < 18 ? 420 : 840;
       await page.mouse.move(probe.x, probe.y);
-      await page.mouse.wheel(0, 420 * searchDirection);
+      await page.mouse.wheel(0, searchDistance * searchDirection);
       await page.waitForTimeout(80);
       continue;
     }
@@ -1024,10 +1081,10 @@ export async function forceCoarsePointer(page: Page): Promise<void> {
           matches: true,
           media: query,
           onchange: null,
-          addEventListener() {},
-          removeEventListener() {},
-          addListener() {},
-          removeListener() {},
+          addEventListener() { return undefined; },
+          removeEventListener() { return undefined; },
+          addListener() { return undefined; },
+          removeListener() { return undefined; },
           dispatchEvent() { return false; },
         } as MediaQueryList;
       }
@@ -1117,7 +1174,12 @@ export async function readContextMenuLabels(page: Page): Promise<string[]> {
         label === 'Forward' ||
         label === 'Copy' ||
         label === 'Paste' ||
+        label === 'More' ||
+        label === '<' ||
         label === 'Select All' ||
+        label === 'Select all' ||
+        label === 'Open Link' ||
+        label === 'Open Link in New Tab' ||
         label === 'Open Image' ||
         label === 'Open Image in New Tab' ||
         label === 'Reload Page');
@@ -1135,7 +1197,7 @@ export async function readUrlPreview(page: Page): Promise<{ text: string; hidden
       };
     }
     return {
-      text: bar.textContent ?? '',
+      text: bar.textContent,
       hidden: bar.hidden,
       visible: bar.dataset.visible ?? null,
     };
@@ -1302,7 +1364,12 @@ export function findBlueDominantBounds(region: SceneRegionSnapshot): { minX: num
   return { minX, minY, maxX, maxY };
 }
 
-export function registerDemoLifecycle(test: typeof import('@playwright/test').test): void {
+interface DemoLifecycleRegistrar {
+  beforeAll(callback: () => Promise<void>): void;
+  afterAll(callback: () => Promise<void>): void;
+}
+
+export function registerDemoLifecycle(test: DemoLifecycleRegistrar): void {
   test.beforeAll(async () => {
     server = await startStaticServer(PUBLIC_DIR, 11_301);
     baseUrl = `http://127.0.0.1:${String(server.port)}`;

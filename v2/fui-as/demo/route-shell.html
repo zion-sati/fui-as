@@ -43,12 +43,10 @@
 
     body {
       margin: 0;
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: minmax(320px, 1fr) 340px;
-      gap: 24px;
-      padding: 24px;
+      width: 100vw;
+      height: 100vh;
       box-sizing: border-box;
+      overflow: hidden;
       background: var(--page-background);
       color: var(--page-text);
     }
@@ -57,13 +55,14 @@
       display: grid;
       min-width: 0;
       min-height: 0;
+      width: 100vw;
+      height: 100vh;
     }
 
     .canvas-shell {
       position: relative;
-      min-width: 0;
-      height: calc(100vh - 48px);
-      border-radius: 16px;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
 
@@ -72,10 +71,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      border: 1px solid var(--canvas-border);
-      border-radius: 16px;
       background: var(--canvas-background);
-      box-shadow: var(--canvas-shadow);
       outline: none;
     }
 
@@ -85,54 +81,6 @@
     }
 
     {{LOADING_OVERLAY_STYLES}}
-
-    .sidebar {
-      display: grid;
-      gap: 16px;
-      align-content: start;
-      padding: 20px;
-      border: 1px solid var(--sidebar-border);
-      border-radius: 16px;
-      background: var(--sidebar-background);
-    }
-
-    .control-group {
-      display: grid;
-      gap: 8px;
-    }
-
-    .control-group label {
-      font-size: 14px;
-      color: var(--sidebar-label);
-    }
-
-    input[type="range"] {
-      width: 100%;
-    }
-
-    button {
-      padding: 10px 14px;
-      border: 0;
-      border-radius: 10px;
-      background: var(--button-background);
-      color: var(--button-text);
-      font: inherit;
-      cursor: pointer;
-    }
-
-    code {
-      color: var(--code-color);
-    }
-
-    @media (max-width: 1120px) {
-      body {
-        grid-template-columns: 1fr;
-      }
-
-      .canvas-shell {
-        height: clamp(360px, 60vh, 620px);
-      }
-    }
   </style>
 </head>
 <body>
@@ -142,29 +90,6 @@
       {{LOADING_OVERLAY_BODY}}
     </div>
   </section>
-
-  <aside class="sidebar">
-    <div>
-      <h1>FUI-AS demo</h1>
-      <p>The routed demo shell keeps the dashboard, advanced-controls, and templated-controls playgrounds on the same bridge runtime.</p>
-      <p><code>Demo MFE route</code></p>
-    </div>
-
-    <div class="control-group">
-      <label for="hue">Accent hue <span id="hue-value">210 deg</span></label>
-      <input id="hue" type="range" min="0" max="359" step="1" value="210" />
-    </div>
-
-    <div class="control-group">
-      <label>Theme mode <span id="theme-mode-value">Dark</span></label>
-      <button id="toggle-theme-mode" type="button">Switch to light mode</button>
-    </div>
-
-    <div class="control-group">
-      <label>Clock tick <span id="tick-value">0 s</span></label>
-      <button id="pulse-hue" type="button">Jump hue</button>
-    </div>
-  </aside>
 
   <script src="./effindom-runtime-config.js"></script>
   <script src="./bridge.js"></script>

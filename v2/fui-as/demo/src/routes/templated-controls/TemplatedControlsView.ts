@@ -30,7 +30,6 @@ import {
 } from "../../design-system";
 import { createTemplatedControlsLocalCheckboxTemplate } from "./TemplatedControlsTemplates";
 
-const FONT_REGULAR: u32 = 1;
 const HOUSE_DROPDOWN_ITEMS: Array<DemoDropdownItem> = [
   new DemoDropdownItem("rounded", "Rounded field"),
   new DemoDropdownItem("accent", "Accent field"),
@@ -43,7 +42,7 @@ function verticalSpacer(height: f32): FlexBox {
 
 function createSummaryText(recipe: DemoTextRecipe): Text {
   return new DemoText("", recipe)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
 }
 
 function createModeGroup(): DemoRadioGroup {
@@ -135,19 +134,19 @@ export class TemplatedControlsView {
     "Button, Checkbox, Switch, RadioButton, Slider, Dropdown, TextInput, and TextArea pick up the route-wide template set without per-instance calls.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(3) as Text;
   readonly overrideHintText: Text = new DemoText(
     "The square override checkbox keeps its own indicator template even though the route supplies app-level defaults.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(3) as Text;
   readonly colorHintText: Text = new DemoText(
     "Per-instance control color objects tint the shipped presenters and the house templates on this route without changing the built-in control behavior.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(4) as Text;
 
   applyTheme(theme: Theme): void {

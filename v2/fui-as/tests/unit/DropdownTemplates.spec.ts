@@ -14,6 +14,7 @@ import {
   DropdownOptionRowTemplate,
   DropdownOptionRowVisualState,
   DropdownColors,
+  DropdownSizing,
   FlexDirection,
   FlexBox,
   KeyEventType,
@@ -89,13 +90,14 @@ class TrackingDropdownFieldPresenter extends DropdownFieldPresenter {
     this.lastState = state;
     this.root
       .cornerRadius(14.0)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, theme.colors.accent)
       .padding(12.0, 8.0, 12.0, 8.0)
       .bgColor(state.pressed ? theme.colors.background : theme.colors.surface);
     this.valueHost
       .fillWidth();
     this.valueNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(theme.fonts.sizeBody)
       .textColor(theme.colors.textPrimary);
     this.chevronHost
       .width(20.0, Unit.Pixel)
@@ -108,7 +110,7 @@ class TrackingDropdownFieldPresenter extends DropdownFieldPresenter {
 class TrackingDropdownFieldTemplate extends DropdownFieldTemplate {
   readonly created: Array<TrackingDropdownFieldPresenter> = new Array<TrackingDropdownFieldPresenter>();
 
-  create(): DropdownFieldPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownFieldPresenter {
     const presenter = new TrackingDropdownFieldPresenter();
     this.created.push(presenter);
     return presenter;
@@ -151,7 +153,7 @@ class TrackingDropdownChevronPresenter extends DropdownChevronPresenter {
 class TrackingDropdownChevronTemplate extends DropdownChevronTemplate {
   readonly created: Array<TrackingDropdownChevronPresenter> = new Array<TrackingDropdownChevronPresenter>();
 
-  create(): DropdownChevronPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownChevronPresenter {
     const presenter = new TrackingDropdownChevronPresenter();
     this.created.push(presenter);
     return presenter;
@@ -184,7 +186,8 @@ class TrackingDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
       .cornerRadius(10.0)
       .bgColor(state.highlighted ? theme.colors.accentHovered : theme.colors.surface);
     this.labelNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(theme.fonts.sizeBody)
       .textColor(state.selected ? theme.colors.accent : theme.colors.textPrimary);
   }
 }
@@ -192,7 +195,7 @@ class TrackingDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
 class TrackingDropdownOptionRowTemplate extends DropdownOptionRowTemplate {
   readonly created: Array<TrackingDropdownOptionRowPresenter> = new Array<TrackingDropdownOptionRowPresenter>();
 
-  create(): DropdownOptionRowPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownOptionRowPresenter {
     const presenter = new TrackingDropdownOptionRowPresenter();
     this.created.push(presenter);
     return presenter;

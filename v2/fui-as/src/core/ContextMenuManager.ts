@@ -4,6 +4,7 @@ import { ContextMenu, ContextMenuAction, MenuItem } from "../controls/ContextMen
 import { NavLink } from "../controls/NavLink";
 import { TextInputCore } from "../controls/internal/TextInputCore";
 import { EventRouter } from "./EventRouter";
+import { MobileTextSelectionToolbarManager } from "./MobileTextSelectionToolbarManager";
 import { HandleValue, KeyModifier, PointerEventType } from "./ffi";
 import {
   formatPrimaryShortcutLabel,
@@ -13,13 +14,13 @@ import {
   getPlatformFamily,
   PlatformFamily,
 } from "./Platform";
-import { Node } from "./Node";
+import { ContextMenuEventArgs, Node, VisibilityChangedEventArgs } from "./Node";
 import { Image } from "../nodes/Image";
 import { Svg } from "../nodes/Svg";
 import { TextCore } from "../nodes/TextCore";
 
-function handleMenuVisibilityChanged(visible: bool): void {
-  ContextMenuManager.handleMenuVisibilityChanged(visible);
+function handleMenuVisibilityChanged(event: VisibilityChangedEventArgs): void {
+  ContextMenuManager.handleMenuVisibilityChanged(event.visible);
 }
 
 function appendMenuSection(items: Array<MenuItem>, section: Array<MenuItem>): void {
@@ -96,56 +97,11 @@ export class ContextMenuManager {
     if (menu === null) {
       return;
     }
-
-    this.releaseActiveMenuLinkPreview();
     const targetNode = EventRouter.getRegisteredNode(handle);
-    let contextNode = targetNode;
-    while (contextNode !== null) {
-      if (contextNode.isContextMenuDisabled) {
-        return;
-      }
-      const handler = contextNode.contextMenuHandler;
-      if (handler !== null) {
-        handler(targetNode, x, y);
-        return;
-      }
-      contextNode = contextNode.parentNode;
+    if (this.invokeCustomContextMenuHandler(targetNode, x, y)) {
+      return;
     }
-
-    const items = new Array<MenuItem>();
-    const link = this.resolveNavLink(targetNode);
-    if (link !== null) {
-      link.pinPreviewForContextMenu();
-      this.activeMenuLink = link;
-      const linkItems = new Array<MenuItem>();
-      linkItems.push(new MenuItem("Open Link in New Tab", ContextMenuAction.OpenLinkInNewTab, link.href));
-      linkItems.push(new MenuItem("Open Link", ContextMenuAction.OpenLink, link.href));
-      appendMenuSection(items, linkItems);
-    }
-
-    const textTarget = this.resolveTextTarget(targetNode);
-    const selectionHit = ui.isPointInSelection(x, y) || this.selectionHintContainsHandle(handle);
-    if (textTarget !== null) {
-      appendMenuSection(items, this.buildTextSection(textTarget, selectionHit ? this.currentSelectionText : ""));
-    }
-
-    const imageUrl = this.resolveImageUrl(targetNode, x, y);
-    if (imageUrl !== null && imageUrl.length > 0) {
-      const imageItems = new Array<MenuItem>();
-      imageItems.push(new MenuItem("Open Image in New Tab", ContextMenuAction.OpenImageInNewTab, imageUrl));
-      imageItems.push(new MenuItem("Open Image", ContextMenuAction.OpenImage, imageUrl));
-      appendMenuSection(items, imageItems);
-    }
-
-    if (selectionHit && textTarget === null && this.currentSelectionText.length > 0) {
-      const selectionItems = new Array<MenuItem>();
-      selectionItems.push(new MenuItem("Copy", ContextMenuAction.CopyCurrentSelection));
-      appendMenuSection(items, selectionItems);
-    } else if (!selectionHit && textTarget === null && link === null && imageUrl === null) {
-      this.currentSelectionText = "";
-      this.currentSelectionHandleHints.length = 0;
-      ui.clearCurrentSelection();
-    }
+    const items = this.buildBuiltInItems(handle, x, y, true);
 
     const navigationItems = new Array<MenuItem>();
     if (ffi.fui_can_navigate_back()) {
@@ -158,7 +114,33 @@ export class ContextMenuManager {
       new MenuItem("Reload Page", ContextMenuAction.ReloadPage, null, 0, formatPrimaryShortcutLabel("r")),
     );
     appendMenuSection(items, navigationItems);
-    menu.show(items, x, y);
+    if (items.length == 0) {
+      this.releaseActiveMenuLinkPreview();
+      return;
+    }
+    menu.items(items);
+    menu.showFromContextPointer(null, x, y);
+  }
+
+  static showForLongPress(handle: u64, x: f32, y: f32): bool {
+    const items = this.buildBuiltInItems(handle, x, y, false);
+    if (items.length == 0) {
+      this.releaseActiveMenuLinkPreview();
+      return false;
+    }
+    return MobileTextSelectionToolbarManager.showItemsAt(items, x, y);
+  }
+
+  static canShowForHandle(handle: u64): bool {
+    const targetNode = EventRouter.getRegisteredNode(handle);
+    let contextNode = targetNode;
+    while (contextNode !== null) {
+      if (contextNode.isContextMenuDisabled) {
+        return false;
+      }
+      contextNode = contextNode.parentNode;
+    }
+    return true;
   }
 
   static hideActiveMenu(): void {
@@ -176,6 +158,72 @@ export class ContextMenuManager {
       return this.menu;
     }
     return this.defaultMenu;
+  }
+
+  private static invokeCustomContextMenuHandler(targetNode: Node | null, x: f32, y: f32): bool {
+    this.releaseActiveMenuLinkPreview();
+    let contextNode = targetNode;
+    while (contextNode !== null) {
+      if (contextNode.isContextMenuDisabled) {
+        return true;
+      }
+      const handler = contextNode.contextMenuHandler;
+      if (handler !== null) {
+        handler(new ContextMenuEventArgs(targetNode, x, y));
+        return true;
+      }
+      contextNode = contextNode.parentNode;
+    }
+    return false;
+  }
+
+  private static buildBuiltInItems(handle: u64, x: f32, y: f32, clearSelectionOnBackgroundMiss: bool): Array<MenuItem> {
+    this.releaseActiveMenuLinkPreview();
+    const targetNode = EventRouter.getRegisteredNode(handle);
+    let contextNode = targetNode;
+    while (contextNode !== null) {
+      if (contextNode.isContextMenuDisabled) {
+        return new Array<MenuItem>();
+      }
+      contextNode = contextNode.parentNode;
+    }
+
+    const items = new Array<MenuItem>();
+    const link = this.resolveNavLink(targetNode);
+    if (link !== null) {
+      link.pinPreviewForContextMenu();
+      this.activeMenuLink = link;
+      const linkItems = new Array<MenuItem>();
+      linkItems.push(new MenuItem("New Tab", ContextMenuAction.OpenLinkInNewTab, link.href));
+      linkItems.push(new MenuItem("Open", ContextMenuAction.OpenLink, link.href));
+      appendMenuSection(items, linkItems);
+    }
+
+    const textTarget = this.resolveTextTarget(targetNode);
+    const selectionHit = ui.isPointInSelection(x, y) || this.selectionHintContainsHandle(handle);
+    if (textTarget !== null) {
+      appendMenuSection(items, this.buildTextSection(textTarget, selectionHit ? this.currentSelectionText : ""));
+    }
+
+    const imageUrl = this.resolveImageUrl(targetNode, x, y);
+    if (imageUrl !== null && imageUrl.length > 0) {
+      const imageItems = new Array<MenuItem>();
+      imageItems.push(new MenuItem("New Tab", ContextMenuAction.OpenImageInNewTab, imageUrl));
+      imageItems.push(new MenuItem("Open", ContextMenuAction.OpenImage, imageUrl));
+      appendMenuSection(items, imageItems);
+    }
+
+    if (selectionHit && textTarget === null && this.currentSelectionText.length > 0) {
+      const selectionItems = new Array<MenuItem>();
+      selectionItems.push(new MenuItem("Copy", ContextMenuAction.CopyCurrentSelection, this.currentSelectionText));
+      appendMenuSection(items, selectionItems);
+    } else if (clearSelectionOnBackgroundMiss && !selectionHit && textTarget === null && link === null && imageUrl === null) {
+      this.currentSelectionText = "";
+      this.currentSelectionHandleHints.length = 0;
+      ui.clearCurrentSelection();
+    }
+
+    return items;
   }
 
   private static resolveNavLink(node: Node | null): NavLink | null {
@@ -227,6 +275,8 @@ export class ContextMenuManager {
 
     const selectionStart = this.resolveSelectionStart(target);
     const selectionEnd = this.resolveSelectionEnd(target);
+    const selectionStartByte = this.resolveSelectionStartByte(target);
+    const selectionEndByte = this.resolveSelectionEndByte(target);
     const content = this.resolveTextContent(target);
     const hasSelection = ui.hasTextSelection(handle) || ffi.fui_has_text_selection_snapshot(handle) || selectionStart != selectionEnd;
     const hasText = content.length > 0;
@@ -243,6 +293,9 @@ export class ContextMenuManager {
           formatUndoShortcutLabel(),
           !ui.canUndoTextEdit(handle),
           handle,
+          0,
+          0,
+          true,
         ),
       );
       items.push(
@@ -254,6 +307,9 @@ export class ContextMenuManager {
           formatRedoShortcutLabel(),
           !ui.canRedoTextEdit(handle),
           handle,
+          0,
+          0,
+          true,
         ),
       );
       items.push(MenuItem.separator());
@@ -266,7 +322,10 @@ export class ContextMenuManager {
           formatPrimaryShortcutLabel("x"),
           !hasSelection,
           handle,
-        ).withSelectionRange(selectionStart, selectionEnd),
+          0,
+          0,
+          true,
+        ).withSelectionRange(selectionStartByte, selectionEndByte),
       );
       items.push(
         new MenuItem(
@@ -277,6 +336,9 @@ export class ContextMenuManager {
           formatPrimaryShortcutLabel("c"),
           !hasSelection,
           handle,
+          0,
+          0,
+          true,
         ),
       );
       items.push(
@@ -288,6 +350,9 @@ export class ContextMenuManager {
           formatPrimaryShortcutLabel("v"),
           false,
           handle,
+          0,
+          0,
+          true,
         ),
       );
       items.push(
@@ -299,6 +364,9 @@ export class ContextMenuManager {
           formatPrimaryShortcutLabel("a"),
           !hasText,
           handle,
+          0,
+          0,
+          true,
         ),
       );
       return items;
@@ -309,7 +377,7 @@ export class ContextMenuManager {
         new MenuItem(
           "Copy",
           ContextMenuAction.CopyCurrentSelection,
-          null,
+          currentSelectionText,
           0,
           formatPrimaryShortcutLabel("c"),
         ),
@@ -364,6 +432,22 @@ export class ContextMenuManager {
     const parent = target.parentNode;
     if (parent instanceof TextInputCore) {
       return changetype<TextInputCore>(parent).selectionEnd;
+    }
+    return target.selectionEnd;
+  }
+
+  private static resolveSelectionStartByte(target: TextCore): u32 {
+    const parent = target.parentNode;
+    if (parent instanceof TextInputCore) {
+      return changetype<TextInputCore>(parent).selectionStartByteOffset;
+    }
+    return target.selectionStart;
+  }
+
+  private static resolveSelectionEndByte(target: TextCore): u32 {
+    const parent = target.parentNode;
+    if (parent instanceof TextInputCore) {
+      return changetype<TextInputCore>(parent).selectionEndByteOffset;
     }
     return target.selectionEnd;
   }

@@ -4,6 +4,7 @@ import {
   FontWeight,
   KeyEventType,
   PointerEventType,
+  PointerType,
   CALL_CREATE_NODE,
   CALL_SET_BACKGROUND_COLOR,
   CALL_SET_FONT,
@@ -18,10 +19,35 @@ import {
   lastCallIndex,
   lastTextEquals,
   readActionCount,
+  readLastActionClickCount,
   resetActionCount,
   resetCalls,
   resetTheme,
 } from "./ButtonTestUtils";
+import { ClickEventArgs } from "../../src/core/Node";
+import { FontFamily, FontStack } from "../../src/core/Typography";
+
+let baseClickHits: i32 = 0;
+let doubleClickHits: i32 = 0;
+let tripleClickHits: i32 = 0;
+
+function resetMultiClickHits(): void {
+  baseClickHits = 0;
+  doubleClickHits = 0;
+  tripleClickHits = 0;
+}
+
+function recordBaseClick(_event: ClickEventArgs): void {
+  baseClickHits += 1;
+}
+
+function recordDoubleClick(_event: ClickEventArgs): void {
+  doubleClickHits += 1;
+}
+
+function recordTripleClick(_event: ClickEventArgs): void {
+  tripleClickHits += 1;
+}
 
 describe("Button", () => {
   it("shows the hovered accent color on pointer enter", () => {
@@ -72,6 +98,56 @@ describe("Button", () => {
     button._handlePointerEvent(PointerEventType.Up, 12.0, 24.0, 0);
 
     expect<i32>(readActionCount()).toBe(1);
+    expect<i32>(readLastActionClickCount()).toBe(1);
+
+    button.dispose();
+    button.dispose();
+    resetTheme();
+  });
+
+  it("fires onClick for multi-click pointer release", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetActionCount();
+
+    const button = new Button("Action").onClick(incrementActionCount);
+    const handle = button.build();
+
+    EventRouter.register(handle, button);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, 2);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0);
+
+    expect<i32>(readActionCount()).toBe(1);
+    expect<i32>(readLastActionClickCount()).toBe(1);
+
+    button.dispose();
+    button.dispose();
+    resetTheme();
+  });
+
+  it("fires onClick for double and triple click activations as well as specialized callbacks", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetMultiClickHits();
+
+    const button = new Button("Action")
+      .onClick(recordBaseClick)
+      .onDoubleClick(recordDoubleClick)
+      .onTripleClick(recordTripleClick);
+    button.build();
+
+    button.beginPress();
+    button.endPress(1, true);
+    button.beginPress();
+    button.endPress(2, true);
+    button.beginPress();
+    button.endPress(3, true);
+    button.beginPress();
+    button.endPress(4, true);
+
+    expect<i32>(baseClickHits).toBe(4);
+    expect<i32>(doubleClickHits).toBe(1);
+    expect<i32>(tripleClickHits).toBe(1);
 
     button.dispose();
     button.dispose();
@@ -239,7 +315,8 @@ describe("Button", () => {
       .cornerRadius(14.0)
       .padding(15.0, 9.0, 11.0, 13.0)
       .border(2.0, 0x55667788)
-      .font(3, 17.0)
+      .fontFamily(FontFamily.withRegularStack(FontStack._fromId(3)))
+      .fontSize(17.0)
       .textColor(0x778899aa);
     button.build();
     resetCalls();

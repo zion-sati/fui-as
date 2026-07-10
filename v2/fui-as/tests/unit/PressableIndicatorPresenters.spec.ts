@@ -3,6 +3,7 @@ import { EventRouter } from "../../src/core/EventRouter";
 import { KeyEventType, PointerEventType, SemanticRole, Unit } from "../../src/core/ffi";
 import { activeTheme, defaultDarkTheme, Theme } from "../../src/core/Theme";
 import { FlexBox } from "../../src/nodes";
+import { LabeledControlSizing } from "../../src/controls/ControlSizing";
 import { LabeledControlColors } from "../../src/controls/LabeledControlColors";
 import { PressableLabeledControl } from "../../src/controls/internal/PressableLabeledControl";
 import {
@@ -68,7 +69,7 @@ class TrackingSwitchPresenter extends SwitchIndicatorPresenter {
 class TrackingSwitchTemplate extends SwitchIndicatorTemplate {
   readonly created: Array<TrackingSwitchPresenter> = new Array<TrackingSwitchPresenter>();
 
-  create(): SwitchIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): SwitchIndicatorPresenter {
     const presenter = new TrackingSwitchPresenter();
     this.created.push(presenter);
     return presenter;

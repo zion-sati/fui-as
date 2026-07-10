@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+
 const decoder = new TextDecoder();
 const utf16Decoder = new TextDecoder('utf-16le');
 const encoder = new TextEncoder();
@@ -60,9 +62,11 @@ const CallOp = Object.freeze({
   SetIsSharedSizeScope: 77,
   SetFlexBasis: 80,
   SetInteractive: 28,
+  SetPreserveSelectionOnPointerDown: 118,
   SetScrollEnabled: 62,
   SetShowScrollbars: 63,
   SetScrollFriction: 64,
+  SetSmoothScrolling: 119,
   SetFocusable: 29,
   RequestFocus: 59,
   SetBoxStyle: 30,
@@ -108,11 +112,18 @@ const CallOp = Object.freeze({
   FetchStart: 95,
   FetchCancel: 96,
   BitmapCommit: 97,
+  BitmapCommitDirty: 112,
   BitmapRelease: 98,
   ReleaseSvg: 99,
   ReleaseTexture: 100,
   SetCustomDrawable: 110,
   SetFlexWrap: 111,
+  PrepareNode: 113,
+  SetDynamicTextCharset: 114,
+  RenderNodeToRgba: 115,
+  SelectWordAt: 116,
+  BeginSelectionEndpointDrag: 117,
+  SelectAllText: 120,
 });
 
 let calls = [];
@@ -125,6 +136,7 @@ let lastTextureUrl = '';
 let lastFontUrl = '';
 let lastLogCategory = '';
 let lastLogMessage = '';
+let lastWorkerPath = '';
 let lastWorkerEntry = '';
 let lastWorkerInput = '';
 let lastWorkerProgress = '';
@@ -139,10 +151,14 @@ let workerCancelled = false;
 let coarsePointer = false;
 let currentTimerNowMs = 0;
 let logsEnabled = false;
-let pendingGradients = new Map();
 let persistedScrollEntries = new Map();
 let persistedTextEntries = new Map();
 let nodeBoundsByHandle = new Map();
+let nodeTextByHandle = new Map();
+let nodeFontSizeByHandle = new Map();
+let nodeTextMetricsByHandle = new Map();
+let textRangeRectsByHandle = new Map();
+let crossSelectionEndpointRectsByHandle = new Map();
 let activeMemory = null;
 
 function resetRecorder() {
@@ -156,6 +172,7 @@ function resetRecorder() {
   lastFontUrl = '';
   lastLogCategory = '';
   lastLogMessage = '';
+  lastWorkerPath = '';
   lastWorkerEntry = '';
   lastWorkerInput = '';
   lastWorkerProgress = '';
@@ -169,10 +186,14 @@ function resetRecorder() {
   workerCancelled = false;
   currentTimerNowMs = 0;
   logsEnabled = false;
-  pendingGradients = new Map();
   persistedScrollEntries = new Map();
   persistedTextEntries = new Map();
   nodeBoundsByHandle = new Map();
+  nodeTextByHandle = new Map();
+  nodeFontSizeByHandle = new Map();
+  nodeTextMetricsByHandle = new Map();
+  textRangeRectsByHandle = new Map();
+  crossSelectionEndpointRectsByHandle = new Map();
 }
 
 function readUtf8(memory, ptr, len) {
@@ -255,9 +276,13 @@ function record(op, ...args) {
   calls.push({ op, args });
 }
 
+const asPectAssemblyEntry = existsSync(new URL("./node_modules/@as-pect/assembly/assembly/index.ts", import.meta.url))
+  ? "./node_modules/@as-pect/assembly/assembly/index.ts"
+  : "../../node_modules/@as-pect/assembly/assembly/index.ts";
+
 export default {
   entries: ["tests/unit/**/*.spec.ts"],
-  include: ["./node_modules/@as-pect/assembly/assembly/index.ts"],
+  include: [asPectAssemblyEntry],
   disclude: [/node_modules/, /build\//],
   async instantiate(memory, createImports, instantiate, binary) {
     activeMemory = null;
@@ -329,6 +354,38 @@ export default {
         },
         ui_set_flex_wrap(handle, wrap) {
           record(CallOp.SetFlexWrap, toNumber(handle), wrap);
+        },
+        ui_prepare_node(handle) {
+          const key = toNumber(handle);
+          record(CallOp.PrepareNode, key);
+          const text = nodeTextByHandle.get(key) ?? '';
+          const fontSize = nodeFontSizeByHandle.get(key) ?? 16;
+          const width = Math.max(0, text.length * fontSize * 0.5);
+          const height = text.length === 0 ? fontSize * 1.2 : fontSize * 1.2;
+          nodeTextMetricsByHandle.set(key, {
+            width,
+            height,
+            baseline: fontSize * 0.8,
+            lineCount: 1,
+            maxLineWidth: width,
+          });
+          return 1;
+        },
+        ui_set_dynamic_text_charset(handle, ptr, len) {
+          record(CallOp.SetDynamicTextCharset, toNumber(handle), len);
+        },
+        ui_get_text_metrics(handle, outWidthPtr, outHeightPtr, outBaselinePtr, outLineCountPtr, outMaxLineWidthPtr) {
+          const entry = nodeTextMetricsByHandle.get(toNumber(handle));
+          if (entry === undefined) {
+            return 0;
+          }
+          const view = new DataView(getActiveMemory(memory).buffer);
+          view.setFloat32(outWidthPtr, entry.width, true);
+          view.setFloat32(outHeightPtr, entry.height, true);
+          view.setFloat32(outBaselinePtr, entry.baseline, true);
+          view.setUint32(outLineCountPtr, entry.lineCount, true);
+          view.setFloat32(outMaxLineWidthPtr, entry.maxLineWidth, true);
+          return 1;
         },
         ui_set_root() {},
         ui_set_width(handle, value, unit) {
@@ -434,48 +491,35 @@ export default {
         ui_set_image(handle, textureId, objectFit) {
           record(CallOp.SetImage, toNumber(handle), textureId, objectFit);
         },
-        ui_set_image_nine(handle, textureId, insetLeft, insetTop, insetRight, insetBottom) {
-          record(CallOp.SetImageNine, toNumber(handle), textureId, insetLeft, insetTop, insetRight, insetBottom);
+        ui_set_image_nine(handle, textureId, insetLeft, insetTop, insetRight, insetBottom, samplingKind, maxAniso) {
+          record(
+            CallOp.SetImageNine,
+            toNumber(handle),
+            textureId,
+            insetLeft,
+            insetTop,
+            insetRight,
+            insetBottom,
+            samplingKind,
+            maxAniso,
+          );
         },
         ui_set_svg(handle, svgId, tintColor) {
           record(CallOp.SetSvg, toNumber(handle), svgId, tintColor >>> 0);
         },
-        ui_set_linear_gradient(handle, startX, startY, endX, endY, stopCount) {
-          pendingGradients.set(String(toNumber(handle)), {
-            handle: toNumber(handle),
+        ui_set_linear_gradient(handle, startX, startY, endX, endY, stopCount, offsetsPtr, colorsPtr) {
+          record(
+            CallOp.SetLinearGradient,
+            toNumber(handle),
             startX,
             startY,
             endX,
             endY,
             stopCount,
-            offsets: [],
-            colors: [],
-          });
-        },
-        ui_push_linear_gradient_stop(handle, offset, color) {
-          const key = String(toNumber(handle));
-          const pending = pendingGradients.get(key);
-          if (!pending) {
-            throw new Error("Gradient stop received before gradient header.");
-          }
-          pending.offsets.push(offset);
-          pending.colors.push(color >>> 0);
-          if (pending.offsets.length !== pending.stopCount) {
-            return;
-          }
-          pendingGradients.delete(key);
-          record(
-            CallOp.SetLinearGradient,
-            pending.handle,
-            pending.startX,
-            pending.startY,
-            pending.endX,
-            pending.endY,
-            pending.stopCount,
-            pending.stopCount > 0 ? pending.offsets[0] : 0,
-            pending.stopCount > 0 ? pending.colors[0] : 0,
-            pending.stopCount > 1 ? pending.offsets[1] : 0,
-            pending.stopCount > 1 ? pending.colors[1] : 0,
+            stopCount > 0 ? readFloat(memory, offsetsPtr) : 0,
+            stopCount > 0 ? readUint32(memory, colorsPtr) : 0,
+            stopCount > 1 ? readFloat(memory, offsetsPtr + 4) : 0,
+            stopCount > 1 ? readUint32(memory, colorsPtr + 4) : 0,
           );
         },
         ui_set_clip_to_bounds(handle, clip) {
@@ -487,6 +531,11 @@ export default {
         ui_set_interactive(handle, interactive) {
           record(CallOp.SetInteractive, toNumber(handle), interactive ? 1 : 0);
         },
+        ui_set_preserve_selection_on_pointer_down(handle, preserve) {
+          record(CallOp.SetPreserveSelectionOnPointerDown, toNumber(handle), preserve ? 1 : 0);
+        },
+        ui_set_editor_command_keys() {},
+        ui_set_editor_accepts_tab() {},
         ui_set_scroll_proxy_target() {},
         ui_set_scroll_enabled(handle, enabledX, enabledY) {
           record(CallOp.SetScrollEnabled, toNumber(handle), enabledX ? 1 : 0, enabledY ? 1 : 0);
@@ -496,6 +545,9 @@ export default {
         },
         ui_set_scroll_friction(handle, friction) {
           record(CallOp.SetScrollFriction, toNumber(handle), friction);
+        },
+        ui_set_smooth_scrolling(handle, smoothScrolling) {
+          record(CallOp.SetSmoothScrolling, toNumber(handle), smoothScrolling ? 1 : 0);
         },
         ui_set_scroll_content_size(handle, contentWidth, contentHeight) {
           record(CallOp.SetScrollContentSize, toNumber(handle), contentWidth, contentHeight);
@@ -507,14 +559,21 @@ export default {
           record(CallOp.RequestFocus, toNumber(handle));
         },
         ui_set_text(handle, ptr, len) {
+          const key = toNumber(handle);
           lastText = readUtf8(memory, ptr, len);
-          record(CallOp.SetText, toNumber(handle), len);
+          nodeTextByHandle.set(key, lastText);
+          nodeTextMetricsByHandle.delete(key);
+          record(CallOp.SetText, key, len);
         },
+        ui_replace_text_range() {},
         ui_set_text_style_runs(handle, runCount, runsWordsPtr) {
           record(CallOp.SetTextStyleRuns, toNumber(handle), runCount, toNumber(runsWordsPtr));
         },
         ui_set_font(handle, fontId, size) {
-          record(CallOp.SetFont, toNumber(handle), fontId, size);
+          const key = toNumber(handle);
+          nodeFontSizeByHandle.set(key, size);
+          nodeTextMetricsByHandle.delete(key);
+          record(CallOp.SetFont, key, fontId, size);
         },
         ui_set_line_height(handle, lineHeight) {
           record(CallOp.SetLineHeight, toNumber(handle), lineHeight);
@@ -591,7 +650,56 @@ export default {
         ui_set_text_selection_range(handle, selectionStart, selectionEnd) {
           record(CallOp.SetTextSelectionRange, toNumber(handle), selectionStart, selectionEnd);
         },
-        ui_clear_current_selection() {},
+        ui_select_word_at(handle, x, y) {
+          record(CallOp.SelectWordAt, toNumber(handle), x, y);
+          return true;
+        },
+        ui_begin_selection_endpoint_drag(handle, endpoint) {
+          record(CallOp.BeginSelectionEndpointDrag, toNumber(handle), endpoint);
+          return true;
+        },
+        ui_get_text_range_rect_count(handle) {
+          const rects = textRangeRectsByHandle.get(toNumber(handle));
+          return rects === undefined ? 0 : rects.length;
+        },
+        ui_copy_text_range_rects(handle, _start, _end, outRectWordsPtr, maxRectCount) {
+          const rects = textRangeRectsByHandle.get(toNumber(handle));
+          if (rects === undefined || rects.length === 0 || maxRectCount <= 0 || !outRectWordsPtr) {
+            return 0;
+          }
+          const copiedCount = Math.min(rects.length, maxRectCount);
+          const view = new DataView(getActiveMemory(memory).buffer);
+          const basePtr = toNumber(outRectWordsPtr);
+          for (let index = 0; index < copiedCount; index += 1) {
+            const rect = rects[index];
+            const base = basePtr + (index * 16);
+            view.setFloat32(base, rect.x, true);
+            view.setFloat32(base + 4, rect.y, true);
+            view.setFloat32(base + 8, rect.width, true);
+            view.setFloat32(base + 12, rect.height, true);
+          }
+          return copiedCount;
+        },
+        ui_copy_cross_selection_endpoint_rects(areaHandle, outRectWordsPtr) {
+          const rects = crossSelectionEndpointRectsByHandle.get(toNumber(areaHandle));
+          if (rects === undefined || !outRectWordsPtr) {
+            return 0;
+          }
+          const view = new DataView(getActiveMemory(memory).buffer);
+          const basePtr = toNumber(outRectWordsPtr);
+          view.setFloat32(basePtr, rects.start.x, true);
+          view.setFloat32(basePtr + 4, rects.start.y, true);
+          view.setFloat32(basePtr + 8, rects.start.width, true);
+          view.setFloat32(basePtr + 12, rects.start.height, true);
+          view.setFloat32(basePtr + 16, rects.end.x, true);
+          view.setFloat32(basePtr + 20, rects.end.y, true);
+          view.setFloat32(basePtr + 24, rects.end.width, true);
+          view.setFloat32(basePtr + 28, rects.end.height, true);
+          return 1;
+        },
+        ui_clear_current_selection() {
+          record(CallOp.ClearSelection);
+        },
         ui_copy_current_selection() {},
         ui_can_undo_text_edit() {
           return 0;
@@ -607,7 +715,9 @@ export default {
         ui_copy_text_selection() {},
         ui_cut_text_selection() {},
         ui_paste_text() {},
-        ui_select_all_text() {},
+        ui_select_all_text(handle) {
+          record(CallOp.SelectAllText, toNumber(handle));
+        },
         ui_commit_frame() {
           record(CallOp.CommitFrame);
         },
@@ -634,6 +744,7 @@ export default {
         fui_has_text_selection_snapshot() {
           return 0;
         },
+        fui_freeze_text_selection_snapshot() {},
         fui_copy_text_selection_snapshot() {
           return 0;
         },
@@ -653,6 +764,7 @@ export default {
           record(CallOp.RequestFocus, toNumber(handle));
           record(CallOp.CommitFrame);
         },
+        fui_register_text_input_metadata() {},
         fui_load_svg(svgId, ptr, len) {
           lastSvgUrl = readUtf8(memory, ptr, len);
           record(CallOp.LoadSvg, svgId, len);
@@ -671,8 +783,19 @@ export default {
           lastBitmapBytes = readBytes(memory, bytesPtr, bytesLen);
           record(CallOp.BitmapCommit, textureId, bytesLen, width, height);
         },
+        fui_bitmap_commit_dirty(tid, ptr, len, fw, fh, sx, sy, sw, sh) {
+          lastBitmapBytes = readBytes(memory, ptr, len);
+          record(CallOp.BitmapCommitDirty, tid, len, fw, fh, sx, sy, sw, sh);
+        },
         fui_bitmap_release(textureId) {
           record(CallOp.BitmapRelease, textureId);
+        },
+        fui_render_node_to_rgba(handle, width, height, outPtr, outCapacity, scale, x, y) {
+          record(CallOp.RenderNodeToRgba, toNumber(handle), width, height, outCapacity, scale, x, y);
+          return width * height * 4;
+        },
+        get_device_pixel_ratio() {
+          return 1;
         },
         fui_load_font(fontId, ptr, len) {
           lastFontUrl = readUtf8(memory, ptr, len);
@@ -764,10 +887,11 @@ export default {
           lastLogMessage = readUtf8(memory, msgPtr, msgLen);
           record(CallOp.Log, catLen, msgLen);
         },
-        fui_worker_start_string(workerId, entryPtr, entryLen, inputPtr, inputLen) {
+        fui_worker_start_string(workerId, wasmPathPtr, wasmPathLen, entryPtr, entryLen, inputPtr, inputLen) {
+          lastWorkerPath = readUtf8(memory, wasmPathPtr, wasmPathLen);
           lastWorkerEntry = readUtf8(memory, entryPtr, entryLen);
           lastWorkerInput = readUtf8(memory, inputPtr, inputLen);
-          record(CallOp.WorkerStartString, workerId, entryLen, inputLen);
+          record(CallOp.WorkerStartString, workerId, wasmPathLen, entryLen, inputLen);
         },
         fui_worker_cancel(workerId) {
           workerCancelled = true;
@@ -792,7 +916,7 @@ export default {
         fui_file_writer_write_text(_requestId, _writerIdPtr, _writerIdLen, _textPtr, _textLen) {},
         fui_file_writer_write_bytes(_requestId, _writerIdPtr, _writerIdLen, _bytesPtr, _bytesLen) {},
         fui_file_writer_finish(_requestId, _writerIdPtr, _writerIdLen) {},
-        fui_file_process_worker_start(requestId, _fileIdPtr, _fileIdLen, _suggestedNamePtr, _suggestedNameLen, chunkBytes, saveToPickedFile) {
+        fui_file_process_worker_start(requestId, _workerWasmPathPtr, _workerWasmPathLen, _workerEntryPtr, _workerEntryLen, _fileIdPtr, _fileIdLen, _suggestedNamePtr, _suggestedNameLen, chunkBytes, saveToPickedFile) {
           record(CallOp.FileWorkerProcessStart, requestId, chunkBytes, saveToPickedFile);
         },
         fui_file_process_worker_cancel(requestId) {
@@ -807,6 +931,7 @@ export default {
         fui_canvas_scale(_ptr, _sx, _sy) {},
         fui_canvas_rotate(_ptr, _deg) {},
         fui_canvas_clip_rect(_ptr, _x, _y, _w, _h) {},
+        fui_canvas_clip_round_rect(_ptr, _x, _y, _w, _h, _tl, _tr, _br, _bl) {},
         fui_canvas_draw_rect(_ptr, _x, _y, _w, _h, _fc, _sc, _sw) {},
         fui_canvas_draw_circle(_ptr, _cx, _cy, _r, _fc, _sc, _sw) {},
         fui_canvas_draw_line(_ptr, _x1, _y1, _x2, _y2, _c, _sw) {},
@@ -821,9 +946,10 @@ export default {
         fui_path_add_rect(_id, _x, _y, _w, _h) {},
         fui_path_add_circle(_id, _cx, _cy, _r) {},
         fui_canvas_draw_path(_ptr, _pid, _fc, _sc, _sw) {},
-        fui_canvas_draw_text(_ptr, _utf8, _len, _x, _y, _fid, _fs, _c) {},
+        fui_canvas_draw_text_node(_ptr, _lo, _hi, _x, _y) {},
         fui_canvas_draw_image(_ptr, _tid, _x, _y, _w, _h) {},
         fui_canvas_draw_svg(_ptr, _sid, _x, _y, _w, _h) {},
+        fui_canvas_draw_batch(_ptr, _wordsPtr, _wordCount) {},
         fui_canvas_create_offscreen(_w, _h) { return 0; },
         fui_canvas_get_offscreen_ptr(_id) { return 0; },
         fui_canvas_read_offscreen_pixels(_id, _out, _w, _h) {},
@@ -870,17 +996,6 @@ export default {
         },
       },
       fui_worker_host: {
-        fui_worker_input_length() {
-          return encoder.encode(lastWorkerInput).length;
-        },
-        fui_worker_copy_input(ptr, capacity) {
-          const encoded = encoder.encode(lastWorkerInput);
-          const copyLength = Math.max(0, Math.min(capacity, encoded.length));
-          if (copyLength > 0) {
-            new Uint8Array(getActiveMemory(memory).buffer, ptr, copyLength).set(encoded.subarray(0, copyLength));
-          }
-          return copyLength;
-        },
         fui_worker_report_progress(ptr, len) {
           lastWorkerProgress = readUtf8(memory, ptr, len);
         },
@@ -969,6 +1084,12 @@ export default {
         last_worker_entry_equals(ptr, len) {
           return readUtf8(memory, ptr, len) === lastWorkerEntry ? 1 : 0;
         },
+        last_worker_path_length() {
+          return lastWorkerPath.length;
+        },
+        last_worker_path_equals(ptr, len) {
+          return readUtf8(memory, ptr, len) === lastWorkerPath ? 1 : 0;
+        },
         last_worker_input_length() {
           return lastWorkerInput.length;
         },
@@ -1020,19 +1141,6 @@ export default {
         last_bitmap_bytes_equals(ptr, len) {
           return bytesEqual(readBytes(memory, ptr, len), lastBitmapBytes) ? 1 : 0;
         },
-        set_worker_input(ptr, len) {
-          if (len === 0) {
-            lastWorkerInput = '';
-            return;
-          }
-          const offset = toNumber(ptr);
-          const sourceMemory = getActiveMemory(memory);
-          if (!Number.isFinite(offset) || offset < 0 || (offset + (len * 2)) > sourceMemory.buffer.byteLength) {
-            lastWorkerInput = '';
-            return;
-          }
-          lastWorkerInput = utf16Decoder.decode(new Uint8Array(sourceMemory.buffer, offset, len * 2));
-        },
         set_worker_cancelled(value) {
           workerCancelled = value !== 0;
         },
@@ -1050,6 +1158,43 @@ export default {
         },
         clear_node_bounds(handle) {
           nodeBoundsByHandle.delete(toNumber(handle));
+        },
+        set_text_range_rects(handle, ptr, rectCount) {
+          const rects = [];
+          const basePtr = toNumber(ptr);
+          for (let index = 0; index < rectCount; index += 1) {
+            const base = basePtr + (index * 16);
+            rects.push({
+              x: readFloat(memory, base),
+              y: readFloat(memory, base + 4),
+              width: readFloat(memory, base + 8),
+              height: readFloat(memory, base + 12),
+            });
+          }
+          textRangeRectsByHandle.set(toNumber(handle), rects);
+        },
+        clear_text_range_rects(handle) {
+          textRangeRectsByHandle.delete(toNumber(handle));
+        },
+        set_cross_selection_endpoint_rects(handle, ptr) {
+          const basePtr = toNumber(ptr);
+          crossSelectionEndpointRectsByHandle.set(toNumber(handle), {
+            start: {
+              x: readFloat(memory, basePtr),
+              y: readFloat(memory, basePtr + 4),
+              width: readFloat(memory, basePtr + 8),
+              height: readFloat(memory, basePtr + 12),
+            },
+            end: {
+              x: readFloat(memory, basePtr + 16),
+              y: readFloat(memory, basePtr + 20),
+              width: readFloat(memory, basePtr + 24),
+              height: readFloat(memory, basePtr + 28),
+            },
+          });
+        },
+        clear_cross_selection_endpoint_rects(handle) {
+          crossSelectionEndpointRectsByHandle.delete(toNumber(handle));
         },
       },
     })).then((instance) => {

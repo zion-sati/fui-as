@@ -1,4 +1,4 @@
-import { FontFamily, FontStyle, FontWeight } from "../../src/core/Typography";
+import { FontFamily, FontStack, FontStyle, FontWeight } from "../../src/core/Typography";
 import { RichText, Span, span } from "../../src/nodes";
 import {
   CALL_SET_FONT,
@@ -29,6 +29,15 @@ function findCallIndex(op: i32): i32 {
     }
   }
   return -1;
+}
+
+function containsFontId(fontIds: Array<u32>, fontId: u32): bool {
+  for (let index = 0; index < fontIds.length; ++index) {
+    if (unchecked(fontIds[index]) == fontId) {
+      return true;
+    }
+  }
+  return false;
 }
 
 describe("RichText", () => {
@@ -73,7 +82,7 @@ describe("RichText", () => {
   });
 
   it("applies an overarching font style across helper spans", () => {
-    const family = new FontFamily(11, 12, 13, 14);
+    const family = FontFamily._fromIds(11, 12, 13, 14);
     const rich = new RichText([
       span("Hello "),
       span("world").bold(),
@@ -94,8 +103,8 @@ describe("RichText", () => {
   });
 
   it("resolves a span-level font family override without using FontStack", () => {
-    const baseFamily = new FontFamily(11, 12, 13, 14);
-    const overrideFamily = new FontFamily(21, 22, 23, 24);
+    const baseFamily = FontFamily._fromIds(11, 12, 13, 14);
+    const overrideFamily = FontFamily._fromIds(21, 22, 23, 24);
     const rich = new RichText([
       span("Base "),
       span("Mono").fontFamily(overrideFamily),
@@ -118,5 +127,23 @@ describe("RichText", () => {
     expect<u32>(load<u32>(runsPtr + 36)).toBe(22);
     expect<u32>(load<u32>(runsPtr + 64)).toBe(12);
     expect<bool>(lastTextEquals("Base Mono Tail")).toBe(true);
+  });
+
+  it("reports every font id required by its resolved style runs", () => {
+    const baseFamily = FontFamily._fromIds(11, 12, 13, 14);
+    const overrideFamily = FontFamily._fromIds(21, 22, 23, 24);
+    const rich = new RichText([
+      span("Base "),
+      span("Mono").fontFamily(overrideFamily).bold(),
+      span(" Tail").italic(),
+    ])
+      .fontFamily(baseFamily)
+      .fontSize(20.0);
+
+    const fontIds = rich._requiredFontIds();
+
+    expect<bool>(containsFontId(fontIds, 11)).toBe(true);
+    expect<bool>(containsFontId(fontIds, 22)).toBe(true);
+    expect<bool>(containsFontId(fontIds, 13)).toBe(true);
   });
 });

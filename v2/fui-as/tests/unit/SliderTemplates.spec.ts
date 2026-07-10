@@ -7,6 +7,7 @@ import {
   Slider,
   SliderPresenter,
   SliderPresenterMetrics,
+  SliderSizing,
   SliderTemplate,
   SliderVisualState,
   SliderColors,
@@ -113,14 +114,14 @@ class TrackingSliderPresenter extends SliderPresenter {
     this.fillNode.bgColor(accent);
     this.thumbNode.cornerRadius(7.0);
     this.thumbNode.bgColor(theme.colors.surface);
-    this.thumbNode.border(2.0, accent, BorderStyle.Solid);
+    this.thumbNode.border(2.0, accent);
   }
 }
 
 class TrackingSliderTemplate extends SliderTemplate {
   readonly created: Array<TrackingSliderPresenter> = new Array<TrackingSliderPresenter>();
 
-  create(): SliderPresenter {
+  create(_sizing: SliderSizing | null = null): SliderPresenter {
     const presenter = new TrackingSliderPresenter();
     this.created.push(presenter);
     return presenter;

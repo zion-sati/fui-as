@@ -12,8 +12,8 @@ import {
   Unit,
   activeTheme,
   disposeAll,
-  hslToColor,
   isDarkMode,
+  rgb,
   showKeyboardFocusForKeyEvent,
   useCustomTheme,
   useSystemTheme,
@@ -22,13 +22,14 @@ import {
 } from "../../../src/Fui";
 import { bind1 } from "../../../src/FuiPrimitives";
 import {
+  clearDemoShellAccentColorChanged,
   clearDemoShellClockTickChanged,
   clearDemoShellDarkModeChanged,
-  clearDemoShellHueChanged,
+  onDemoShellAccentColorChanged,
   onDemoShellClockTickChanged,
   onDemoShellDarkModeChanged,
-  onDemoShellHueChanged,
 } from "../generated/HostEvents";
+import { demoShellAccentColorHex } from "../generated/HostServices";
 import { DashboardModel } from "./DashboardModel";
 import { DashboardView } from "./DashboardView";
 import {
@@ -53,16 +54,51 @@ function formatSelectionCountText(length: i32): string {
   return "Selection: " + length.toString() + (length == 1 ? " char" : " chars");
 }
 
+function parseHexDigit(code: i32): i32 {
+  if (code >= 48 && code <= 57) {
+    return code - 48;
+  }
+  if (code >= 65 && code <= 70) {
+    return code - 55;
+  }
+  if (code >= 97 && code <= 102) {
+    return code - 87;
+  }
+  return -1;
+}
+
+function resolveShellAccentColor(value: string, fallback: u32): u32 {
+  if (value.length != 7 || value.charCodeAt(0) != 35) {
+    return fallback;
+  }
+  const redHigh = parseHexDigit(value.charCodeAt(1));
+  const redLow = parseHexDigit(value.charCodeAt(2));
+  const greenHigh = parseHexDigit(value.charCodeAt(3));
+  const greenLow = parseHexDigit(value.charCodeAt(4));
+  const blueHigh = parseHexDigit(value.charCodeAt(5));
+  const blueLow = parseHexDigit(value.charCodeAt(6));
+  if (redHigh < 0 || redLow < 0 || greenHigh < 0 || greenLow < 0 || blueHigh < 0 || blueLow < 0) {
+    return fallback;
+  }
+  return rgb(
+    (redHigh << 4) | redLow,
+    (greenHigh << 4) | greenLow,
+    (blueHigh << 4) | blueLow,
+  );
+}
+
 export class DashboardController {
   readonly model: DashboardModel;
   readonly view: DashboardView;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
+  private accentColorValue: u32;
 
   constructor() {
     this.model = new DashboardModel(isDarkMode());
     this.view = new DashboardView();
+    this.accentColorValue = resolveShellAccentColor(demoShellAccentColorHex(), activeTheme.value.colors.accent);
     onDemoShellClockTickChanged(bind1<DashboardController, i32>(this, (controller, next) => controller.setClockTick(next)));
-    onDemoShellHueChanged(bind1<DashboardController, i32>(this, (controller, next) => controller.setHue(next)));
+    onDemoShellAccentColorChanged(bind1<DashboardController, u32>(this, (controller, next) => controller.setAccentColor(next)));
     onDemoShellDarkModeChanged(bind1<DashboardController, bool>(this, (controller, flag) => controller.setDarkMode(flag)));
     this.wireViewEvents();
     ContextMenuManager.setMenu(this.view.contextMenu);
@@ -82,7 +118,7 @@ export class DashboardController {
   dispose(): void {
     disposeAll(this.disposables);
     clearDemoShellClockTickChanged();
-    clearDemoShellHueChanged();
+    clearDemoShellAccentColorChanged();
     clearDemoShellDarkModeChanged();
     this.view.dispose();
     ContextMenuManager.setMenu(null);
@@ -93,12 +129,9 @@ export class DashboardController {
     this.model.clockTick.value = next;
   }
 
-  setHue(next: i32): void {
-    let normalized = next % 360;
-    if (normalized < 0) {
-      normalized += 360;
-    }
-    this.model.hue.value = normalized;
+  setAccentColor(next: u32): void {
+    this.accentColorValue = next;
+    this.syncTheme();
   }
 
   setDarkMode(flag: bool): void {
@@ -156,26 +189,37 @@ export class DashboardController {
     this.view.foundationsScopedButton.focusNow();
   }
 
+  openDialogDemo(): void {
+    this.view.dialogUsernameInput.text("");
+    this.view.dialogPasswordInput.text("");
+    this.view.dialog.content(
+      "Sign in demo",
+      "Use Proton Pass or another password manager to fill these fields, then press OK to submit.",
+    );
+    this.updateSemanticText(this.view.dialogStatusText, "Dialog status: open");
+    this.view.dialog.show();
+  }
+
+  closeDialogDemo(): void {
+    this.view.dialog.hide();
+    this.updateSemanticText(this.view.dialogStatusText, "Dialog status: closed");
+  }
+
   private wireViewEvents(): void {
-    this.view.counterButton.onClickWith(this, (c) => {
+    this.view.counterButton.onClickWith(this, (c, _event) => {
       c.model.clickCount.value += 1;
     });
-    this.view.counterButton.onHoverChangedWith(this, (c, hovered) => {
-      c.model.counterHovered.value = hovered;
+    this.view.counterButton.onHoverChangedWith(this, (c, event) => {
+      c.model.counterHovered.value = event.hovered;
     });
-    this.view.keyTargetBox.onFocusChangedWith(this, (c, focused) => {
-      c.model.keyTargetFocused.value = focused;
+    this.view.keyTargetBox.onFocusChangedWith(this, (c, event) => {
+      c.model.keyTargetFocused.value = event.focused;
     });
-    this.view.keyTargetBox.onKeyDownWith(this, (c, key, _mods) => {
-      c.model.lastKey.value = key;
+    this.view.keyTargetBox.onKeyDownWith(this, (c, event) => {
+      c.model.lastKey.value = event.key;
     });
-    this.view.dialogButton.onClickWith(this, (c) => {
-      c.view.dialog.content(
-        "Confirm action",
-        "Press Enter to accept, Escape to cancel, or click the backdrop to dismiss this dialog.",
-      );
-      c.updateSemanticText(c.view.dialogStatusText, "Dialog status: open");
-      c.view.dialog.show();
+    this.view.dialogButton.onClickWith(this, (c, _event) => {
+      c.openDialogDemo();
     });
     this.view.dialog.onAcceptWith(this, (c) => {
       c.updateSemanticText(c.view.dialogStatusText, "Dialog status: accepted");
@@ -183,59 +227,66 @@ export class DashboardController {
     this.view.dialog.onCancelWith(this, (c) => {
       c.updateSemanticText(c.view.dialogStatusText, "Dialog status: cancelled");
     });
-    this.view.foundationsToggleButton.onClickWith(this, (c) => c.toggleFoundationsScope());
-    this.view.foundationsScopedButton.onClickWith(this, (c) => {
+    this.view.foundationsToggleButton.onClickWith(this, (c, _event) => c.toggleFoundationsScope());
+    this.view.foundationsScopedButton.onClickWith(this, (c, _event) => {
       c.model.foundationsScopedActionCount.value += 1;
     });
-    this.view.foundationsScopedButton.onFocusChangedWith(this, (c, focused) => {
-      c.model.foundationsScopedFocused.value = focused;
+    this.view.foundationsScopedButton.onFocusChangedWith(this, (c, event) => {
+      c.model.foundationsScopedFocused.value = event.focused;
     });
-    this.view.commonCheckbox.onChangedWith(this, (c, state) => {
-      c.model.commonCheckboxState = state;
+    this.view.commonCheckbox.onChangedWith(this, (c, event) => {
+      c.model.commonCheckboxState = event.state;
       c.updateCommonControlsState();
     });
-    this.view.commonTriStateCheckbox.onChangedWith(this, (c, state) => {
-      c.model.commonTriStateValue = state;
+    this.view.commonTriStateCheckbox.onChangedWith(this, (c, event) => {
+      c.model.commonTriStateValue = event.state;
       c.updateCommonControlsState();
     });
-    this.view.commonSwitch.onChangedWith(this, (c, checked) => {
-      c.model.commonSwitchValue = checked;
+    this.view.commonSwitch.onChangedWith(this, (c, event) => {
+      c.model.commonSwitchValue = event.checked;
       c.updateCommonControlsState();
     });
-    this.view.commonRadioGroup.onChangedWith(this, (c, value) => {
-      c.model.commonRadioValue = value;
+    this.view.commonRadioGroup.onChangedWith(this, (c, event) => {
+      c.model.commonRadioValue = event.value;
       c.updateCommonControlsState();
     });
-    this.view.commonHorizontalSlider.onChangedWith(this, (c, value) => {
-      c.model.commonHorizontalSliderValue = value;
+    this.view.commonHorizontalSlider.onChangedWith(this, (c, event) => {
+      c.model.commonHorizontalSliderValue = event.value;
       c.updateCommonControlsState();
     });
-    this.view.commonVerticalSlider.onChangedWith(this, (c, value) => {
-      c.model.commonVerticalSliderValue = value;
+    this.view.commonVerticalSlider.onChangedWith(this, (c, event) => {
+      c.model.commonVerticalSliderValue = event.value;
       c.updateCommonControlsState();
     });
-    this.view.commonDropdown.onChangedWith(this, (c, item, _index) => {
-      c.model.commonDropdownValue = item.label;
+    this.view.commonDropdown.onChangedWith(this, (c, event) => {
+      c.model.commonDropdownValue = event.item.label;
       c.updateCommonControlsState();
     });
-    this.view.commonTextInput.onChangedWith(this, (c, value) => {
-      c.model.commonTextInputValue = value;
+    this.view.commonComboBox.onChangedWith(this, (c, event) => {
+      c.model.commonComboBoxValue = event.item.value;
       c.updateCommonControlsState();
     });
-    this.view.commonTextInput.onSelectionChangedWith(this, (c, start, end) => {
-      c.model.commonTextInputSelectionStart = start;
-      c.model.commonTextInputSelectionEnd = end;
+    this.view.commonComboBox.onTextChangedWith(this, (c, event) => {
+      c.model.commonComboBoxText = event.text;
       c.updateCommonControlsState();
     });
-    this.view.commonTextInput.onFocusChangedWith(this, (c, focused) => {
-      c.model.commonTextInputFocused = focused;
+    this.view.commonTextInput.onChangedWith(this, (c, event) => {
+      c.model.commonTextInputValue = event.text;
+      c.updateCommonControlsState();
+    });
+    this.view.commonTextInput.onSelectionChangedWith(this, (c, event) => {
+      c.model.commonTextInputSelectionStart = event.start;
+      c.model.commonTextInputSelectionEnd = event.end;
+      c.updateCommonControlsState();
+    });
+    this.view.commonTextInput.onFocusChangedWith(this, (c, event) => {
+      c.model.commonTextInputFocused = event.focused;
       c.updateCommonControlsState();
     });
   }
 
   private attachListeners(): void {
     this.track(this.model.clockTick.bind(this, (c, _value) => c.updateClockState(true)));
-    this.track(this.model.hue.bind(this, (c, _value) => c.handleHueChanged()));
     this.track(this.model.clickCount.bind(this, (c, _value) => c.updateClickState(true)));
     this.track(this.model.counterHovered.bind(this, (c, _value) => c.updatePointerState(true)));
     this.track(this.model.keyTargetFocused.bind(this, (c, _value) => c.updateFocusState(true)));
@@ -258,7 +309,6 @@ export class DashboardController {
 
   private refreshStaticState(): void {
     this.updateClockState();
-    this.updateHueState();
     this.updateViewportState();
     this.updateClickState();
     this.updatePointerState();
@@ -274,21 +324,11 @@ export class DashboardController {
     this.updateSemanticText(this.view.dialogStatusText, "Dialog status: idle");
   }
 
-  private handleHueChanged(): void {
-    this.syncTheme();
-    this.updateHueState();
-    this.updateHeaderState();
-  }
-
   private formatClockText(): string {
     const tick = this.model.clockTick.value;
     const minutes = tick / 60;
     const seconds = tick % 60;
     return "Tick " + minutes.toString() + ":" + padTwoDigits(seconds);
-  }
-
-  private formatHueText(): string {
-    return "Hue " + this.model.hue.value.toString() + " deg";
   }
 
   private formatListOffsetText(): string {
@@ -327,7 +367,7 @@ export class DashboardController {
   }
 
   private syncTheme(): void {
-    useCustomTheme(generateDemoTheme(this.model.darkModeValue, hslToColor(<f32>this.model.hue.value, <f32>0.72, <f32>0.45)));
+    useCustomTheme(generateDemoTheme(this.model.darkModeValue, this.accentColorValue));
     this.applyDemoTheme(activeTheme.value);
   }
 
@@ -338,17 +378,12 @@ export class DashboardController {
   private updateHeaderState(_commit: bool = true): void {
     this.updateSemanticText(
       this.view.headerStatusText,
-      this.formatClockText() + "  •  " + this.formatHueText() + "  •  " + this.formatFirstVisibleText(),
+      this.formatClockText() + "  •  " + this.formatFirstVisibleText(),
     );
   }
 
   private updateClockState(_commit: bool = true): void {
     this.updateSemanticText(this.view.clockText, this.formatClockText());
-    this.updateHeaderState(false);
-  }
-
-  private updateHueState(_commit: bool = true): void {
-    this.updateSemanticText(this.view.hueText, this.formatHueText());
     this.updateHeaderState(false);
   }
 
@@ -561,6 +596,10 @@ export class DashboardController {
       " • Vertical slider: " + this.formatSliderValue(this.model.commonVerticalSliderValue),
     );
     this.updateSemanticText(this.view.commonDropdownStatusText, "Dropdown: " + this.model.commonDropdownValue);
+    this.updateSemanticText(
+      this.view.commonComboBoxStatusText,
+      "ComboBox: " + this.model.commonComboBoxValue + " • Text: " + this.formatTextInputValue(this.model.commonComboBoxText),
+    );
     this.updateSemanticText(
       this.view.commonTextInputStatusText,
       "TextInput: " + this.formatTextInputValue(this.model.commonTextInputValue) +

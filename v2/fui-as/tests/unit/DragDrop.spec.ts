@@ -1,10 +1,12 @@
 import {
   DragDataObject,
   DragDropEffects,
+  DragCompletedEventArgs,
   DragEventArgs,
   DragSession,
   DropProposal,
   FlexBox,
+  PointerClickEventArgs,
   PointerEventType,
 } from "../../src/Fui";
 import { EventRouter } from "../../src/core/EventRouter";
@@ -41,10 +43,7 @@ class DragDropHarness {
 
   handleTargetEnter(args: DragEventArgs): DropProposal {
     this.targetEnterCount += 1;
-    this.sessionValue = args.session.onCompletedWith<DragDropHarness>(this, (owner: DragDropHarness, effect: DragDropEffects): void => {
-      owner.sessionCompletedCount += 1;
-      owner.lastSessionEffect = effect;
-    });
+    this.sessionValue = args.session.onCompletedWith<DragDropHarness>(this, handleSessionCompleted);
     return new DropProposal(this.proposalEffect, false);
   }
 
@@ -62,10 +61,43 @@ class DragDropHarness {
     this.lastDroppedText = args.session.data.getText();
   }
 
-  handleDragCompleted(effect: DragDropEffects): void {
+  handleDragCompleted(event: DragCompletedEventArgs): void {
     this.completedCount += 1;
-    this.lastCompletedEffect = effect;
+    this.lastCompletedEffect = event.effect;
   }
+}
+
+function handleSessionCompleted(owner: DragDropHarness, event: DragCompletedEventArgs): void {
+  owner.sessionCompletedCount += 1;
+  owner.lastSessionEffect = event.effect;
+}
+
+function handleSourceClick(owner: DragDropHarness, _event: PointerClickEventArgs): void {
+  owner.handleSourceClick();
+}
+
+function provideDragData(owner: DragDropHarness): DragDataObject {
+  return owner.provideDragData();
+}
+
+function handleTargetEnter(owner: DragDropHarness, args: DragEventArgs): DropProposal {
+  return owner.handleTargetEnter(args);
+}
+
+function handleTargetOver(owner: DragDropHarness, args: DragEventArgs): DropProposal {
+  return owner.handleTargetOver(args);
+}
+
+function handleTargetLeave(owner: DragDropHarness, args: DragEventArgs): void {
+  owner.handleTargetLeave(args);
+}
+
+function handleDrop(owner: DragDropHarness, args: DragEventArgs): void {
+  owner.handleDrop(args);
+}
+
+function handleDragCompleted(owner: DragDropHarness, event: DragCompletedEventArgs): void {
+  owner.handleDragCompleted(event);
 }
 
 describe("DragDrop", () => {
@@ -75,40 +107,35 @@ describe("DragDrop", () => {
     const owner = new DragDropHarness();
     const root = new FlexBox();
     const source = new FlexBox()
-      .onClickWith<DragDropHarness>(owner, (current: DragDropHarness): void => current.handleSourceClick())
-      .bindDragData<DragDropHarness>(owner, (current: DragDropHarness): DragDataObject => current.provideDragData())
+      .onPointerClickWith<DragDropHarness>(owner, handleSourceClick)
+      .bindDragData<DragDropHarness>(owner, provideDragData)
       .dragAllowedEffects(DragDropEffects.Copy | DragDropEffects.Move)
-      .onDragCompletedWith<DragDropHarness>(owner, (current: DragDropHarness, effect: DragDropEffects): void =>
-        current.handleDragCompleted(effect)
-      );
+      .onDragCompletedWith<DragDropHarness>(owner, handleDragCompleted);
     const target = new FlexBox()
       .allowDrop(true)
-      .onDragEnterWith<DragDropHarness>(owner, (current: DragDropHarness, args: DragEventArgs): DropProposal =>
-        current.handleTargetEnter(args)
-      )
-      .onDragOverWith<DragDropHarness>(owner, (current: DragDropHarness, args: DragEventArgs): DropProposal =>
-        current.handleTargetOver(args)
-      )
-      .onDragLeaveWith<DragDropHarness>(owner, (current: DragDropHarness, args: DragEventArgs): void =>
-        current.handleTargetLeave(args)
-      )
-      .onDropWith<DragDropHarness>(owner, (current: DragDropHarness, args: DragEventArgs): void => current.handleDrop(args));
+      .onDragEnterWith<DragDropHarness>(owner, handleTargetEnter)
+      .onDragOverWith<DragDropHarness>(owner, handleTargetOver)
+      .onDragLeaveWith<DragDropHarness>(owner, handleTargetLeave)
+      .onDropWith<DragDropHarness>(owner, handleDrop);
 
     root.child(source).child(target);
 
-    EventRouter.register(makeHandle(1, 1), root);
-    EventRouter.register(makeHandle(2, 1), source);
-    EventRouter.register(makeHandle(3, 1), target);
+    const rootHandle = makeHandle(1, 1);
+    const sourceHandle = makeHandle(2, 1);
+    const targetHandle = makeHandle(3, 1);
+    EventRouter.register(rootHandle, root);
+    EventRouter.register(sourceHandle, source);
+    EventRouter.register(targetHandle, target);
 
-    EventRouter.dispatchPointerEvent(source.builtHandle, PointerEventType.Down, 4.0, 4.0, 0);
-    EventRouter.dispatchPointerEvent(source.builtHandle, PointerEventType.Move, 6.0, 4.0, 0);
+    EventRouter.dispatchPointerEvent(sourceHandle, PointerEventType.Down, 4.0, 4.0, 0);
+    EventRouter.dispatchPointerEvent(sourceHandle, PointerEventType.Move, 6.0, 4.0, 0);
 
     expect<i32>(owner.dragDataCalls).toBe(0);
     expect<i32>(owner.sourceClickCount).toBe(0);
     expect<i32>(owner.targetEnterCount).toBe(0);
 
-    EventRouter.dispatchPointerEvent(target.builtHandle, PointerEventType.Move, 12.0, 8.0, 0);
-    EventRouter.dispatchPointerEvent(target.builtHandle, PointerEventType.Up, 12.0, 8.0, 0);
+    EventRouter.dispatchPointerEvent(targetHandle, PointerEventType.Move, 12.0, 8.0, 0);
+    EventRouter.dispatchPointerEvent(targetHandle, PointerEventType.Up, 12.0, 8.0, 0);
 
     expect<i32>(owner.dragDataCalls).toBe(1);
     expect<i32>(owner.sourceClickCount).toBe(0);
@@ -132,41 +159,32 @@ describe("DragDrop", () => {
     ownerB.proposalEffect = DragDropEffects.Move;
 
     const root = new FlexBox();
-    const source = new FlexBox().bindDragData<DragDropHarness>(
-      ownerA,
-      (current: DragDropHarness): DragDataObject => current.provideDragData(),
-    );
+    const source = new FlexBox().bindDragData<DragDropHarness>(ownerA, provideDragData);
     const targetA = new FlexBox()
       .allowDrop(true)
-      .onDragEnterWith<DragDropHarness>(ownerA, (current: DragDropHarness, args: DragEventArgs): DropProposal =>
-        current.handleTargetEnter(args)
-      )
-      .onDragLeaveWith<DragDropHarness>(ownerA, (current: DragDropHarness, args: DragEventArgs): void =>
-        current.handleTargetLeave(args)
-      );
+      .onDragEnterWith<DragDropHarness>(ownerA, handleTargetEnter)
+      .onDragLeaveWith<DragDropHarness>(ownerA, handleTargetLeave);
     const targetB = new FlexBox()
       .allowDrop(true)
-      .onDragEnterWith<DragDropHarness>(ownerB, (current: DragDropHarness, args: DragEventArgs): DropProposal =>
-        current.handleTargetEnter(args)
-      )
-      .onDragOverWith<DragDropHarness>(ownerB, (current: DragDropHarness, args: DragEventArgs): DropProposal =>
-        current.handleTargetOver(args)
-      )
-      .onDragLeaveWith<DragDropHarness>(ownerB, (current: DragDropHarness, args: DragEventArgs): void =>
-        current.handleTargetLeave(args)
-      );
+      .onDragEnterWith<DragDropHarness>(ownerB, handleTargetEnter)
+      .onDragOverWith<DragDropHarness>(ownerB, handleTargetOver)
+      .onDragLeaveWith<DragDropHarness>(ownerB, handleTargetLeave);
 
     root.child(source).child(targetA).child(targetB);
 
-    EventRouter.register(makeHandle(11, 1), root);
-    EventRouter.register(makeHandle(12, 1), source);
-    EventRouter.register(makeHandle(13, 1), targetA);
-    EventRouter.register(makeHandle(14, 1), targetB);
+    const rootHandle = makeHandle(11, 1);
+    const sourceHandle = makeHandle(12, 1);
+    const targetAHandle = makeHandle(13, 1);
+    const targetBHandle = makeHandle(14, 1);
+    EventRouter.register(rootHandle, root);
+    EventRouter.register(sourceHandle, source);
+    EventRouter.register(targetAHandle, targetA);
+    EventRouter.register(targetBHandle, targetB);
 
-    EventRouter.dispatchPointerEvent(source.builtHandle, PointerEventType.Down, 0.0, 0.0, 0);
-    EventRouter.dispatchPointerEvent(targetA.builtHandle, PointerEventType.Move, 6.0, 0.0, 0);
-    EventRouter.dispatchPointerEvent(targetB.builtHandle, PointerEventType.Move, 12.0, 0.0, 0);
-    EventRouter.dispatchPointerEvent(targetB.builtHandle, PointerEventType.Up, 12.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(sourceHandle, PointerEventType.Down, 0.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(targetAHandle, PointerEventType.Move, 6.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(targetBHandle, PointerEventType.Move, 12.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(targetBHandle, PointerEventType.Up, 12.0, 0.0, 0);
 
     expect<i32>(ownerA.targetEnterCount).toBe(1);
     expect<i32>(ownerA.targetLeaveCount).toBe(1);
@@ -183,27 +201,26 @@ describe("DragDrop", () => {
 
     const root = new FlexBox();
     const source = new FlexBox()
-      .bindDragData<DragDropHarness>(owner, (current: DragDropHarness): DragDataObject => current.provideDragData())
+      .bindDragData<DragDropHarness>(owner, provideDragData)
       .dragAllowedEffects(DragDropEffects.Copy)
-      .onDragCompletedWith<DragDropHarness>(owner, (current: DragDropHarness, effect: DragDropEffects): void =>
-        current.handleDragCompleted(effect)
-      );
+      .onDragCompletedWith<DragDropHarness>(owner, handleDragCompleted);
     const target = new FlexBox()
       .allowDrop(true)
-      .onDragOverWith<DragDropHarness>(owner, (current: DragDropHarness, args: DragEventArgs): DropProposal =>
-        current.handleTargetOver(args)
-      )
-      .onDropWith<DragDropHarness>(owner, (current: DragDropHarness, args: DragEventArgs): void => current.handleDrop(args));
+      .onDragOverWith<DragDropHarness>(owner, handleTargetOver)
+      .onDropWith<DragDropHarness>(owner, handleDrop);
 
     root.child(source).child(target);
 
-    EventRouter.register(makeHandle(21, 1), root);
-    EventRouter.register(makeHandle(22, 1), source);
-    EventRouter.register(makeHandle(23, 1), target);
+    const rootHandle = makeHandle(21, 1);
+    const sourceHandle = makeHandle(22, 1);
+    const targetHandle = makeHandle(23, 1);
+    EventRouter.register(rootHandle, root);
+    EventRouter.register(sourceHandle, source);
+    EventRouter.register(targetHandle, target);
 
-    EventRouter.dispatchPointerEvent(source.builtHandle, PointerEventType.Down, 0.0, 0.0, 0);
-    EventRouter.dispatchPointerEvent(target.builtHandle, PointerEventType.Move, 6.0, 0.0, 0);
-    EventRouter.dispatchPointerEvent(target.builtHandle, PointerEventType.Up, 6.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(sourceHandle, PointerEventType.Down, 0.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(targetHandle, PointerEventType.Move, 6.0, 0.0, 0);
+    EventRouter.dispatchPointerEvent(targetHandle, PointerEventType.Up, 6.0, 0.0, 0);
 
     expect<i32>(owner.dropCount).toBe(0);
     expect<i32>(owner.completedCount).toBe(1);

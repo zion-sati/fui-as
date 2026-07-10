@@ -63,6 +63,8 @@ export function describePointerEventType(eventType: PointerEventType): string {
       return "enter";
     case PointerEventType.Leave:
       return "leave";
+    case PointerEventType.Cancel:
+      return "cancel";
     default:
       return "pointer(" + (<u32>eventType).toString() + ")";
   }

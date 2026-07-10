@@ -6,7 +6,6 @@ import { keyboardFocusVisible } from "../../core/FocusVisibility";
 import { Node } from "../../core/Node";
 import {
   AlignItems,
-  BorderStyle,
   CursorStyle,
   FlexDirection,
   KeyEventType,
@@ -191,16 +190,14 @@ export class PressableLabeledControl extends FlexBox {
     this.cornerRadius(theme.spacing.sm);
     this.border(
       2.0,
-      TRANSPARENT,
-      BorderStyle.Solid,
+      TRANSPARENT
     );
     this.padding(theme.spacing.xs, theme.spacing.xs, theme.spacing.xs, theme.spacing.xs);
     this.opacity(this.isEnabled ? 1.0 : 0.6);
     this.gapNode.width(theme.spacing.sm, Unit.Pixel);
-    this.labelNode.font(
-      theme.fonts.body,
-      this.labelFontSizeOverride > 0.0 ? this.labelFontSizeOverride : theme.fonts.sizeBody,
-    );
+    this.labelNode
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(this.labelFontSizeOverride > 0.0 ? this.labelFontSizeOverride : theme.fonts.sizeBody);
     const colors = this.colorsValue;
     let labelColor: u32;
     if (this.isEnabled) {

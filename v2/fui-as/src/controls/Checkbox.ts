@@ -1,5 +1,6 @@
 import { Callback1, Handler1 } from "../core/BoundCallback";
 import { SemanticCheckedState, SemanticRole } from "../core/ffi";
+import { CheckboxChangedEventArgs } from "../core/Node";
 import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState";
 import { bind1 } from "../core/bind";
 import { LabeledControlSizing } from "./ControlSizing";
@@ -42,13 +43,13 @@ const CHECKBOX_PERSISTED_STATE = new PersistedCheckboxState();
 
 function createIndicatorPresenter(template: CheckboxIndicatorTemplate | null, sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
   if (template !== null) {
-    return template.create();
+    return template.create(sizing);
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.checkboxIndicator : null;
   return appTemplate === null
     ? createDefaultCheckboxIndicatorPresenter(sizing)
-    : appTemplate.create();
+    : appTemplate.create(sizing);
 }
 
 export class Checkbox extends PressableLabeledControl {
@@ -57,8 +58,8 @@ export class Checkbox extends PressableLabeledControl {
   private sizingValue: LabeledControlSizing | null = null;
   private checkedStateValue: SemanticCheckedState = SemanticCheckedState.False;
   private triStateEnabled: bool = false;
-  private changedCallback: ((state: SemanticCheckedState) => void) | null = null;
-  private changedBinding: Callback1<SemanticCheckedState> | null = null;
+  private changedCallback: ((event: CheckboxChangedEventArgs) => void) | null = null;
+  private changedBinding: Callback1<CheckboxChangedEventArgs> | null = null;
 
   constructor(label: string) {
     const indicatorPresenter = createIndicatorPresenter(null);
@@ -80,13 +81,13 @@ export class Checkbox extends PressableLabeledControl {
   triState(flag: bool = true): this {
     this.triStateEnabled = flag;
     if (!flag && this.checkedStateValue == SemanticCheckedState.Mixed) {
-      this.setCheckedState(SemanticCheckedState.False, false);
+      this.setCheckedState(SemanticCheckedState.False, true, false);
     }
     return this;
   }
 
   check(flag: bool): this {
-    this.setCheckedState(flag ? SemanticCheckedState.True : SemanticCheckedState.False, false);
+    this.setCheckedState(flag ? SemanticCheckedState.True : SemanticCheckedState.False, true, false);
     return this;
   }
 
@@ -94,7 +95,7 @@ export class Checkbox extends PressableLabeledControl {
     if (!this.triStateEnabled) {
       return this;
     }
-    this.setCheckedState(flag ? SemanticCheckedState.Mixed : SemanticCheckedState.False, false);
+    this.setCheckedState(flag ? SemanticCheckedState.Mixed : SemanticCheckedState.False, true, false);
     return this;
   }
 
@@ -103,11 +104,9 @@ export class Checkbox extends PressableLabeledControl {
     this.setLabelFontSizeOverride(
       sizing !== null && sizing.hasLabelFontSize ? sizing.labelFontSizePx : 0.0,
     );
-    if (this.usesDefaultIndicatorPresenter()) {
-      this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
-      this.replaceIndicatorRoot(this.indicatorPresenter.root);
-      this.syncVisualState();
-    }
+    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
+    this.replaceIndicatorRoot(this.indicatorPresenter.root);
+    this.syncVisualState();
     return this;
   }
 
@@ -119,19 +118,19 @@ export class Checkbox extends PressableLabeledControl {
     return this;
   }
 
-  onChanged(callback: ((state: SemanticCheckedState) => void) | null): this {
+  onChanged(callback: ((event: CheckboxChangedEventArgs) => void) | null): this {
     this.changedCallback = callback;
     this.changedBinding = null;
     return this;
   }
 
-  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, SemanticCheckedState>): this {
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, CheckboxChangedEventArgs>): this {
     this.changedCallback = null;
-    this.changedBinding = bind1<Owner, SemanticCheckedState>(owner, handler);
+    this.changedBinding = bind1<Owner, CheckboxChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, SemanticCheckedState>): this {
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, CheckboxChangedEventArgs>): this {
     this.bindChanged(owner, handler);
     return this;
   }
@@ -170,10 +169,10 @@ export class Checkbox extends PressableLabeledControl {
   }
 
   _applyPersistedCheckedState(next: SemanticCheckedState): void {
-    this.setCheckedState(next, true);
+    this.setCheckedState(next, true, false);
   }
 
-  private setCheckedState(next: SemanticCheckedState, emit: bool): void {
+  private setCheckedState(next: SemanticCheckedState, emit: bool, announce: bool = emit): void {
     if (!this.triStateEnabled && next == SemanticCheckedState.Mixed) {
       next = SemanticCheckedState.False;
     }
@@ -184,14 +183,17 @@ export class Checkbox extends PressableLabeledControl {
     this.semanticChecked(next);
     this.syncVisualState();
     if (emit) {
-      this.requestSemanticAnnouncement();
+      if (announce) {
+        this.requestSemanticAnnouncement();
+      }
+      const event = new CheckboxChangedEventArgs(next);
       const callback = this.changedCallback;
       if (callback !== null) {
-        callback(next);
+        callback(event);
       }
       const binding = this.changedBinding;
       if (binding !== null) {
-        binding.invoke(next);
+        binding.invoke(event);
       }
     }
   }

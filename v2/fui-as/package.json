@@ -1,6 +1,6 @@
 {
   "name": "@effindomv2/fui-as",
-  "version": "0.1.37",
+  "version": "0.1.39",
   "private": false,
   "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
   "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
@@ -45,21 +45,25 @@
       "types": "./browser/src/common-harness.ts",
       "default": "./browser/src/common-harness.ts"
     },
+    "./browser/shared-browser": {
+      "types": "./browser/src/shared-browser.ts",
+      "default": "./browser/src/shared-browser.ts"
+    },
     "./browser/routed-harness": {
       "types": "./browser/src/routed-harness.ts",
       "default": "./browser/src/routed-harness.ts"
     },
     "./browser/host-events": {
-      "types": "./browser/src/host-events.ts",
-      "default": "./browser/src/host-events.ts"
+      "types": "./browser/src/shared-browser.ts",
+      "default": "./browser/src/shared-browser.ts"
     },
     "./browser/host-services": {
-      "types": "./browser/src/host-services.ts",
-      "default": "./browser/src/host-services.ts"
+      "types": "./browser/src/shared-browser.ts",
+      "default": "./browser/src/shared-browser.ts"
     },
     "./browser/worker-types": {
-      "types": "./browser/src/worker-types.ts",
-      "default": "./browser/src/worker-types.ts"
+      "types": "./browser/src/shared-browser.ts",
+      "default": "./browser/src/shared-browser.ts"
     }
   },
   "files": [
@@ -76,22 +80,28 @@
   ],
   "scripts": {
     "guard:runtime-dependency": "bash scripts/check-runtime-dependency.sh",
+    "generate:abi": "mkdir -p build && esbuild ../abi/generate.ts --bundle --format=esm --platform=node --target=node20 --packages=external --outfile=build/generate-abi.mjs && node build/generate-abi.mjs fui-as-ui && node build/generate-abi.mjs fui-as-host && node build/generate-abi.mjs fui-as-enums",
+    "check:abi": "mkdir -p build && esbuild ../abi/generate.ts --bundle --format=esm --platform=node --target=node20 --packages=external --outfile=build/generate-abi.mjs && node build/generate-abi.mjs fui-as-ui --check && node build/generate-abi.mjs fui-as-host --check && node build/generate-abi.mjs fui-as-enums --check",
+    "generate:ui-abi": "npm run generate:abi",
+    "check:ui-abi": "npm run check:abi",
     "build": "npm run guard:runtime-dependency && bash scripts/build.sh",
     "build:only": "npm run guard:runtime-dependency && bash scripts/build.sh",
     "build:full": "npm run guard:runtime-dependency && bash scripts/build.sh",
     "build:demo:as": "bash scripts/build-demo-as.sh",
+    "lint": "cd ../.. && npm run lint:v2",
+    "prepublishOnly": "npm run check:abi && npm run lint && npm run typecheck",
     "test:unit": "npm run guard:runtime-dependency && asp --verbose -c as-pect.config.mjs -a as-pect.asconfig.json",
-    "test:integration": "npm run build:full && playwright test -c playwright.config.ts",
-    "typecheck": "npm run guard:runtime-dependency && tsc -p tsconfig.json --noEmit"
+    "test:integration": "npm --prefix ../.. run build:v2:browser-bridge && npm run build:full && playwright test -c playwright.config.ts",
+    "typecheck": "npm run guard:runtime-dependency && npm run check:abi && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.28.19",
-    "@effindomv2/runtime": "0.1.18"
+    "@effindomv2/runtime": "0.1.20"
   },
   "devDependencies": {
-    "@as-pect/assembly": "8.1.0",
-    "@as-pect/cli": "8.1.0",
-    "@as-pect/core": "8.1.0",
+    "@as-pect/assembly": "9.0.0",
+    "@as-pect/cli": "9.0.0",
+    "@as-pect/core": "9.0.0",
     "@playwright/test": "1.59.1",
     "@types/node": "^24.10.1",
     "assemblyscript": "0.28.19",

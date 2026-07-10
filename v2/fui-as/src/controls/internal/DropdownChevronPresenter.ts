@@ -43,7 +43,7 @@ export abstract class DropdownChevronPresenter {
 }
 
 export abstract class DropdownChevronTemplate {
-  abstract create(): DropdownChevronPresenter;
+  abstract create(sizing?: DropdownSizing | null): DropdownChevronPresenter;
 }
 
 class DefaultDropdownChevronPresenter extends DropdownChevronPresenter {
@@ -80,8 +80,8 @@ class DefaultDropdownChevronPresenter extends DropdownChevronPresenter {
 }
 
 class DefaultDropdownChevronTemplate extends DropdownChevronTemplate {
-  create(): DropdownChevronPresenter {
-    return new DefaultDropdownChevronPresenter();
+  create(sizing: DropdownSizing | null = null): DropdownChevronPresenter {
+    return createDefaultDropdownChevronPresenter(sizing);
   }
 }
 

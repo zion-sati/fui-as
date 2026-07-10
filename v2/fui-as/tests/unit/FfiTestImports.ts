@@ -34,6 +34,7 @@ export const CALL_SET_TEXT_OVERFLOW: i32 = 17;
 export const CALL_SET_TEXT_OVERFLOW_FADE: i32 = 89;
 export const CALL_CLEAR_MOMENTUM_SCROLL: i32 = 90;
 export const CALL_SET_SCROLL_CONTENT_SIZE: i32 = 91;
+export const CALL_SET_SMOOTH_SCROLLING: i32 = 119;
 export const CALL_REQUEST_SEMANTIC_ANNOUNCEMENT: i32 = 92;
 export const CALL_FILE_WORKER_PROCESS_START: i32 = 93;
 export const CALL_FILE_WORKER_PROCESS_CANCEL: i32 = 94;
@@ -56,6 +57,7 @@ export const CALL_SET_PORTAL: i32 = 26;
 export const CALL_SET_IS_SHARED_SIZE_SCOPE: i32 = 77;
 export const CALL_SET_FLEX_BASIS: i32 = 80;
 export const CALL_SET_INTERACTIVE: i32 = 28;
+export const CALL_SET_PRESERVE_SELECTION_ON_POINTER_DOWN: i32 = 118;
 export const CALL_SET_FOCUSABLE: i32 = 29;
 export const CALL_SET_BOX_STYLE: i32 = 30;
 export const CALL_SET_LAYER_EFFECT: i32 = 31;
@@ -102,6 +104,11 @@ export const CALL_REQUEST_FOCUS: i32 = 59;
 export const CALL_WORKER_START_STRING: i32 = 85;
 export const CALL_WORKER_CANCEL: i32 = 86;
 export const CALL_WORKER_YIELD: i32 = 87;
+export const CALL_PREPARE_NODE: i32 = 113;
+export const CALL_RENDER_NODE_TO_RGBA: i32 = 115;
+export const CALL_SELECT_WORD_AT: i32 = 116;
+export const CALL_BEGIN_SELECTION_ENDPOINT_DRAG: i32 = 117;
+export const CALL_SELECT_ALL_TEXT: i32 = 120;
 
 @external("fui_test", "reset_calls")
 declare function fui_test_reset_calls(): void;
@@ -178,11 +185,29 @@ declare function fui_test_set_node_bounds(handle: u64, x: f32, y: f32, width: f3
 @external("fui_test", "clear_node_bounds")
 declare function fui_test_clear_node_bounds(handle: u64): void;
 
+@external("fui_test", "set_text_range_rects")
+declare function fui_test_set_text_range_rects(handle: u64, ptr: usize, rectCount: u32): void;
+
+@external("fui_test", "clear_text_range_rects")
+declare function fui_test_clear_text_range_rects(handle: u64): void;
+
+@external("fui_test", "set_cross_selection_endpoint_rects")
+declare function fui_test_set_cross_selection_endpoint_rects(handle: u64, ptr: usize): void;
+
+@external("fui_test", "clear_cross_selection_endpoint_rects")
+declare function fui_test_clear_cross_selection_endpoint_rects(handle: u64): void;
+
 @external("fui_test", "last_worker_entry_length")
 declare function fui_test_last_worker_entry_length(): i32;
 
 @external("fui_test", "last_worker_entry_equals")
 declare function fui_test_last_worker_entry_equals(ptr: usize, len: u32): i32;
+
+@external("fui_test", "last_worker_path_length")
+declare function fui_test_last_worker_path_length(): i32;
+
+@external("fui_test", "last_worker_path_equals")
+declare function fui_test_last_worker_path_equals(ptr: usize, len: u32): i32;
 
 @external("fui_test", "last_worker_input_length")
 declare function fui_test_last_worker_input_length(): i32;
@@ -207,9 +232,6 @@ declare function fui_test_last_worker_failure_length(): i32;
 
 @external("fui_test", "last_worker_failure_equals")
 declare function fui_test_last_worker_failure_equals(ptr: usize, len: u32): i32;
-
-@external("fui_test", "set_worker_input")
-declare function fui_test_set_worker_input(ptr: usize, len: u32): void;
 
 @external("fui_test", "set_worker_cancelled")
 declare function fui_test_set_worker_cancelled(value: i32): void;
@@ -364,6 +386,22 @@ export function clearNodeBounds(handle: u64): void {
   fui_test_clear_node_bounds(handle);
 }
 
+export function setTextRangeRects(handle: u64, rectWords: StaticArray<f32>, rectCount: u32): void {
+  fui_test_set_text_range_rects(handle, changetype<usize>(rectWords), rectCount);
+}
+
+export function clearTextRangeRects(handle: u64): void {
+  fui_test_clear_text_range_rects(handle);
+}
+
+export function setCrossSelectionEndpointRects(handle: u64, rectWords: StaticArray<f32>): void {
+  fui_test_set_cross_selection_endpoint_rects(handle, changetype<usize>(rectWords));
+}
+
+export function clearCrossSelectionEndpointRects(handle: u64): void {
+  fui_test_clear_cross_selection_endpoint_rects(handle);
+}
+
 export function lastWorkerEntryLength(): i32 {
   return fui_test_last_worker_entry_length();
 }
@@ -371,6 +409,15 @@ export function lastWorkerEntryLength(): i32 {
 export function lastWorkerEntryEquals(value: string): bool {
   const bytes = Uint8Array.wrap(String.UTF8.encode(value, false));
   return fui_test_last_worker_entry_equals(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length) == 1;
+}
+
+export function lastWorkerPathLength(): i32 {
+  return fui_test_last_worker_path_length();
+}
+
+export function lastWorkerPathEquals(value: string): bool {
+  const bytes = Uint8Array.wrap(String.UTF8.encode(value, false));
+  return fui_test_last_worker_path_equals(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length) == 1;
 }
 
 export function lastWorkerInputLength(): i32 {
@@ -407,10 +454,6 @@ export function lastWorkerFailureLength(): i32 {
 export function lastWorkerFailureEquals(value: string): bool {
   const bytes = Uint8Array.wrap(String.UTF8.encode(value, false));
   return fui_test_last_worker_failure_equals(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length) == 1;
-}
-
-export function setWorkerInput(value: string): void {
-  fui_test_set_worker_input(changetype<usize>(value), <u32>value.length);
 }
 
 export function setWorkerCancelled(value: bool): void {

@@ -9,7 +9,6 @@ import {
 } from "../../../src/Fui";
 export * from "../../../src/FuiExports";
 
-const FONT_REGULAR: u32 = 1;
 const PANEL_TEXT: u32 = rgb(0xe2, 0xe8, 0xf0);
 const SPACING: f32 = 32.0;
 
@@ -18,11 +17,11 @@ class SmokeApp {
 
   constructor() {
     const left = new Text("left")
-      .font(FONT_REGULAR, 28.0)
+      .fontSize(28.0)
       .textColor(PANEL_TEXT) as Text;
 
     const right = new Text("right")
-      .font(FONT_REGULAR, 28.0)
+      .fontSize(28.0)
       .textColor(PANEL_TEXT) as Text;
 
     const blueBox = new FlexBox()

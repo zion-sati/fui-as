@@ -1,7 +1,7 @@
 import * as ui from "../bindings/ui";
 import { PopupPresenter } from "../controls/internal/PopupPresenter";
 import { FlexBox, Portal, TextCore } from "../nodes";
-import { BorderStyle, FlexDirection, HandleValue, Unit } from "./ffi";
+import { FlexDirection, HandleValue, Unit } from "./ffi";
 import { flushCommit } from "./FrameScheduler";
 import { keyboardFocusVisible } from "./FocusVisibility";
 import { cancelTimer, scheduleTimer } from "./Timers";
@@ -314,14 +314,14 @@ export class ToolTipManager {
     const panelBackground = toolTip.hasPanelColorOverride ? toolTip.panelBackgroundColor : theme.panelBackground;
     const textColor = toolTip.hasTextColorOverride ? toolTip.tooltipTextColor : theme.textColor;
     labelNode.text(toolTip.contentText)
-      .font(theme.fontId, theme.fontSize)
       .fontFamily(theme.fontFamily)
+      .fontSize(theme.fontSize)
       .textColor(textColor)
       .width(0.0, Unit.Auto)
       .height(0.0, Unit.Auto);
     panelNode.padding(theme.paddingLeft, theme.paddingTop, theme.paddingRight, theme.paddingBottom)
       .cornerRadius(theme.panelCornerRadius)
-      .border(1.0, theme.panelBorderColor, BorderStyle.Solid)
+      .border(1.0, theme.panelBorderColor)
       .dropShadow(theme.panelShadowColor, 0.0, theme.shadowOffsetY, theme.shadowBlur, theme.shadowSpread)
       .bgColor(panelBackground)
       .width(0.0, Unit.Auto)

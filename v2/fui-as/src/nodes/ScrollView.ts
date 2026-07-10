@@ -1,6 +1,6 @@
 import * as ui from "../bindings/ui";
 import { Animation, AnimationTiming, getAnimationManager } from "../core/Animation";
-import { Node } from "../core/Node";
+import { PointerClickEventArgs, PointerEventArgs, Node } from "../core/Node";
 import { throwNullArgument } from "../core/Errors";
 import { NodeTransitions } from "../core/Transitions";
 import {
@@ -75,6 +75,7 @@ export class ScrollView extends Node {
   private pendingProgrammaticOffsetX: f32 = 0.0;
   private pendingProgrammaticOffsetY: f32 = 0.0;
   private hasFriction: bool = false;
+  private smoothScrollingValue: bool = true;
   private _scrollState: ScrollState = new ScrollState();
   private persistScrollValue: bool = true;
   private persistedScrollRestorePending: bool = false;
@@ -97,7 +98,7 @@ export class ScrollView extends Node {
     super();
     // Make the viewport hit-testable so blank interior/padding starts resolve to this
     // scroll surface instead of only working over interactive descendants.
-    this.onPointerDown((_x: f32, _y: f32): void => {});
+    this.onPointerDown((_event: PointerEventArgs): void => {});
   }
 
   bindScrollState(state: ScrollState): this {
@@ -286,6 +287,15 @@ export class ScrollView extends Node {
     return this;
   }
 
+  smoothScrolling(flag: bool = true): this {
+    this.smoothScrollingValue = flag;
+    if (this.hasBuiltHandle()) {
+      ui.setSmoothScrolling(this.handle, flag);
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
   persistScroll(flag: bool = true): this {
     this.persistScrollValue = flag;
     if (!flag) {
@@ -357,17 +367,17 @@ export class ScrollView extends Node {
     this._applyAnimatedScrollOffset(x, y);
   }
 
-  onClick(cb: () => void): this {
-    super.onClick(cb);
+  onPointerClick(cb: (event: PointerClickEventArgs) => void): this {
+    super.onPointerClick(cb);
     return this;
   }
 
-  onPointerEnter(cb: () => void): this {
+  onPointerEnter(cb: (event: PointerEventArgs) => void): this {
     super.onPointerEnter(cb);
     return this;
   }
 
-  onPointerLeave(cb: () => void): this {
+  onPointerLeave(cb: (event: PointerEventArgs) => void): this {
     super.onPointerLeave(cb);
     return this;
   }
@@ -395,6 +405,7 @@ export class ScrollView extends Node {
     this.finishBuild();
     ui.setScrollEnabled(this.handle, this.enableScrollX, this.enableScrollY);
     ui.setShowScrollbars(this.handle, this.showScrollbarsValue);
+    ui.setSmoothScrolling(this.handle, this.smoothScrollingValue);
     if (this.hasFriction) {
       ui.setScrollFriction(this.handle, this.frictionValue);
     }

@@ -11,11 +11,19 @@ import {
   trackKeyboardScrollPointerUp,
   unregisterKeyboardScrollNode,
 } from "./KeyboardScrollTracker";
-import { DragDropEffects, DragSession, ExternalDropItemInfo, Node } from "./Node";
+import { DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS, DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE, DragDropEffects, DragSession, ExternalDropItemInfo, GestureEventArgs, GestureEventKind, GestureEventPhase, GestureIntent, LongPressEventArgs, Node, PointerEventArgs, PointerType, WheelDeltaMode, WheelEventArgs } from "./Node";
 import { DragDropManager } from "./DragDropManager";
 import { ExternalDragEventType, ExternalDropManager } from "./ExternalDropManager";
 import { isCoarsePointer } from "./Platform";
+import { ContextMenuManager } from "./ContextMenuManager";
+import { MobileTextSelectionToolbarManager } from "./MobileTextSelectionToolbarManager";
+import { SelectionHandleAdornerManager } from "./SelectionHandleAdornerManager";
 import { runScrollHooks } from "./ScrollHooks";
+import * as ui from "../bindings/ui";
+import { NavLink } from "../controls/NavLink";
+import { TextInputCore } from "../controls/internal/TextInputCore";
+import { Image } from "../nodes/Image";
+import { Svg } from "../nodes/Svg";
 
 export interface GlobalKeyHandler {
   handleGlobalKeyEvent(eventType: KeyEventType, key: string, modifiers: u32): bool;
@@ -68,26 +76,87 @@ export class EventRouter {
     this.applyCurrentCursor();
   }
 
-  static dispatchPointerEvent(handle: u64, eventType: PointerEventType, x: f32, y: f32, modifiers: u32 = 0): void {
+  static dispatchPointerEvent(
+    handle: u64,
+    eventType: PointerEventType,
+    x: f32,
+    y: f32,
+    modifiers: u32 = 0,
+    pointerId: i32 = -1,
+    pointerType: PointerType = PointerType.Unknown,
+    button: i32 = 0,
+    buttons: u32 = 0,
+    pressure: f32 = 0.0,
+    width: f32 = 0.0,
+    height: f32 = 0.0,
+    clickCount: i32 = 0,
+  ): bool {
     showKeyboardFocusForPointerEvent(eventType);
+    SelectionHandleAdornerManager.recordPointerEvent(eventType, pointerType);
     const pointedNode = this.resolveNode(handle);
+    if (
+      eventType == PointerEventType.Down &&
+      !this.preservesSelectionOnPointerDownForRouting(pointedNode) &&
+      MobileTextSelectionToolbarManager.dismissForOutsidePointerDown(x, y)
+    ) {
+      DragDropManager.handlePointerEvent(null, eventType, x, y, modifiers);
+      this.applyCurrentCursor();
+      return true;
+    }
     if (eventType == PointerEventType.Up) {
       trackKeyboardScrollPointerUp(pointedNode, x, y);
     }
-    if (eventType == PointerEventType.Move || eventType == PointerEventType.Up) {
+    if (eventType == PointerEventType.Move || eventType == PointerEventType.Up || eventType == PointerEventType.Cancel) {
       const capturedNode = this.resolveNode(this.capturedPointerHandle);
       if (capturedNode !== null) {
         const capturedHandle = this.capturedPointerHandle;
-        capturedNode._handlePointerEvent(eventType, x, y, modifiers);
+        const event = new PointerEventArgs(
+          eventType,
+          x,
+          y,
+          modifiers,
+          pointerId,
+          pointerType,
+          button,
+          buttons,
+          pressure,
+          width,
+          height,
+          clickCount,
+        );
+        Node._dispatchPointerEventWithArgs(capturedNode, event);
+        this.bubblePointerEvent(changetype<Node>(capturedNode).parentNode, event);
         DragDropManager.handlePointerEvent(pointedNode, eventType, x, y, modifiers);
-        if (eventType == PointerEventType.Up && this.capturedPointerHandle == capturedHandle) {
+        if ((eventType == PointerEventType.Up || eventType == PointerEventType.Cancel) && this.capturedPointerHandle == capturedHandle) {
           this.capturedPointerHandle = <u64>HandleValue.Invalid;
         }
         this.applyCurrentCursor();
-        return;
+        return event.handled;
       }
       if (this.capturedPointerHandle != <u64>HandleValue.Invalid) {
         this.capturedPointerHandle = <u64>HandleValue.Invalid;
+      }
+    }
+
+    if (eventType == PointerEventType.Move || eventType == PointerEventType.Up || eventType == PointerEventType.Cancel) {
+      const handleDragEvent = new PointerEventArgs(
+        eventType,
+        x,
+        y,
+        modifiers,
+        pointerId,
+        pointerType,
+        button,
+        buttons,
+        pressure,
+        width,
+        height,
+        clickCount,
+      );
+      if (SelectionHandleAdornerManager.routeActiveHandleDragEvent(handleDragEvent)) {
+        DragDropManager.handlePointerEvent(pointedNode, eventType, x, y, modifiers);
+        this.applyCurrentCursor();
+        return handleDragEvent.handled;
       }
     }
 
@@ -97,7 +166,7 @@ export class EventRouter {
       }
       DragDropManager.handlePointerEvent(null, eventType, x, y, modifiers);
       this.applyCurrentCursor();
-      return;
+      return false;
     }
 
     const node = pointedNode;
@@ -107,16 +176,220 @@ export class EventRouter {
       }
       DragDropManager.handlePointerEvent(null, eventType, x, y, modifiers);
       this.applyCurrentCursor();
-      return;
+      return false;
     }
     if (eventType == PointerEventType.Enter) {
       this.pushHover(changetype<Node>(node));
     } else if (eventType == PointerEventType.Leave) {
       this.popHover(changetype<Node>(node));
     }
-    node._handlePointerEvent(eventType, x, y, modifiers);
+    const event = new PointerEventArgs(
+      eventType,
+      x,
+      y,
+      modifiers,
+      pointerId,
+      pointerType,
+      button,
+      buttons,
+      pressure,
+      width,
+      height,
+      clickCount,
+    );
+    Node._dispatchPointerEventWithArgs(node, event);
+    this.bubblePointerEvent(changetype<Node>(node).parentNode, event);
     DragDropManager.handlePointerEvent(node, eventType, x, y, modifiers);
     this.applyCurrentCursor();
+    return event.handled;
+  }
+
+  private static bubblePointerEvent(parent: Node | null, event: PointerEventArgs): void {
+    let node = parent;
+    while (node !== null && !event.handled) {
+      const current = changetype<Node>(node);
+      current._handleBubbledPointerEvent(event);
+      node = current.parentNode;
+    }
+  }
+
+  static dispatchWheelEvent(
+    handle: u64,
+    x: f32,
+    y: f32,
+    deltaX: f32,
+    deltaY: f32,
+    deltaMode: WheelDeltaMode,
+    modifiers: u32,
+  ): bool {
+    let node = this.resolveNode(handle);
+    if (node === null) {
+      return false;
+    }
+    const event = new WheelEventArgs(x, y, deltaX, deltaY, deltaMode, modifiers);
+    while (node !== null) {
+      const current = changetype<Node>(node);
+      if (current.isEnabled && current.isVisible && current._handleWheelEvent(event)) {
+        return true;
+      }
+      node = current.parentNode;
+    }
+    return false;
+  }
+
+  static resolveGestureOwner(handle: u64): u64 {
+    let node = this.resolveNode(handle);
+    while (node !== null) {
+      const current = changetype<Node>(node);
+      if (current.isEnabled && current.isVisible && current.gestureIntentValueForRouting != GestureIntent.None) {
+        return current.builtHandle;
+      }
+      node = current.parentNode;
+    }
+    return <u64>HandleValue.Invalid;
+  }
+
+  static getGestureIntent(handle: u64): GestureIntent {
+    const node = this.resolveNode(handle);
+    return node === null ? GestureIntent.None : node.gestureIntentValueForRouting;
+  }
+
+  static resolveLongPressOwner(handle: u64): u64 {
+    let node = this.resolveNode(handle);
+    while (node !== null) {
+      const current = changetype<Node>(node);
+      if (current.isEnabled && current.isVisible && current.hasLongPressGestureForRouting) {
+        return current.builtHandle;
+      }
+      node = current.parentNode;
+    }
+    node = this.resolveNode(handle);
+    while (node !== null) {
+      const current = changetype<Node>(node);
+      if (
+        current.isEnabled &&
+        current.isVisible &&
+        (current instanceof NavLink || current instanceof Image || current instanceof Svg)
+      ) {
+        return current.builtHandle;
+      }
+      if (current.isEnabled && current.isVisible && this.hasImageContextMenuTargetDescendant(current)) {
+        return current.builtHandle;
+      }
+      if (current.isEnabled && current.isVisible && current instanceof TextInputCore) {
+        const editor = changetype<TextInputCore>(current).editorNode;
+        if (editor.isEnabled && editor.isVisible && (editor.isSelectableText || editor.isEditableText)) {
+          return editor.builtHandle;
+        }
+      }
+      if (current.isEnabled && current.isVisible && (current.isSelectableText || current.isEditableText)) {
+        return current.builtHandle;
+      }
+      node = current.parentNode;
+    }
+    return <u64>HandleValue.Invalid;
+  }
+
+  private static hasImageContextMenuTargetDescendant(node: Node): bool {
+    for (let index = 0; index < node.childCount; ++index) {
+      const child = node.getChildAt(index);
+      if (child === null) {
+        continue;
+      }
+      const childNode = changetype<Node>(child);
+      if (!childNode.isEnabled || !childNode.isVisible) {
+        continue;
+      }
+      if (childNode instanceof Image || childNode instanceof Svg) {
+        return true;
+      }
+      if (this.hasImageContextMenuTargetDescendant(childNode)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static getLongPressMinimumDurationMs(handle: u64): i32 {
+    const node = this.resolveNode(handle);
+    return node === null ? DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS : node.longPressMinimumDurationMsForRouting;
+  }
+
+  static getLongPressMovementTolerance(handle: u64): f32 {
+    const node = this.resolveNode(handle);
+    return node === null ? DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE : node.longPressMovementToleranceForRouting;
+  }
+
+  static dispatchLongPressEvent(
+    handle: u64,
+    x: f32,
+    y: f32,
+    pointerId: i32,
+    pointerType: PointerType,
+    modifiers: u32,
+    durationMs: i32,
+  ): bool {
+    const node = this.resolveNode(handle);
+    if (node === null) {
+      return false;
+    }
+    const event = new LongPressEventArgs(x, y, pointerId, pointerType, modifiers, durationMs);
+    Node._dispatchLongPressEventWithArgs(node, event);
+    this.bubbleLongPressEvent(changetype<Node>(node).parentNode, event);
+    if (
+      !event.handled &&
+      (pointerType == PointerType.Touch || pointerType == PointerType.Pen) &&
+      (node.isSelectableText || node.isEditableText)
+    ) {
+      MobileTextSelectionToolbarManager.setPendingCrossSelectionTextHandle(handle);
+      event.handled = ui.selectWordAt(handle, x, y);
+      if (!event.handled) {
+        MobileTextSelectionToolbarManager.setPendingCrossSelectionTextHandle(0);
+      }
+    }
+    if (!event.handled) {
+      event.handled = ContextMenuManager.showForLongPress(handle, x, y);
+    }
+    return event.handled;
+  }
+
+  private static bubbleLongPressEvent(parent: Node | null, event: LongPressEventArgs): void {
+    let node = parent;
+    while (node !== null && !event.handled) {
+      const current = changetype<Node>(node);
+      current._handleBubbledLongPressEvent(event);
+      node = current.parentNode;
+    }
+  }
+
+  static dispatchGestureEvent(
+    handle: u64,
+    phase: GestureEventPhase,
+    kind: GestureEventKind,
+    x: f32,
+    y: f32,
+    deltaX: f32,
+    deltaY: f32,
+    scale: f32,
+    pointerCount: i32,
+  ): bool {
+    const node = this.resolveNode(handle);
+    if (node === null) {
+      return false;
+    }
+    const event = new GestureEventArgs(phase, kind, x, y, deltaX, deltaY, scale, pointerCount);
+    Node._dispatchGestureEventWithArgs(node, event);
+    this.bubbleGestureEvent(changetype<Node>(node).parentNode, event);
+    return event.handled;
+  }
+
+  private static bubbleGestureEvent(parent: Node | null, event: GestureEventArgs): void {
+    let node = parent;
+    while (node !== null && !event.handled) {
+      const current = changetype<Node>(node);
+      current._handleBubbledGestureEvent(event);
+      node = current.parentNode;
+    }
   }
 
   static dispatchFocusChanged(handle: u64, focused: bool): void {
@@ -133,22 +406,29 @@ export class EventRouter {
   }
 
   static dispatchKeyEvent(handle: u64, eventType: KeyEventType, key: string, modifiers: u32): bool {
-    showKeyboardFocusForKeyEvent(eventType, key, modifiers);
     const node = this.resolveNode(handle);
     if (node === null) {
+      showKeyboardFocusForKeyEvent(eventType, key, modifiers);
       return false;
     }
-    return node._handleKeyEvent(eventType, key, modifiers);
+    const handled = node._handleKeyEvent(eventType, key, modifiers);
+    if (!handled || key != "Tab" || modifiers != 0) {
+      showKeyboardFocusForKeyEvent(eventType, key, modifiers);
+    }
+    return handled;
   }
 
   static dispatchGlobalKeyEvent(eventType: KeyEventType, key: string, modifiers: u32): bool {
-    showKeyboardFocusForKeyEvent(eventType, key, modifiers);
     for (let index = this.keyFilterHandlers.length - 1; index >= 0; --index) {
       const handler = unchecked(this.keyFilterHandlers[index]);
       if (handler.handleGlobalKeyEvent(eventType, key, modifiers)) {
+        if (key != "Tab" || modifiers != 0) {
+          showKeyboardFocusForKeyEvent(eventType, key, modifiers);
+        }
         return true;
       }
     }
+    showKeyboardFocusForKeyEvent(eventType, key, modifiers);
     return false;
   }
 
@@ -162,6 +442,8 @@ export class EventRouter {
     viewportHeight: f32,
   ): void {
     ToolTipManager.handleScroll();
+    SelectionHandleAdornerManager.refreshActiveGeometry();
+    MobileTextSelectionToolbarManager.refreshActiveGeometry(SelectionHandleAdornerManager.isVisible());
     runScrollHooks();
     const node = this.resolveNode(handle);
     if (node === null) {
@@ -189,16 +471,42 @@ export class EventRouter {
   static dispatchSelectionChanged(handle: u64, start: u32, end: u32): void {
     const node = this.resolveNode(handle);
     if (node === null) {
+      SelectionHandleAdornerManager.clear();
+      MobileTextSelectionToolbarManager.clear();
       return;
     }
+    let chromeHandle = handle;
+    let chromeNode = node;
+    if (node instanceof TextInputCore) {
+      const editor = changetype<TextInputCore>(node).editorNode;
+      chromeHandle = editor.builtHandle;
+      chromeNode = editor;
+    }
+    SelectionHandleAdornerManager.handleSelectionChanged(chromeHandle, start, end);
+    MobileTextSelectionToolbarManager.handleSelectionChanged(
+      chromeHandle,
+      changetype<Node>(chromeNode),
+      start,
+      end,
+      SelectionHandleAdornerManager.isVisible(),
+    );
     node._handleSelectionChanged(start, end);
   }
 
   static dispatchCrossSelectionChanged(handle: u64, text: string): void {
     const node = this.resolveNode(handle);
     if (node === null) {
+      SelectionHandleAdornerManager.clear();
+      MobileTextSelectionToolbarManager.clear();
       return;
     }
+    SelectionHandleAdornerManager.handleCrossSelectionChanged(handle, text);
+    MobileTextSelectionToolbarManager.handleCrossSelectionChanged(
+      handle,
+      changetype<Node>(node),
+      text,
+      SelectionHandleAdornerManager.isVisible(),
+    );
     node._handleCrossSelectionChanged(text);
   }
 
@@ -329,6 +637,18 @@ export class EventRouter {
       return null;
     }
     return this.nodes.get(index);
+  }
+
+  private static preservesSelectionOnPointerDownForRouting(node: Node | null): bool {
+    let current = node;
+    while (current !== null) {
+      const value = changetype<Node>(current);
+      if (value.preservesSelectionOnPointerDownForRouting) {
+        return true;
+      }
+      current = value.parentNode;
+    }
+    return false;
   }
 
   private static pushHover(node: Node): void {

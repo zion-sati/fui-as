@@ -4,8 +4,8 @@ export abstract class WorkerJob {
   private started: bool = false;
   private finished: bool = false;
 
-  static resume<T extends WorkerJob>(job: T): T | null {
-    job.ensureStarted();
+  static resume<T extends WorkerJob>(job: T, input: string = ""): T | null {
+    job.ensureStarted(input);
     if (job.finished) {
       return null;
     }
@@ -13,13 +13,9 @@ export abstract class WorkerJob {
     return job.finished ? null : job;
   }
 
-  protected onStart(): void {}
+  protected onStart(input: string): void {}
 
   abstract run(): void;
-
-  protected receiveMessage(): string {
-    return Worker.receiveMessage();
-  }
 
   protected reportProgress(progress: string): void {
     if (this.finished) {
@@ -55,11 +51,11 @@ export abstract class WorkerJob {
     return Worker.yield(delayMs);
   }
 
-  private ensureStarted(): void {
+  private ensureStarted(input: string): void {
     if (this.started) {
       return;
     }
     this.started = true;
-    this.onStart();
+    this.onStart(input);
   }
 }

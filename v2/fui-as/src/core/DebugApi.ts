@@ -1,12 +1,27 @@
 import {
   __fui_on_focus_changed,
   __fui_on_key_event,
-  __fui_on_pointer_event,
+  __fui_on_pointer_event_with_metadata,
   __fui_on_scroll,
 } from "./event_exports";
+import { PointerType } from "./Node";
 
 export function __fui_debug_pointer_event(eventType: u32, handle: u64, x: f32, y: f32, modifiers: u32 = 0): void {
-  __fui_on_pointer_event(eventType, handle, x, y, modifiers);
+  __fui_on_pointer_event_with_metadata(
+    eventType,
+    handle,
+    x,
+    y,
+    modifiers,
+    -1,
+    <u32>PointerType.Mouse,
+    0,
+    0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+  );
 }
 
 export function __fui_debug_focus_changed(handle: u64, focused: bool): void {

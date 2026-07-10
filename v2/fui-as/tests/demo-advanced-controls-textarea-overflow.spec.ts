@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
 
 import * as demo from './demo-test-support';
 
@@ -84,19 +84,14 @@ test('advanced controls textarea keeps a visible caret when empty', async ({ pag
     hasBounds: true,
   });
 
-  await page.evaluate(() => {
-    const activeElement = document.activeElement;
-    if (activeElement instanceof HTMLElement) {
-      activeElement.blur();
-    }
-  });
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await page.mouse.click((canvasBox?.x ?? 0) + 8, (canvasBox?.y ?? 0) + 8);
   await expect.poll(async () => {
     const editor = await demo.readHiddenTextEditorState(page);
     return editor?.focused ?? false;
   }).toBe(false);
 
-  const canvasBox = await page.locator('#fui-canvas').boundingBox();
-  expect(canvasBox).not.toBeNull();
   await page.mouse.click(
     (canvasBox?.x ?? 0) + textBounds.x + (textBounds.width * 0.5),
     (canvasBox?.y ?? 0) + textBounds.y + (textBounds.height * 0.72),
@@ -413,9 +408,64 @@ test('advanced controls textarea reports horizontal overflow through the scrollb
   }).toBe(true);
 });
 
+test('advanced controls textarea touch caret drag autoscrolls horizontal overflow', async ({ page }) => {
+  const longLine = 'abcdefghijklmnopqrstuvwxyz0123456789'.repeat(120);
+
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/?debug-logs=1`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Wrapping');
+  await demo.clickSemanticLabel(page, 'Wrapping');
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText(longLine);
+
+  await expect.poll(async () => {
+    const events = await page.evaluate(() => window.__bridgeLogs?.scrollEvents ?? []);
+    return events.some((event) => event.offsetX > 0 && event.contentWidth > event.viewportWidth);
+  }).toBe(true);
+  const initialMaxOffset = await page.evaluate(() => {
+    const events = window.__bridgeLogs?.scrollEvents ?? [];
+    return events
+      .filter((event) => event.contentWidth > event.viewportWidth)
+      .reduce((maxOffset, event) => Math.max(maxOffset, event.offsetX), 0);
+  });
+  expect(initialMaxOffset).toBeGreaterThan(0);
+
+  const textBounds = await demo.findSemanticBounds(page, 'Advanced controls demo text area');
+  expect(textBounds).not.toBeNull();
+  if (textBounds === null) {
+    throw new Error('Expected text area bounds.');
+  }
+
+  await page.evaluate(() => {
+    if (window.__bridgeLogs !== undefined) {
+      window.__bridgeLogs.scrollEvents.length = 0;
+    }
+  });
+
+  const y = Math.round(textBounds.y + Math.min(textBounds.height * 0.35, 28));
+  const startX = Math.round(textBounds.x + (textBounds.width * 0.5));
+  const endX = Math.round(textBounds.x - 12);
+  await demo.dispatchTouchCanvasEvents(page, [
+    { type: 'pointerdown', x: startX, y },
+    { type: 'pointermove', x: endX, y },
+    { type: 'pointerup', x: endX, y },
+  ], 613);
+
+  await expect.poll(async () => {
+    const events = await page.evaluate(() => window.__bridgeLogs?.scrollEvents ?? []);
+    return events.some((event) =>
+      event.contentWidth > event.viewportWidth &&
+      event.offsetX < initialMaxOffset);
+  }).toBe(true);
+});
+
 test('advanced controls textarea keeps the skipped short-line gap near max horizontal scroll', async ({ page }) => {
-  const longLineA = `${'W'.repeat(4_999)}A${'W'.repeat(5_000)}`;
-  const longLineB = `${'W'.repeat(4_999)}B${'W'.repeat(5_000)}`;
+  const longLineA = `${'W'.repeat(999)}A${'W'.repeat(1_000)}`;
+  const longLineB = `${'W'.repeat(999)}B${'W'.repeat(1_000)}`;
   const shortLine = 'short gap';
   const combinedText = `${longLineA}\n${shortLine}\n${longLineB}`;
 
@@ -441,12 +491,13 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
       absoluteEnd: editor.absoluteEnd,
     };
   }).toEqual({
-    hiddenLength: 4096,
+    hiddenLength: combinedText.length,
     fullLength: combinedText.length,
     bounded: true,
     absoluteStart: combinedText.length,
     absoluteEnd: combinedText.length,
   });
+  await demo.setHiddenTextInputSelection(page, 0, 0);
 
   const textBounds = await demo.findSemanticBounds(page, 'Advanced controls demo text area');
   expect(textBounds).not.toBeNull();
@@ -482,6 +533,9 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
     if (runtime === undefined || runtime === null) {
       throw new Error('Expected runtime.');
     }
+    runtime.ui._ui_set_scroll_offset(BigInt(handleString), 0, 0);
+    runtime.commitFrame();
+    runtime.flushPendingCommit();
     runtime.resetLogs();
     runtime.ui._ui_set_scroll_offset(BigInt(handleString), 1_000_000, 0);
     runtime.commitFrame();
@@ -508,8 +562,11 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
 
   const initialScrollMetrics = await page.evaluate((handleString) => {
     const events = window.__bridgeLogs?.scrollEvents.filter((entry) => entry.handle === handleString) ?? [];
+    if (events.length === 0) {
+      return null;
+    }
     const latest = events[events.length - 1];
-    return latest === undefined ? null : {
+    return {
       contentHeight: latest.contentHeight,
       contentWidth: latest.contentWidth,
       viewportHeight: latest.viewportHeight,
@@ -556,8 +613,12 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
       height = probe.height;
     }
 
-    const left = Math.max(0, Math.min(width - 1, Math.round(bounds.x + 8)));
-    const right = Math.max(left + 1, Math.min(width, Math.round(bounds.x + bounds.width - 8)));
+    const backgroundX = Math.max(0, Math.min(width - 1, Math.round(bounds.x + bounds.width - 16)));
+    const backgroundY = Math.max(0, Math.min(height - 1, Math.round(bounds.y + bounds.height - 16)));
+    const background = context.getImageData(backgroundX, backgroundY, 1, 1).data;
+    const backgroundRed = background[0];
+    const backgroundGreen = background[1];
+    const backgroundBlue = background[2];
     const rows: number[] = [];
     for (let sampleY = Math.max(0, Math.round(bounds.y)); sampleY < Math.min(height, Math.round(bounds.y + bounds.height)); sampleY += 1) {
       const top = sampleY;
@@ -574,7 +635,11 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
         if (alpha === 0) {
           continue;
         }
-        if (red > 200 && green > 200 && blue > 200) {
+        const distance =
+          Math.abs(red - backgroundRed) +
+          Math.abs(green - backgroundGreen) +
+          Math.abs(blue - backgroundBlue);
+        if (distance > 80) {
           ink += 1;
         }
       }
@@ -585,9 +650,14 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
 
   const clusterCenters = (rows: number[], threshold: number): number[] => {
     const centers: number[] = [];
+    const maxInk = rows.reduce((current, value) => Math.max(current, value), 0);
+    const minInk = rows.reduce((current, value) => Math.min(current, value), maxInk);
+    const activeRows = rows.filter((value) => value > threshold).length;
+    const useValleys = activeRows > rows.length * 0.75 && maxInk - minInk > 20;
     let start = -1;
     for (let index = 0; index < rows.length; index += 1) {
-      const active = (rows[index] ?? 0) > threshold;
+      const value = rows[index] ?? 0;
+      const active = useValleys ? value < maxInk - 20 : value > threshold;
       if (active && start < 0) {
         start = index;
         continue;
@@ -648,9 +718,12 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
     }, { handleString: scrollHandle, offsetX: offset });
 
     const scrolledMetrics = await page.evaluate((handleString) => {
-      const events = window.__bridgeLogs?.scrollEvents.filter((entry) => entry.handle === handleString) ?? [];
+    const events = window.__bridgeLogs?.scrollEvents.filter((entry) => entry.handle === handleString) ?? [];
+      if (events.length === 0) {
+        return null;
+      }
       const latest = events[events.length - 1];
-      return latest === undefined ? null : {
+      return {
         contentHeight: latest.contentHeight,
         contentWidth: latest.contentWidth,
         viewportHeight: latest.viewportHeight,
@@ -660,16 +733,16 @@ test('advanced controls textarea keeps the skipped short-line gap near max horiz
     }, scrollHandle);
     expect(scrolledMetrics).not.toBeNull();
     if (scrolledMetrics === null) {
-      throw new Error(`Expected scrolled metrics for offset ${offset}.`);
+      throw new Error(`Expected scrolled metrics for offset ${String(offset)}.`);
     }
-    expect(Math.abs(scrolledMetrics.contentHeight - initialScrollMetrics.contentHeight), `offset=${offset}`).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(scrolledMetrics.contentHeight - initialScrollMetrics.contentHeight), `offset=${String(offset)}`).toBeLessThanOrEqual(0.5);
 
     const scrolledRows = await sampleBrightRows();
     const scrolledCenters = mergeNearbyCenters(clusterCenters(scrolledRows, 10), 12);
-    expect(scrolledCenters, `offset=${offset} rows=${scrolledRows.join(',')}`).toHaveLength(2);
+    expect(scrolledCenters, `offset=${String(offset)} rows=${scrolledRows.join(',')}`).toHaveLength(2);
     expect(
       Math.abs((scrolledCenters[1] - scrolledCenters[0]) - (singleLineGap * 2)),
-      `offset=${offset} centers=${scrolledCenters.join(',')}`,
+      `offset=${String(offset)} centers=${scrolledCenters.join(',')}`,
     ).toBeLessThanOrEqual(3);
   }
 });

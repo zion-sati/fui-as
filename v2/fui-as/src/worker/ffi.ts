@@ -1,9 +1,3 @@
-@external("fui_worker_host", "fui_worker_input_length")
-export declare function fui_worker_input_length(): u32;
-
-@external("fui_worker_host", "fui_worker_copy_input")
-export declare function fui_worker_copy_input(ptr: usize, capacity: u32): u32;
-
 @external("fui_worker_host", "fui_worker_report_progress")
 export declare function fui_worker_report_progress(ptr: usize, len: u32): void;
 

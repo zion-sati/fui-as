@@ -17,16 +17,15 @@ describe("ContextMenuStyling", () => {
     EventRouter.reset();
     resetCalls();
 
-    const menu = new ContextMenu()
+    const items = new Array<MenuItem>();
+    items.push(new MenuItem("Reload Page", ContextMenuAction.ReloadPage));
+    const menu = new ContextMenu(items)
       .menuWidth(260.0)
       .itemHeight(40.0);
     menu.build();
 
-    const items = new Array<MenuItem>();
-    items.push(new MenuItem("Reload Page", ContextMenuAction.ReloadPage));
-
     resetCalls();
-    menu.show(items, 24.0, 36.0);
+    menu.show(null, 24.0, 36.0);
 
     expect<i32>(findCallWithArg(CALL_SET_WIDTH, 1, 260.0)).toBeGreaterThan(-1);
     expect<i32>(findCallWithArg(CALL_SET_HEIGHT, 1, 40.0)).toBeGreaterThan(-1);

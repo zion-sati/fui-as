@@ -20,9 +20,12 @@
   },
   "include": [
     "browser/**/*.ts",
+    "browser.ts",
+    "../abi/**/*.ts",
     "playwright.config.ts",
     "scripts/**/*.ts",
     "tests/*.spec.ts",
+    "tests/command-buffer.ts",
     "tests/static_server.ts",
     "tests/fixtures/smoke/harness.ts"
   ]

@@ -1,7 +1,7 @@
-import { BorderStyle, FlexDirection, Unit } from "../core/ffi";
+import { FlexDirection, Unit } from "../core/ffi";
 import { Node } from "../core/Node";
 import { throwNullArgument } from "../core/Errors";
-import { FlexBox, Portal } from "../nodes";
+import { Border, FlexBox, Portal } from "../nodes";
 import { PopupPlacement, PopupPresenter } from "./internal/PopupPresenter";
 
 export { PopupPlacement } from "./internal/PopupPresenter";
@@ -21,7 +21,7 @@ export class Popup extends Portal {
       .position(0.0, 0.0)
       .width(100.0, Unit.Percent)
       .height(100.0, Unit.Percent);
-    this.presenter.overlayNode.onClickWith(this, (popup) => popup.handleBackdropClick());
+    this.presenter.overlayNode.onPointerClickWith(this, (popup, _event) => popup.handleBackdropClick());
   }
 
   get isOpen(): bool {
@@ -90,8 +90,13 @@ export class Popup extends Portal {
     return this;
   }
 
-  panelBorder(width: f32, color: u32, style: BorderStyle = BorderStyle.Solid): this {
-    this.surfaceNode.border(width, color, style);
+  panelBorder(width: f32, color: u32): this {
+    this.surfaceNode.border(width, color);
+    return this;
+  }
+
+  panelBorderConfig(border: Border): this {
+    this.surfaceNode.borderConfig(border);
     return this;
   }
 

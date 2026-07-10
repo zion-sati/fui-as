@@ -49,6 +49,22 @@ export function __focusDemoFoundationsScopedAction(): void {
   dashboard.focusFoundationsScopedAction();
 }
 
+export function __openDemoDialog(): void {
+  const dashboard = demoHarness.getActivePage();
+  if (dashboard === null) {
+    return;
+  }
+  dashboard.openDialogDemo();
+}
+
+export function __closeDemoDialog(): void {
+  const dashboard = demoHarness.getActivePage();
+  if (dashboard === null) {
+    return;
+  }
+  dashboard.closeDialogDemo();
+}
+
 export function __getDemoSelectionDebugText(): string {
   const dashboard = demoHarness.getActivePage();
   return dashboard === null ? "" : dashboard.getSelectionDebugText();

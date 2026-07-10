@@ -1,6 +1,6 @@
 export { Column, Row, pct, px } from "./helpers";
 export { CustomDrawable } from "./CustomDrawable";
-export { FlexBox, FlexBoxProps } from "./FlexBox";
+export { Border, FlexBox, FlexBoxProps } from "./FlexBox";
 export { GradientStop } from "./GradientStop";
 export { Grid } from "./Grid";
 export { Image } from "./Image";

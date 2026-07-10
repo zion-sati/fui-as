@@ -16,16 +16,21 @@ import {
 import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { navigateTo } from "../core/Navigation";
+import { Node, PointerEventArgs, VisibilityChangedEventArgs } from "../core/Node";
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
 import { FontFamily, FontStyle, FontWeight } from "../core/Typography";
-import { FlexBox, Grid, Portal, TextCore } from "../nodes";
+import { Border, FlexBox, Grid, Portal, TextCore } from "../nodes";
 import { PopupPresenter } from "./internal/PopupPresenter";
 
 const MENU_WIDTH: f32 = 220.0;
 const MENU_SEPARATOR_HEIGHT: f32 = 9.0;
 const MENU_EDGE_PADDING: f32 = 8.0;
 const DEFAULT_PANEL_BACKGROUND_BLUR_SIGMA: f32 = 10.0;
+
+function isPrimaryActivationPointer(event: PointerEventArgs): bool {
+  return event.button == 0 || event.pointerType == 2 || event.pointerType == 3;
+}
 
 enum MenuItemKind {
   Action = 0,
@@ -34,17 +39,20 @@ enum MenuItemKind {
 
 class ContextMenuEntry extends Grid {
   private readonly labelNode: TextCore = new TextCore("")
-    .font(activeTheme.value.contextMenu.item.fontId, activeTheme.value.contextMenu.item.fontSize)
+    .fontFamily(activeTheme.value.contextMenu.item.fontFamily)
+    .fontSize(activeTheme.value.contextMenu.item.fontSize)
     .textColor(activeTheme.value.contextMenu.item.textColor)
     .overflow(TextOverflow.Ellipsis)
     .selectable(false) as TextCore;
   private readonly shortcutNode: TextCore = new TextCore("")
-    .font(activeTheme.value.contextMenu.item.fontId, activeTheme.value.contextMenu.item.fontSize)
+    .fontFamily(activeTheme.value.contextMenu.item.fontFamily)
+    .fontSize(activeTheme.value.contextMenu.item.fontSize)
     .textColor(activeTheme.value.colors.textMuted)
     .textAlign(TextAlign.Left)
     .selectable(false) as TextCore;
   private readonly slot: i32;
   private hovered: bool = false;
+  private pressed: bool = false;
   private disabled: bool = false;
   private itemHeightValue: f32 = activeTheme.value.contextMenu.item.height;
   private paddingLeftValue: f32 = activeTheme.value.contextMenu.item.paddingLeft;
@@ -56,12 +64,10 @@ class ContextMenuEntry extends Grid {
   private shortcutTextColorValue: u32 = activeTheme.value.colors.textMuted;
   private backgroundColorValue: u32 = activeTheme.value.contextMenu.item.background;
   private hoverBackgroundColorValue: u32 = activeTheme.value.contextMenu.item.hoverBackground;
-  private fontIdValue: u32 = activeTheme.value.contextMenu.item.fontId;
   private fontFamilyValue: FontFamily = activeTheme.value.contextMenu.item.fontFamily;
   private fontSizeValue: f32 = activeTheme.value.contextMenu.item.fontSize;
   private fontWeightValue: FontWeight = FontWeight.Regular;
   private fontStyleValue: FontStyle = FontStyle.Normal;
-  private usesDirectFontId: bool = false;
 
   constructor(slot: i32) {
     super();
@@ -94,6 +100,8 @@ class ContextMenuEntry extends Grid {
   }
 
   item(item: MenuItem): this {
+    this.hovered = false;
+    this.pressed = false;
     this.disabled = item.disabled;
     this.semanticLabel(item.label);
     this.semanticDisabled(this.disabled);
@@ -113,12 +121,10 @@ class ContextMenuEntry extends Grid {
     textColor: u32,
     backgroundColor: u32,
     hoverBackgroundColor: u32,
-    fontId: u32,
     fontFamily: FontFamily,
     fontSize: f32,
     fontWeight: FontWeight,
     fontStyle: FontStyle,
-    usesDirectFontId: bool,
   ): void {
     this.itemHeightValue = itemHeight;
     this.paddingLeftValue = paddingLeft;
@@ -129,12 +135,10 @@ class ContextMenuEntry extends Grid {
     this.textColorValue = textColor;
     this.backgroundColorValue = backgroundColor;
     this.hoverBackgroundColorValue = hoverBackgroundColor;
-    this.fontIdValue = fontId;
     this.fontFamilyValue = fontFamily;
     this.fontSizeValue = fontSize;
     this.fontWeightValue = fontWeight;
     this.fontStyleValue = fontStyle;
-    this.usesDirectFontId = usesDirectFontId;
     this.applyTheme();
   }
 
@@ -143,21 +147,16 @@ class ContextMenuEntry extends Grid {
     this.padding(this.paddingLeftValue, this.paddingTopValue, this.paddingRightValue, this.paddingBottomValue);
     this.corners(this.cornerRadiusValue, this.cornerRadiusValue, this.cornerRadiusValue, this.cornerRadiusValue);
     this.bgColor(this.hovered && !this.disabled ? this.hoverBackgroundColorValue : this.backgroundColorValue);
-    if (this.usesDirectFontId) {
-      this.labelNode.font(this.fontIdValue, this.fontSizeValue);
-      this.shortcutNode.font(this.fontIdValue, this.fontSizeValue);
-    } else {
-      this.labelNode
-        .fontFamily(this.fontFamilyValue)
-        .fontWeight(this.fontWeightValue)
-        .fontStyle(this.fontStyleValue)
-        .fontSize(this.fontSizeValue);
-      this.shortcutNode
-        .fontFamily(this.fontFamilyValue)
-        .fontWeight(this.fontWeightValue)
-        .fontStyle(this.fontStyleValue)
-        .fontSize(this.fontSizeValue);
-    }
+    this.labelNode
+      .fontFamily(this.fontFamilyValue)
+      .fontWeight(this.fontWeightValue)
+      .fontStyle(this.fontStyleValue)
+      .fontSize(this.fontSizeValue);
+    this.shortcutNode
+      .fontFamily(this.fontFamilyValue)
+      .fontWeight(this.fontWeightValue)
+      .fontStyle(this.fontStyleValue)
+      .fontSize(this.fontSizeValue);
     this.shortcutTextColorValue = activeTheme.value.colors.textMuted;
     this.labelNode.textColor(this.disabled ? this.shortcutTextColorValue : this.textColorValue);
     this.shortcutNode.textColor(this.shortcutTextColorValue);
@@ -171,14 +170,26 @@ class ContextMenuEntry extends Grid {
     }
     if (eventType == PointerEventType.Leave) {
       this.hovered = false;
+      this.pressed = false;
       this.applyTheme();
       return;
     }
     if (eventType == PointerEventType.Down) {
-      if (this.disabled) {
-        return;
+      this.pressed = !this.disabled;
+      return;
+    }
+    if (eventType == PointerEventType.Up) {
+      const shouldInvoke = this.pressed &&
+        this.hovered &&
+        !this.disabled;
+      this.pressed = false;
+      if (shouldInvoke) {
+        ContextMenu.invokeActiveSlot(this.slot);
       }
-      ContextMenu.invokeActiveSlot(this.slot);
+      return;
+    }
+    if (eventType == PointerEventType.Cancel) {
+      this.pressed = false;
       return;
     }
     super._handlePointerEvent(eventType, x, y, modifiers);
@@ -233,6 +244,7 @@ export class MenuItem {
   readonly shortcutLabel: string | null;
   readonly disabled: bool;
   readonly targetHandle: u64;
+  readonly focusTargetAfterAction: bool;
   selectionStart: u32;
   selectionEnd: u32;
   private readonly kindValue: MenuItemKind;
@@ -247,6 +259,7 @@ export class MenuItem {
     targetHandle: u64 = <u64>HandleValue.Invalid,
     selectionStart: u32 = 0,
     selectionEnd: u32 = 0,
+    focusTargetAfterAction: bool = false,
   ) {
     this.label = label;
     this.action = action;
@@ -255,6 +268,7 @@ export class MenuItem {
     this.shortcutLabel = shortcutLabel;
     this.disabled = disabled;
     this.targetHandle = targetHandle;
+    this.focusTargetAfterAction = focusTargetAfterAction;
     this.selectionStart = selectionStart;
     this.selectionEnd = selectionEnd;
   }
@@ -274,6 +288,128 @@ export class MenuItem {
   }
 }
 
+function writePayloadToClipboard(text: string): void {
+  const bytes = Uint8Array.wrap(String.UTF8.encode(text, false));
+  ffi.fui_copy_text(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length);
+}
+
+function commitFocusedTextAction(handle: u64): void {
+  ffi.fui_commit_text_action_focus(handle);
+}
+
+function commitFocusedTextActionIfNeeded(item: MenuItem): void {
+  if (item.focusTargetAfterAction && item.targetHandle != <u64>HandleValue.Invalid) {
+    commitFocusedTextAction(item.targetHandle);
+  }
+}
+
+export function runContextMenuAction(item: MenuItem): void {
+  if (item.disabled) {
+    const actionNeedsLiveSelection =
+      item.targetHandle != <u64>HandleValue.Invalid &&
+      (item.action == ContextMenuAction.CopyCurrentSelection || item.action == ContextMenuAction.CutTextSelection) &&
+      (ffi.fui_has_text_selection_snapshot(item.targetHandle) || ui.hasTextSelection(item.targetHandle));
+    if (!actionNeedsLiveSelection) {
+      return;
+    }
+  }
+  if (item.action == ContextMenuAction.CopyCurrentSelection) {
+    if (item.payload !== null) {
+      writePayloadToClipboard(changetype<string>(item.payload));
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    if (item.targetHandle != <u64>HandleValue.Invalid && ffi.fui_copy_text_selection_snapshot(item.targetHandle)) {
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    if (item.targetHandle != <u64>HandleValue.Invalid) {
+      ui.copyTextSelection(item.targetHandle);
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    ui.copyCurrentSelection();
+    return;
+  }
+  if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.UndoTextEdit) {
+    ui.undoTextEdit(item.targetHandle);
+    commitFocusedTextActionIfNeeded(item);
+    return;
+  }
+  if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.RedoTextEdit) {
+    ui.redoTextEdit(item.targetHandle);
+    commitFocusedTextActionIfNeeded(item);
+    return;
+  }
+  if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.CutTextSelection) {
+    if (item.payload !== null) {
+      writePayloadToClipboard(changetype<string>(item.payload));
+    }
+    if (item.selectionStart != item.selectionEnd && ffi.fui_cut_text_selection_snapshot(item.targetHandle)) {
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    if (ffi.fui_cut_text_selection_snapshot(item.targetHandle)) {
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    if (
+      item.selectionStart != item.selectionEnd &&
+      ffi.fui_delete_focused_text_range(item.selectionStart, item.selectionEnd)
+    ) {
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    if (ffi.fui_cut_focused_text_selection()) {
+      commitFocusedTextActionIfNeeded(item);
+      return;
+    }
+    if (item.payload === null) {
+      ffi.fui_copy_text_selection_snapshot(item.targetHandle);
+    }
+    ui.cutTextSelection(item.targetHandle);
+    commitFocusedTextActionIfNeeded(item);
+    return;
+  }
+  if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.PasteText) {
+    ui.pasteText(item.targetHandle);
+    commitFocusedTextActionIfNeeded(item);
+    return;
+  }
+  if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.SelectAllText) {
+    ui.selectAllText(item.targetHandle);
+    commitFocusedTextActionIfNeeded(item);
+    return;
+  }
+  if (item.action == ContextMenuAction.ReloadPage) {
+    ffi.fui_reload_page();
+    return;
+  }
+  if (item.action == ContextMenuAction.NavigateBack) {
+    ffi.fui_navigate_back();
+    return;
+  }
+  if (item.action == ContextMenuAction.NavigateForward) {
+    ffi.fui_navigate_forward();
+    return;
+  }
+  if (item.payload !== null && item.action == ContextMenuAction.OpenLink) {
+    navigateTo(changetype<string>(item.payload), false);
+    return;
+  }
+  if (item.payload !== null && item.action == ContextMenuAction.OpenLinkInNewTab) {
+    navigateTo(changetype<string>(item.payload), true);
+    return;
+  }
+  if (item.payload !== null && item.action == ContextMenuAction.OpenImage) {
+    navigateTo(changetype<string>(item.payload), false);
+    return;
+  }
+  if (item.payload !== null && item.action == ContextMenuAction.OpenImageInNewTab) {
+    navigateTo(changetype<string>(item.payload), true);
+  }
+}
+
 export class ContextMenu extends Portal implements GlobalKeyHandler {
   static readonly MAX_ITEMS: i32 = 25;
   private static activeInstance: ContextMenu | null = null;
@@ -282,13 +418,17 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     .positionAbsolute()
     .width(MENU_WIDTH, Unit.Pixel)
     .padding(4.0, 4.0, 4.0, 4.0)
-    .border(1.0, activeTheme.value.contextMenu.panelBorderColor, BorderStyle.Solid) as FlexBox;
+    .border(1.0, activeTheme.value.contextMenu.panelBorderColor) as FlexBox;
   private readonly popupPresenter!: PopupPresenter;
   private readonly entries: Array<ContextMenuEntry> = new Array<ContextMenuEntry>();
   private readonly separators: Array<ContextMenuSeparator> = new Array<ContextMenuSeparator>();
+  private readonly itemsValue: Array<MenuItem> = new Array<MenuItem>();
   private readonly currentItems: Array<MenuItem> = new Array<MenuItem>();
+  private readonly currentItemTops: Array<f32> = new Array<f32>();
+  private readonly currentItemHeights: Array<f32> = new Array<f32>();
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private isMenuVisible: bool = false;
+  private suppressNextPointerUpActivation: bool = false;
   private keyFilterToken: u32 = 0;
   private menuWidthValue: f32 = MENU_WIDTH;
   private itemHeightValue: f32 = activeTheme.value.contextMenu.item.height;
@@ -300,12 +440,10 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
   private itemTextColorValue: u32 = activeTheme.value.contextMenu.item.textColor;
   private itemBackgroundColorValue: u32 = activeTheme.value.contextMenu.item.background;
   private itemHoverColorValue: u32 = activeTheme.value.contextMenu.item.hoverBackground;
-  private itemFontIdValue: u32 = activeTheme.value.contextMenu.item.fontId;
   private itemFontFamilyValue: FontFamily = activeTheme.value.contextMenu.item.fontFamily;
   private itemFontSizeValue: f32 = activeTheme.value.contextMenu.item.fontSize;
   private itemFontWeightValue: FontWeight = FontWeight.Regular;
   private itemFontStyleValue: FontStyle = FontStyle.Normal;
-  private itemUsesDirectFontIdValue: bool = false;
   private panelBackgroundColorValue: u32 = activeTheme.value.contextMenu.panelBackground;
   private panelBorderWidthValue: f32 = 1.0;
   private panelBorderColorValue: u32 = activeTheme.value.contextMenu.panelBorderColor;
@@ -329,9 +467,9 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
   private panelShadowOverridden: bool = false;
   private panelBackgroundBlurOverridden: bool = false;
   private itemMetricsOverridden: bool = false;
-  private visibilityChangedCallback: ((visible: bool) => void) | null = null;
+  private visibilityChangedCallback: ((event: VisibilityChangedEventArgs) => void) | null = null;
 
-  constructor() {
+  constructor(items: Array<MenuItem> | null = null) {
     super();
     this.popupPresenter = new PopupPresenter(this, this.panel);
 
@@ -340,12 +478,17 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     this.width(100.0, Unit.Percent);
     this.height(100.0, Unit.Percent);
 
-    this.popupPresenter.overlayNode.onClickWith(this, (menu) => menu.hide());
+    this.popupPresenter.overlayNode.onPointerUpWith(this, (menu, event: PointerEventArgs): void => {
+      menu.handleOverlayPointerUp(event);
+    });
     Grid.sharedSizeScope(this.panel, true);
 
     for (let index = 0; index < ContextMenu.MAX_ITEMS; ++index) {
       this.entries.push(new ContextMenuEntry(index));
       this.separators.push(new ContextMenuSeparator());
+    }
+    if (items !== null) {
+      this.items(changetype<Array<MenuItem>>(items));
     }
     this.applyTheme();
     this.track(activeTheme.addAction(new HandlerAction<ContextMenu, Theme>(this, (menu: ContextMenu, _theme: Theme): void => {
@@ -374,6 +517,15 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     if (menu !== null) {
       menu.invokeSlot(slot);
     }
+  }
+
+  static consumeOpeningPointerUpSuppression(): bool {
+    const menu = ContextMenu.activeInstance;
+    if (menu === null || !menu.suppressNextPointerUpActivation) {
+      return false;
+    }
+    menu.suppressNextPointerUpActivation = false;
+    return true;
   }
 
   menuWidth(value: f32): this {
@@ -405,7 +557,7 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     return this;
   }
 
-  onVisibilityChanged(callback: ((visible: bool) => void) | null): this {
+  onVisibilityChanged(callback: ((event: VisibilityChangedEventArgs) => void) | null): this {
     this.visibilityChangedCallback = callback;
     return this;
   }
@@ -417,11 +569,20 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     return this;
   }
 
-  panelBorder(width: f32, color: u32, style: BorderStyle = BorderStyle.Solid): this {
+  panelBorder(width: f32, color: u32): this {
     this.panelBorderOverridden = true;
     this.panelBorderWidthValue = width;
     this.panelBorderColorValue = color;
-    this.panelBorderStyleValue = style;
+    this.panelBorderStyleValue = BorderStyle.Solid;
+    this.applyTheme();
+    return this;
+  }
+
+  panelBorderConfig(border: Border): this {
+    this.panelBorderOverridden = true;
+    this.panelBorderWidthValue = border.width;
+    this.panelBorderColorValue = border.color;
+    this.panelBorderStyleValue = border.style;
     this.applyTheme();
     return this;
   }
@@ -491,19 +652,9 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     return this;
   }
 
-  itemFont(fontId: u32, size: f32): this {
-    this.itemFontOverridden = true;
-    this.itemFontIdValue = fontId;
-    this.itemFontSizeValue = size;
-    this.itemUsesDirectFontIdValue = true;
-    this.applyTheme();
-    return this;
-  }
-
   itemFontFamily(family: FontFamily): this {
     this.itemFontOverridden = true;
     this.itemFontFamilyValue = family;
-    this.itemUsesDirectFontIdValue = false;
     this.applyTheme();
     return this;
   }
@@ -511,7 +662,6 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
   itemFontWeight(weight: FontWeight): this {
     this.itemFontOverridden = true;
     this.itemFontWeightValue = weight;
-    this.itemUsesDirectFontIdValue = false;
     this.applyTheme();
     return this;
   }
@@ -519,7 +669,6 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
   itemFontStyle(style: FontStyle): this {
     this.itemFontOverridden = true;
     this.itemFontStyleValue = style;
-    this.itemUsesDirectFontIdValue = false;
     this.applyTheme();
     return this;
   }
@@ -527,7 +676,6 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
   itemFontSize(size: f32): this {
     this.itemFontOverridden = true;
     this.itemFontSizeValue = size;
-    this.itemUsesDirectFontIdValue = false;
     this.applyTheme();
     return this;
   }
@@ -539,15 +687,48 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     return this;
   }
 
-  show(items: Array<MenuItem>, x: f32, y: f32): void {
+  items(items: Array<MenuItem>): this {
+    this.itemsValue.length = 0;
+    for (let index = 0; index < items.length; ++index) {
+      this.itemsValue.push(unchecked(items[index]));
+    }
+    return this;
+  }
+
+  clearItems(): this {
+    this.itemsValue.length = 0;
+    return this;
+  }
+
+  show(target: Node | null, x: f32, y: f32): void {
+    this.showImpl(target, x, y, false);
+  }
+
+  showFromContextPointer(target: Node | null, x: f32, y: f32): void {
+    this.showImpl(target, x, y, true);
+  }
+
+  private showImpl(target: Node | null, x: f32, y: f32, suppressOpeningPointerUp: bool): void {
+    let absoluteX = x;
+    let absoluteY = y;
+    if (target !== null) {
+      const bounds = changetype<Node>(target).getBounds();
+      absoluteX += unchecked(bounds[0]);
+      absoluteY += unchecked(bounds[1]);
+    }
+
     this.clearPanel();
     this.applyTheme();
 
     this.currentItems.length = 0;
+    this.currentItemTops.length = 0;
+    this.currentItemHeights.length = 0;
     let actionCount = 0;
     let separatorCount = 0;
     let estimatedHeight: f32 = 8.0;
+    let contentY: f32 = 0.0;
     let lastWasSeparator = true;
+    const items = this.itemsValue;
     const count = items.length < ContextMenu.MAX_ITEMS ? items.length : ContextMenu.MAX_ITEMS;
     if (items.length > ContextMenu.MAX_ITEMS) {
       warn(
@@ -571,6 +752,7 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
         this.panel.addChildNode(separator);
         separatorCount += 1;
         estimatedHeight += MENU_SEPARATOR_HEIGHT;
+        contentY += MENU_SEPARATOR_HEIGHT;
         lastWasSeparator = true;
         continue;
       }
@@ -579,23 +761,27 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
       entry.item(item);
       entry.applyTheme();
       this.currentItems.push(item);
+      this.currentItemTops.push(contentY);
+      this.currentItemHeights.push(this.itemHeightValue);
       this.panel.addChildNode(entry);
       actionCount += 1;
       estimatedHeight += this.itemHeightValue;
+      contentY += this.itemHeightValue;
       lastWasSeparator = false;
     }
 
     const maxX = <f32>Math.max(0.0, ui.getViewportWidth() - this.menuWidthValue - MENU_EDGE_PADDING);
     const maxY = <f32>Math.max(0.0, ui.getViewportHeight() - estimatedHeight - MENU_EDGE_PADDING);
-    const clampedX = <f32>Math.max(MENU_EDGE_PADDING, Math.min(x, maxX));
-    const clampedY = <f32>Math.max(MENU_EDGE_PADDING, Math.min(y, maxY));
+    const clampedX = <f32>Math.max(MENU_EDGE_PADDING, Math.min(absoluteX, maxX));
+    const clampedY = <f32>Math.max(MENU_EDGE_PADDING, Math.min(absoluteY, maxY));
 
     this.popupPresenter.showAtPoint(clampedX, clampedY, this.menuWidthValue, estimatedHeight);
     this.isMenuVisible = true;
+    this.suppressNextPointerUpActivation = suppressOpeningPointerUp;
     ContextMenu.activeInstance = this;
     const visibilityChangedCallback = this.visibilityChangedCallback;
     if (visibilityChangedCallback !== null) {
-      visibilityChangedCallback(true);
+      visibilityChangedCallback(new VisibilityChangedEventArgs(true));
     }
     if (this.keyFilterToken == 0) {
       this.keyFilterToken = EventRouter.pushKeyFilter(this);
@@ -608,6 +794,8 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     }
     this.clearPanel();
     this.currentItems.length = 0;
+    this.currentItemTops.length = 0;
+    this.currentItemHeights.length = 0;
     this.popupPresenter.hide();
     this.isMenuVisible = false;
     if (ContextMenu.activeInstance === this) {
@@ -615,7 +803,7 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     }
     const visibilityChangedCallback = this.visibilityChangedCallback;
     if (visibilityChangedCallback !== null) {
-      visibilityChangedCallback(false);
+      visibilityChangedCallback(new VisibilityChangedEventArgs(false));
     }
     if (this.keyFilterToken != 0) {
       EventRouter.removeKeyFilter(this.keyFilterToken);
@@ -651,126 +839,56 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     if (slot < 0 || slot >= this.currentItems.length) {
       return;
     }
-    this.runAction(unchecked(this.currentItems[slot]));
+    runContextMenuAction(unchecked(this.currentItems[slot]));
     this.hide();
   }
 
-  private writePayloadToClipboard(text: string): void {
-    const bytes = Uint8Array.wrap(String.UTF8.encode(text, false));
-    ffi.fui_copy_text(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length);
-  }
-
-  private commitFocusedTextAction(handle: u64): void {
-    ffi.fui_commit_text_action_focus(handle);
-  }
-
-  private runAction(item: MenuItem): void {
-    if (item.disabled) {
-      const actionNeedsLiveSelection =
-        item.targetHandle != <u64>HandleValue.Invalid &&
-        (item.action == ContextMenuAction.CopyCurrentSelection || item.action == ContextMenuAction.CutTextSelection) &&
-        (ffi.fui_has_text_selection_snapshot(item.targetHandle) || ui.hasTextSelection(item.targetHandle));
-      if (!actionNeedsLiveSelection) {
+  private handleOverlayPointerUp(event: PointerEventArgs): void {
+    if (!this.isMenuVisible) {
+      return;
+    }
+    if (!isPrimaryActivationPointer(event)) {
+      if (ContextMenu.consumeOpeningPointerUpSuppression()) {
+        event.handled = true;
+        return;
+      }
+      event.handled = true;
+      return;
+    }
+    for (let slot = 0; slot < this.currentItems.length; ++slot) {
+      const entry = unchecked(this.entries[slot]);
+      if (entry.builtHandle == <u64>HandleValue.Invalid) {
+        continue;
+      }
+      const bounds = entry.getBounds();
+      const left = unchecked(bounds[0]);
+      const top = unchecked(bounds[1]);
+      const right = left + unchecked(bounds[2]);
+      const bottom = top + unchecked(bounds[3]);
+      if (event.sceneX >= left && event.sceneX <= right && event.sceneY >= top && event.sceneY <= bottom) {
+        event.handled = true;
+        this.invokeSlot(slot);
         return;
       }
     }
-    if (item.action == ContextMenuAction.CopyCurrentSelection) {
-      if (item.payload !== null) {
-        this.writePayloadToClipboard(changetype<string>(item.payload));
-        if (item.targetHandle != <u64>HandleValue.Invalid) {
-          this.commitFocusedTextAction(item.targetHandle);
-        }
+    const localX = event.sceneX - this.popupPresenter.surfaceX;
+    const localY = event.sceneY - this.popupPresenter.surfaceY;
+    if (localX < 0.0 || localX > this.menuWidthValue || localY < 0.0) {
+      event.handled = true;
+      this.hide();
+      return;
+    }
+    for (let slot = 0; slot < this.currentItems.length; ++slot) {
+      const top = unchecked(this.currentItemTops[slot]);
+      const height = unchecked(this.currentItemHeights[slot]);
+      if (localY >= top && localY <= top + height) {
+        event.handled = true;
+        this.invokeSlot(slot);
         return;
       }
-      if (item.targetHandle != <u64>HandleValue.Invalid && ffi.fui_copy_text_selection_snapshot(item.targetHandle)) {
-        this.commitFocusedTextAction(item.targetHandle);
-        return;
-      }
-      if (item.targetHandle != <u64>HandleValue.Invalid) {
-        ui.copyTextSelection(item.targetHandle);
-        this.commitFocusedTextAction(item.targetHandle);
-        return;
-      }
-      ui.copyCurrentSelection();
-      return;
     }
-    if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.UndoTextEdit) {
-      ui.undoTextEdit(item.targetHandle);
-      this.commitFocusedTextAction(item.targetHandle);
-      return;
-    }
-    if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.RedoTextEdit) {
-      ui.redoTextEdit(item.targetHandle);
-      this.commitFocusedTextAction(item.targetHandle);
-      return;
-    }
-    if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.CutTextSelection) {
-      if (item.payload !== null) {
-        this.writePayloadToClipboard(changetype<string>(item.payload));
-      }
-      if (item.selectionStart != item.selectionEnd && ffi.fui_cut_text_selection_snapshot(item.targetHandle)) {
-        this.commitFocusedTextAction(item.targetHandle);
-        return;
-      }
-      if (ffi.fui_cut_text_selection_snapshot(item.targetHandle)) {
-        this.commitFocusedTextAction(item.targetHandle);
-        return;
-      }
-      if (
-        item.selectionStart != item.selectionEnd &&
-        ffi.fui_delete_focused_text_range(item.selectionStart, item.selectionEnd)
-      ) {
-        this.commitFocusedTextAction(item.targetHandle);
-        return;
-      }
-      if (ffi.fui_cut_focused_text_selection()) {
-        this.commitFocusedTextAction(item.targetHandle);
-        return;
-      }
-      if (item.payload === null) {
-        ffi.fui_copy_text_selection_snapshot(item.targetHandle);
-      }
-      ui.cutTextSelection(item.targetHandle);
-      this.commitFocusedTextAction(item.targetHandle);
-      return;
-    }
-    if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.PasteText) {
-      ui.pasteText(item.targetHandle);
-      this.commitFocusedTextAction(item.targetHandle);
-      return;
-    }
-    if (item.targetHandle != <u64>HandleValue.Invalid && item.action == ContextMenuAction.SelectAllText) {
-      ui.selectAllText(item.targetHandle);
-      this.commitFocusedTextAction(item.targetHandle);
-      return;
-    }
-    if (item.action == ContextMenuAction.ReloadPage) {
-      ffi.fui_reload_page();
-      return;
-    }
-    if (item.action == ContextMenuAction.NavigateBack) {
-      ffi.fui_navigate_back();
-      return;
-    }
-    if (item.action == ContextMenuAction.NavigateForward) {
-      ffi.fui_navigate_forward();
-      return;
-    }
-    if (item.payload !== null && item.action == ContextMenuAction.OpenLink) {
-      navigateTo(changetype<string>(item.payload), false);
-      return;
-    }
-    if (item.payload !== null && item.action == ContextMenuAction.OpenLinkInNewTab) {
-      navigateTo(changetype<string>(item.payload), true);
-      return;
-    }
-    if (item.payload !== null && item.action == ContextMenuAction.OpenImage) {
-      navigateTo(changetype<string>(item.payload), false);
-      return;
-    }
-    if (item.payload !== null && item.action == ContextMenuAction.OpenImageInNewTab) {
-      navigateTo(changetype<string>(item.payload), true);
-    }
+    event.handled = true;
+    this.hide();
   }
 
   private applyTheme(): void {
@@ -778,7 +896,7 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     this.panel.bgColor(this.panelBackgroundColorValue);
     this.panel.backgroundBlur(this.panelBackgroundBlurSigmaValue);
     this.panel.cornerRadius(this.panelCornerRadiusValue);
-    this.panel.border(this.panelBorderWidthValue, this.panelBorderColorValue, this.panelBorderStyleValue);
+    this.panel.borderConfig(new Border(this.panelBorderWidthValue, this.panelBorderColorValue, this.panelBorderStyleValue));
     this.panel.dropShadow(
       this.panelShadowColorValue,
       0.0,
@@ -797,12 +915,10 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
         this.itemTextColorValue,
         this.itemBackgroundColorValue,
         this.itemHoverColorValue,
-        this.itemFontIdValue,
         this.itemFontFamilyValue,
         this.itemFontSizeValue,
         this.itemFontWeightValue,
         this.itemFontStyleValue,
-        this.itemUsesDirectFontIdValue,
       );
       unchecked(this.separators[index]).configureStyle(this.separatorColorValue);
     }
@@ -834,12 +950,10 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
       this.itemCornerRadiusValue = theme.contextMenu.item.cornerRadius;
     }
     if (!this.itemFontOverridden) {
-      this.itemFontIdValue = theme.contextMenu.item.fontId;
       this.itemFontFamilyValue = theme.contextMenu.item.fontFamily;
       this.itemFontSizeValue = theme.contextMenu.item.fontSize;
       this.itemFontWeightValue = FontWeight.Regular;
       this.itemFontStyleValue = FontStyle.Normal;
-      this.itemUsesDirectFontIdValue = false;
     }
     if (!this.separatorColorOverridden) {
       this.separatorColorValue = theme.contextMenu.separatorColor;

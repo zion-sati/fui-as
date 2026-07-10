@@ -45,10 +45,10 @@ class LargestPrimeCalculatorJob extends WorkerJob {
   private candidate: i32 = 2;
   private largestPrime: i32 = 2;
 
-  protected onStart(): void {
-    // The demo still consumes the required string worker input even though
+  protected onStart(input: string): void {
+    // The demo still accepts the required string worker input even though
     // the actual work is a timed prime search.
-    this.receiveMessage();
+    input.length;
     const now = demoWorkerClockWallClockSinceEpochMs();
     this.startedAtMs = now;
     this.deadlineMs = now + PRIME_SEARCH_TOTAL_MS;
@@ -103,7 +103,8 @@ import {
 } from "../../../src/FuiWorker";
 import { JSON } from "@devcycle/assemblyscript-json/assembly/index";
 
-export function fileProcessorWorker(): void {
+export function fileProcessorWorker(inputPtr: usize, inputLen: u32): void {
+  WorkerRuntime.entry(inputPtr, inputLen, (_input) => {
   const READ_CHUNK_SIZE: i32 = 65536;
   const bufPtr = __fui_worker_text_buffer();
 
@@ -134,12 +135,15 @@ export function fileProcessorWorker(): void {
   result.set("algo", "djb2");
   result.set("bytes", i64(offset));
   WorkerRuntime.complete(result.stringify());
+  });
 }
 
-export function largestPrimeCalculatorWorker(): void {
-  let activeJob = largestPrimeCalculatorJob;
-  if (activeJob === null) {
-    activeJob = new LargestPrimeCalculatorJob();
-  }
-  largestPrimeCalculatorJob = WorkerJob.resume<LargestPrimeCalculatorJob>(activeJob);
+export function largestPrimeCalculatorWorker(inputPtr: usize, inputLen: u32): void {
+  WorkerRuntime.entry(inputPtr, inputLen, (input) => {
+    let activeJob = largestPrimeCalculatorJob;
+    if (activeJob === null) {
+      activeJob = new LargestPrimeCalculatorJob();
+    }
+    largestPrimeCalculatorJob = WorkerJob.resume<LargestPrimeCalculatorJob>(activeJob, input);
+  });
 }

@@ -1,4 +1,5 @@
 export { DemoButton, DemoButtonTone } from "./DemoButton";
+export { DemoComboBox } from "./DemoComboBox";
 export { DemoDropdown } from "./DemoDropdown";
 export { DropdownItem as DemoDropdownItem } from "../../../../src/Fui";
 export { DemoNavLink } from "./DemoNavLink";

@@ -2,6 +2,7 @@ import { Paint } from "../../src/drawing/Paint";
 import { Path } from "../../src/drawing/Path";
 import { DrawContext } from "../../src/drawing/DrawContext";
 import { rgba } from "../../src/color";
+import { Text } from "../../src/nodes/Text";
 
 describe("Paint", () => {
   it("creates a default transparent paint", () => {
@@ -99,6 +100,8 @@ describe("DrawContext", () => {
     ctx.scale(2, 2);
     ctx.rotate(45);
     ctx.clipRect(0, 0, 100, 100);
+    ctx.clipRoundRect(0, 0, 100, 100, 8);
+    ctx.clipRoundedRect(0, 0, 100, 100, 4, 8, 12, 16);
   });
 
   it("drawing primitives do not throw", () => {
@@ -109,6 +112,7 @@ describe("DrawContext", () => {
     ctx.drawCircle(50, 50, 30, Paint.stroke(red, 2));
     ctx.drawLine(0, 0, 100, 100, red, 1);
     ctx.drawRoundRect(10, 10, 80, 80, 8, 8, Paint.filledStroke(red, red, 2));
+    ctx.flush();
   });
 
   it("path drawing does not throw", () => {
@@ -120,9 +124,10 @@ describe("DrawContext", () => {
     path.dispose();
   });
 
-  it("text drawing does not throw", () => {
+  it("prepared text node drawing does not throw", () => {
     const ctx = new DrawContext(MOCK_CANVAS);
-    ctx.drawText("Hello", 10, 20, 1, 16, rgba(0, 0, 0, 255));
+    const text = new Text("Hello");
+    ctx.drawTextNode(text, 10, 20);
   });
 
   it("image drawing does not throw", () => {

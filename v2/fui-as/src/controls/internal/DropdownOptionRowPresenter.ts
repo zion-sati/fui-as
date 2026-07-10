@@ -60,7 +60,7 @@ export abstract class DropdownOptionRowPresenter {
 }
 
 export abstract class DropdownOptionRowTemplate {
-  abstract create(): DropdownOptionRowPresenter;
+  abstract create(sizing?: DropdownSizing | null): DropdownOptionRowPresenter;
 }
 
 class DefaultDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
@@ -92,14 +92,15 @@ class DefaultDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
          ? (colors !== null && colors.hasAccent ? colors.accentColor : theme.colors.accent)
          : (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary));
     this.labelNode
-      .font(theme.fonts.body, metrics.fontSize)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(metrics.fontSize)
       .textColor(labelColor);
   }
 }
 
 class DefaultDropdownOptionRowTemplate extends DropdownOptionRowTemplate {
-  create(): DropdownOptionRowPresenter {
-    return new DefaultDropdownOptionRowPresenter();
+  create(sizing: DropdownSizing | null = null): DropdownOptionRowPresenter {
+    return createDefaultDropdownOptionRowPresenter(sizing);
   }
 }
 

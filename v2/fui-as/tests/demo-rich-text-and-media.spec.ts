@@ -140,7 +140,7 @@ test('demo still boots when a lazy custom font 404s', async ({ page }) => {
   await expect.poll(() => {
     return interceptedFontRequests;
   }).toBeGreaterThan(0);
-  await expect.poll(() => page.evaluate(() => window.__fuiAsReady)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__fuiReady)).toBe(true);
 
   const unexpectedConsoleErrors = consoleErrors.filter((message) => !isExpectedMissingFontError(message));
   expect(unexpectedConsoleErrors).toEqual([]);

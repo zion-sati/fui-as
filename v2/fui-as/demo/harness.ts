@@ -1,8 +1,9 @@
 import type { EffinDomCallbacks } from '@effindomv2/runtime';
+import { readHostAccentColor } from '../browser/src/shared-browser';
 import { demoHostEvents } from './src/host-events';
 import { demoHostServices } from './src/host-services';
-import { setDemoShellDarkMode, setDemoShellHue, setDemoShellTick } from './src/host-service-state';
-import type { HarnessExports, HarnessState } from '../browser/src/common-harness';
+import { setDemoShellAccentColor, setDemoShellDarkMode, setDemoShellTick } from './src/host-service-state';
+import type { HarnessExports, HarnessState } from '../browser/src/shared-browser';
 import {
   startRoutedHarness,
   type RoutedHarnessManagerState,
@@ -11,17 +12,20 @@ import {
 
 declare global {
   interface Window {
-    __fuiAsReady?: boolean;
-    __fuiAsError?: string;
-    __fuiAsState?: HarnessState;
-    __fuiDemoSelectionText?: string;
+    __fuiReady?: boolean;
+    __fuiError?: string;
+    __fuiState?: HarnessState;
+    __fuiSelectionText?: string;
     __toggleDemoFoundationsScope?(): void;
     __activateDemoFoundationsScopedAction?(): void;
     __focusDemoFoundationsScopedAction?(): void;
+    __openDemoDialog?(): void;
+    __closeDemoDialog?(): void;
+    __flushRenders?(): void;
     __getAdvancedControlsActionCount?(): number;
     __getAdvancedControlsAnimationTargetCode?(): number;
     __effindomCallbacks?: EffinDomCallbacks;
-    __fuiDemoManagerState?: {
+    __fuiManagerState?: {
       readonly routePath: string;
       readonly activeWasmPath: string;
       readonly routeLoads: Readonly<Record<string, number>>;
@@ -35,12 +39,21 @@ interface DemoRouteExports extends HarnessExports {
   __toggleDemoFoundationsScope?(): void;
   __activateDemoFoundationsScopedAction?(): void;
   __focusDemoFoundationsScopedAction?(): void;
+  __openDemoDialog?(): void;
+  __closeDemoDialog?(): void;
+  __flushRenders?(): void;
   __getAdvancedControlsActionCount?(): number;
   __getAdvancedControlsAnimationTargetCode?(): number;
 }
 
 interface DemoRoute extends RoutedHarnessRoute {
   readonly key: 'home' | 'advanced-controls' | 'templated-controls' | 'scrollbar-gutter' | 'immediate-drawing';
+}
+
+const wasmVersion = Date.now().toString(36);
+
+function withWasmVersion(path: string): string {
+  return `${path}?v=${wasmVersion}`;
 }
 
 const SOURCE_HOME_ROUTE = '/v2/fui-as/demo/index.html';
@@ -56,55 +69,55 @@ const ROUTES: readonly DemoRoute[] = [
     key: 'home',
     routePath: SOURCE_HOME_ROUTE,
     matchPath: SOURCE_HOME_MATCH_PATH,
-    wasmPath: '/v2/fui-as/demo/home.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/v2/fui-as/demo/home.wasm'),
     title: 'Dashboard',
   },
   {
     key: 'advanced-controls',
     routePath: SOURCE_ADVANCED_CONTROLS_ROUTE,
-    wasmPath: '/v2/fui-as/demo/advanced-controls.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/v2/fui-as/demo/advanced-controls.wasm'),
     title: 'Advanced controls',
   },
   {
     key: 'templated-controls',
     routePath: SOURCE_TEMPLATED_CONTROLS_ROUTE,
-    wasmPath: '/v2/fui-as/demo/templated-controls.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/v2/fui-as/demo/templated-controls.wasm'),
     title: 'Templated controls',
   },
   {
     key: 'scrollbar-gutter',
     routePath: '/v2/fui-as/demo/scrollbar-gutter/',
-    wasmPath: '/v2/fui-as/demo/scrollbar-gutter.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/v2/fui-as/demo/scrollbar-gutter.wasm'),
     title: 'Scrollbar gutter bug',
   },
   {
     key: 'immediate-drawing',
     routePath: '/v2/fui-as/demo/immediate-drawing/',
-    wasmPath: '/v2/fui-as/demo/immediate-drawing.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/v2/fui-as/demo/immediate-drawing.wasm'),
     title: 'Immediate-mode drawing',
   },
   {
     key: 'home',
     routePath: ROOT_HOME_ROUTE,
-    wasmPath: '/home.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/home.wasm'),
     title: 'Dashboard',
   },
   {
     key: 'advanced-controls',
     routePath: ROOT_ADVANCED_CONTROLS_ROUTE,
-    wasmPath: '/advanced-controls.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/advanced-controls.wasm'),
     title: 'Advanced controls',
   },
   {
     key: 'templated-controls',
     routePath: ROOT_TEMPLATED_CONTROLS_ROUTE,
-    wasmPath: '/templated-controls.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/templated-controls.wasm'),
     title: 'Templated controls',
   },
   {
     key: 'immediate-drawing',
     routePath: ROOT_IMMEDIATE_DRAWING_ROUTE,
-    wasmPath: '/immediate-drawing.wasm?v=midnight-5',
+    wasmPath: withWasmVersion('/immediate-drawing.wasm'),
     title: 'Immediate-mode drawing',
   },
 ];
@@ -116,34 +129,50 @@ const workerHostServices = {
 
 let currentExports: DemoRouteExports | null = null;
 let tick = 0;
-let hue = 210;
-let darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+let darkMode = darkModeQuery.matches;
+let demoShellTickTimer: number | null = null;
 
 function syncDemoShellState(): void {
   setDemoShellTick(tick);
-  setDemoShellHue(hue);
+  setDemoShellAccentColor(readHostAccentColor());
   setDemoShellDarkMode(darkMode);
 }
 
-function updateOutput(id: string, value: string): void {
-  const output = document.getElementById(id);
-  if (output instanceof HTMLElement) {
-    output.textContent = value;
+function stopDemoShellTick(): void {
+  if (demoShellTickTimer === null) {
+    return;
   }
+  clearTimeout(demoShellTickTimer);
+  demoShellTickTimer = null;
 }
 
-function updateThemeControls(): void {
-  document.documentElement.dataset.demoTheme = darkMode ? 'dark' : 'light';
-  document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
-  updateOutput('theme-mode-value', darkMode ? 'Dark' : 'Light');
-  const themeButton = document.getElementById('toggle-theme-mode');
-  if (themeButton instanceof HTMLButtonElement) {
-    themeButton.textContent = darkMode ? 'Switch to light mode' : 'Switch to dark mode';
+function scheduleDemoShellTick(): void {
+  if (demoShellTickTimer !== null || document.hidden) {
+    return;
   }
+  demoShellTickTimer = window.setTimeout(() => {
+    demoShellTickTimer = null;
+    if (document.hidden) {
+      return;
+    }
+    tick += 1;
+    syncDemoShellState();
+    scheduleDemoShellTick();
+  }, 1000);
+}
+
+function syncDemoShellTickVisibility(): void {
+  if (document.hidden) {
+    stopDemoShellTick();
+    return;
+  }
+  syncDemoShellState();
+  scheduleDemoShellTick();
 }
 
 function syncManagerState(state: RoutedHarnessManagerState, route: DemoRoute): void {
-  window.__fuiDemoManagerState = {
+  window.__fuiManagerState = {
     routePath: route.routePath,
     activeWasmPath: route.wasmPath,
     routeLoads: { ...state.routeLoads },
@@ -155,10 +184,10 @@ function installHostCallbacks(): void {
   const previousCrossSelectionChanged = callbacks.onCrossSelectionChanged;
   callbacks.onCrossSelectionChanged = (handle, text) => {
     previousCrossSelectionChanged?.(handle, text);
-    window.__fuiDemoSelectionText = text;
+    window.__fuiSelectionText = text;
   };
   window.__effindomCallbacks = callbacks;
-  window.__fuiDemoSelectionText = '';
+  window.__fuiSelectionText = '';
 
   window.__toggleDemoFoundationsScope = () => {
     currentExports?.__toggleDemoFoundationsScope?.();
@@ -169,6 +198,15 @@ function installHostCallbacks(): void {
   window.__focusDemoFoundationsScopedAction = () => {
     currentExports?.__focusDemoFoundationsScopedAction?.();
   };
+  window.__openDemoDialog = () => {
+    currentExports?.__openDemoDialog?.();
+  };
+  window.__closeDemoDialog = () => {
+    currentExports?.__closeDemoDialog?.();
+  };
+  window.__flushRenders = () => {
+    currentExports?.__flushRenders?.();
+  };
   window.__getAdvancedControlsActionCount = () => {
     return currentExports?.__getAdvancedControlsActionCount?.() ?? -1;
   };
@@ -177,67 +215,32 @@ function installHostCallbacks(): void {
   };
 }
 
-function installShellControls(): void {
-  const hueInput = document.getElementById('hue') as HTMLInputElement | null;
-  const pulseButton = document.getElementById('pulse-hue');
-  const themeButton = document.getElementById('toggle-theme-mode');
-
-  if (hueInput !== null) {
-    hueInput.value = String(hue);
-    hueInput.addEventListener('input', () => {
-      hue = Number(hueInput.value);
-      updateOutput('hue-value', `${String(hue)} deg`);
-      syncDemoShellState();
-    });
-  }
-
-  if (pulseButton instanceof HTMLElement) {
-    pulseButton.addEventListener('click', () => {
-      hue = (tick * 47 + 120) % 360;
-      if (hueInput !== null) {
-        hueInput.value = String(hue);
-      }
-      updateOutput('hue-value', `${String(hue)} deg`);
-      syncDemoShellState();
-    });
-  }
-
-  if (themeButton instanceof HTMLElement) {
-    themeButton.addEventListener('click', () => {
-      darkMode = !darkMode;
-      updateThemeControls();
-      syncDemoShellState();
-    });
-  }
-
-  updateOutput('hue-value', `${String(hue)} deg`);
-  updateOutput('tick-value', '0 s');
-  updateThemeControls();
-  syncDemoShellState();
-
-  window.setInterval(() => {
-    tick += 1;
-    updateOutput('tick-value', `${String(tick)} s`);
-    syncDemoShellState();
-  }, 1000);
-}
-
+window.__fuiReady = false;
+delete window.__fuiError;
 installHostCallbacks();
-installShellControls();
+syncDemoShellState();
+darkModeQuery.addEventListener('change', (event) => {
+  darkMode = event.matches;
+  syncDemoShellState();
+});
+document.addEventListener('visibilitychange', syncDemoShellTickVisibility);
+scheduleDemoShellTick();
 
 startRoutedHarness<DemoRouteExports, DemoRoute>({
   shellId,
   routeBase: ROOT_HOME_ROUTE,
   routes: ROUTES,
+  devToolsDomMirror: 'on-requested',
   hostEvents: demoHostEvents,
   hostServices: demoHostServices,
   workerHostServices,
   recreateRuntimeOnWarmRouteSwap: true,
   onRouteReady(state, route): void {
     syncManagerState(state, route);
+    window.__fuiReady = true;
   },
   onHarnessStateUpdated(state): void {
-    window.__fuiAsState = state;
+    window.__fuiState = state;
   },
   run(exports): void {
     currentExports = exports;
@@ -250,6 +253,6 @@ startRoutedHarness<DemoRouteExports, DemoRoute>({
     exports.__disposeApp?.();
   },
   onHarnessError(error): void {
-    window.__fuiAsError = error instanceof Error ? error.message : String(error);
+    window.__fuiError = error instanceof Error ? error.message : String(error);
   },
 });

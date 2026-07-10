@@ -1,19 +1,34 @@
 {
   "name": "effindom-fui-as-repo",
   "private": true,
-  "version": "0.1.37",
+  "version": "0.1.39",
   "description": "Standalone FUI-AS repository for @effindomv2/fui-as",
   "engines": {
     "node": ">=18"
   },
   "workspaces": [
+    "v2/browser-bridge",
     "v2/fui-as"
   ],
   "scripts": {
+    "lint:v2": "node --experimental-strip-types ./node_modules/eslint/bin/eslint.js --config eslint.config.ts --max-warnings=0 \"v2/fui-as/browser/**/*.ts\" \"v2/fui-as/scripts/**/*.ts\" --ignore-pattern \"v2/fui-as/build/**/*.ts\"",
+    "lint": "npm run lint:v2",
     "typecheck": "bash -lc 'bash v2/fui-as/scripts/check-runtime-dependency.sh && if [ -x v2/fui-as/node_modules/.bin/tsc ]; then v2/fui-as/node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; elif [ -x node_modules/.bin/tsc ]; then node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; else echo \"Could not locate tsc in node_modules/.bin.\" >&2; exit 1; fi'",
     "test": "bash -lc 'bash v2/fui-as/scripts/check-runtime-dependency.sh && if [ -x v2/fui-as/node_modules/.bin/asp ]; then v2/fui-as/node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; elif [ -x node_modules/.bin/asp ]; then node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; else echo \"Could not locate asp in node_modules/.bin.\" >&2; exit 1; fi'",
-    "build": "bash v2/fui-as/scripts/check-runtime-dependency.sh && bash v2/fui-as/scripts/build.sh",
+    "build": "bash v2/fui-as/scripts/check-runtime-dependency.sh && npm run lint:v2 && bash v2/fui-as/scripts/build.sh",
     "publish:local": "bash scripts/publish/local/fui-as.sh",
-    "publish:npm": "bash scripts/publish/npm/fui-as.sh"
+    "publish:npm": "bash scripts/publish/npm/fui-as.sh",
+    "prepublishOnly": "npm run lint:v2 && npm run typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "jiti": "^2.7.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.2"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "fsevents@2.3.2": true
   }
 }

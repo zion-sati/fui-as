@@ -1,5 +1,6 @@
 import { Callback1, Handler1 } from "../core/BoundCallback";
 import { FlexDirection, SemanticRole } from "../core/ffi";
+import { RadioGroupChangedEventArgs } from "../core/Node";
 import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState";
 import { bind1 } from "../core/bind";
 import { warn } from "../core/Logger";
@@ -31,8 +32,8 @@ const RADIO_GROUP_PERSISTED_STATE = new PersistedRadioGroupState();
 export class RadioGroup extends FlexBox {
   private readonly radios: Array<RadioButton> = new Array<RadioButton>();
   private selectedIndexValue: i32 = -1;
-  private changedCallback: ((value: string) => void) | null = null;
-  private changedBinding: Callback1<string> | null = null;
+  private changedCallback: ((event: RadioGroupChangedEventArgs) => void) | null = null;
+  private changedBinding: Callback1<RadioGroupChangedEventArgs> | null = null;
 
   constructor() {
     super();
@@ -75,19 +76,19 @@ export class RadioGroup extends FlexBox {
     return this;
   }
 
-  onChanged(callback: ((value: string) => void) | null): this {
+  onChanged(callback: ((event: RadioGroupChangedEventArgs) => void) | null): this {
     this.changedCallback = callback;
     this.changedBinding = null;
     return this;
   }
 
-  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, RadioGroupChangedEventArgs>): this {
     this.changedCallback = null;
-    this.changedBinding = bind1<Owner, string>(owner, handler);
+    this.changedBinding = bind1<Owner, RadioGroupChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, RadioGroupChangedEventArgs>): this {
     this.bindChanged(owner, handler);
     return this;
   }
@@ -95,7 +96,7 @@ export class RadioGroup extends FlexBox {
   selectRadio(radio: RadioButton, focus: bool): void {
     const index = this.indexOfRadio(radio);
     if (index >= 0) {
-      this.selectIndexInternal(index, focus, true);
+      this.selectIndexInternal(index, focus, true, true);
     }
   }
 
@@ -106,30 +107,42 @@ export class RadioGroup extends FlexBox {
     }
     const nextIndex = this.findEnabledIndex(startIndex, delta);
     if (nextIndex >= 0) {
-      this.selectIndexInternal(nextIndex, true, true);
+      this.selectIndexInternal(nextIndex, true, true, true);
     }
   }
 
   selectFirstEnabled(focus: bool): void {
     const nextIndex = this.findBoundaryIndex(true);
     if (nextIndex >= 0) {
-      this.selectIndexInternal(nextIndex, focus, true);
+      this.selectIndexInternal(nextIndex, focus, true, true);
     }
   }
 
   selectLastEnabled(focus: bool): void {
     const nextIndex = this.findBoundaryIndex(false);
     if (nextIndex >= 0) {
-      this.selectIndexInternal(nextIndex, focus, true);
+      this.selectIndexInternal(nextIndex, focus, true, true);
     }
   }
 
   selectIndex(index: i32): this {
     if (index == -1) {
+      const changed = this.selectedIndexValue != -1;
       if (this.selectedIndexValue >= 0 && this.selectedIndexValue < this.radios.length) {
-        unchecked(this.radios[this.selectedIndexValue]).updateChecked(false, false);
+        unchecked(this.radios[this.selectedIndexValue]).updateChecked(false, true, false);
       }
       this.selectedIndexValue = -1;
+      if (changed) {
+        const event = new RadioGroupChangedEventArgs("");
+        const callback = this.changedCallback;
+        if (callback !== null) {
+          callback(event);
+        }
+        const binding = this.changedBinding;
+        if (binding !== null) {
+          binding.invoke(event);
+        }
+      }
       return this;
     }
     if (this.radios.length == 0) {
@@ -151,7 +164,7 @@ export class RadioGroup extends FlexBox {
           ".",
       );
     }
-    this.selectIndexInternal(clampedIndex, false, false);
+    this.selectIndexInternal(clampedIndex, false, true, false);
     return this;
   }
 
@@ -159,10 +172,10 @@ export class RadioGroup extends FlexBox {
     if (index < 0) {
       return;
     }
-    this.selectIndexInternal(index, false, true);
+    this.selectIndexInternal(index, false, true, false);
   }
 
-  private selectIndexInternal(index: i32, focus: bool, emit: bool): void {
+  private selectIndexInternal(index: i32, focus: bool, emit: bool, announce: bool = emit): void {
     if (index < 0 || index >= this.radios.length) {
       return;
     }
@@ -177,22 +190,22 @@ export class RadioGroup extends FlexBox {
       return;
     }
     if (this.selectedIndexValue >= 0 && this.selectedIndexValue < this.radios.length) {
-      unchecked(this.radios[this.selectedIndexValue]).updateChecked(false, false);
+      unchecked(this.radios[this.selectedIndexValue]).updateChecked(false, emit, false);
     }
     this.selectedIndexValue = index;
-    radio.updateChecked(true, false);
+    radio.updateChecked(true, emit, announce);
     if (focus) {
       radio.focusNow();
     }
     if (emit) {
-      radio.requestSemanticAnnouncement();
+      const event = new RadioGroupChangedEventArgs(radio.value);
       const callback = this.changedCallback;
       if (callback !== null) {
-        callback(radio.value);
+        callback(event);
       }
       const binding = this.changedBinding;
       if (binding !== null) {
-        binding.invoke(radio.value);
+        binding.invoke(event);
       }
     }
   }

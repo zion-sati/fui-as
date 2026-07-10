@@ -2,6 +2,8 @@ export {
   ButtonPresenter,
   ButtonTemplate,
   ButtonVisualState,
+  createDefaultButtonPresenter,
+  defaultButtonTemplate,
 } from "./internal/ButtonPresenter";
 export {
   ControlTemplateSet,
@@ -14,22 +16,30 @@ export {
   CheckboxIndicatorPresenter,
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
+  createDefaultCheckboxIndicatorPresenter,
+  defaultCheckboxIndicatorTemplate,
 } from "./internal/CheckboxIndicatorPresenter";
 export {
   RadioIndicatorPresenter,
   RadioIndicatorTemplate,
   RadioIndicatorVisualState,
+  createDefaultRadioIndicatorPresenter,
+  defaultRadioIndicatorTemplate,
 } from "./internal/RadioIndicatorPresenter";
 export {
   SwitchIndicatorPresenter,
   SwitchIndicatorTemplate,
   SwitchIndicatorVisualState,
+  createDefaultSwitchIndicatorPresenter,
+  defaultSwitchIndicatorTemplate,
 } from "./internal/SwitchIndicatorPresenter";
 export {
   SliderPresenter,
   SliderPresenterMetrics,
   SliderTemplate,
   SliderVisualState,
+  createDefaultSliderPresenter,
+  defaultSliderTemplate,
 } from "./internal/SliderPresenter";
 export {
   DropdownFieldMetrics,

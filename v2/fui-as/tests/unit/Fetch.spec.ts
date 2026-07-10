@@ -1,9 +1,10 @@
 import { Application } from "../../src/core/Application";
 import {
-  __resetFetchForTests,
   Fetch,
+  FetchErrorEventArgs,
   handleFetchComplete,
   handleFetchError,
+  resetFetchRuntime,
 } from "../../src/core/Fetch";
 import { Fetch as WorkerFetch } from "../../src/FuiWorker";
 import {
@@ -28,7 +29,7 @@ class FetchOwner {
 
 describe("Fetch", () => {
   afterEach(() => {
-    __resetFetchForTests();
+    resetFetchRuntime();
     Application.unmount();
     resetCalls();
   });
@@ -76,9 +77,9 @@ describe("Fetch", () => {
     const owner = new FetchOwner();
 
     Fetch.request("/upload")
-      .onErrorWith<FetchOwner>(owner, (target, message) => {
+      .onErrorWith<FetchOwner>(owner, (target, event: FetchErrorEventArgs): void => {
         target.errorCount += 1;
-        target.lastMessage = message;
+        target.lastMessage = event.message;
       })
       .start();
 

@@ -153,12 +153,12 @@ describe("Theme", () => {
   it("exposes a bundled mono family without changing the default body stacks", () => {
     const theme = generateTheme(true, rgb(0x25, 0x63, 0xeb));
 
-    expect<u32>(theme.fonts.body).toBe(1);
-    expect<u32>(theme.fonts.heading).toBe(2);
-    expect<u32>(theme.fonts.mono).toBe(5);
-    expect<u32>(theme.fonts.monoBold).toBe(6);
+    expect<u32>(theme.fonts.bodyStack.id).toBe(1);
+    expect<u32>(theme.fonts.headingStack.id).toBe(2);
+    expect<u32>(theme.fonts.monoStack.id).toBe(7);
+    expect<u32>(theme.fonts.monoBoldStack.id).toBe(8);
     expect<f32>(theme.fonts.sizeMono).toBe(15.0);
-    expect<u32>(theme.fonts.monoFamily.resolve()).toBe(5);
-    expect<u32>(theme.fonts.monoFamily.resolve(700)).toBe(6);
+    expect<u32>(theme.fonts.monoFamily.resolve()).toBe(7);
+    expect<u32>(theme.fonts.monoFamily.resolve(700)).toBe(8);
   });
 });

@@ -2,7 +2,7 @@ import { HandlerAction } from "../core/Action";
 import { AnimationTiming } from "../core/Animation";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { HandleValue, Orientation, Unit } from "../core/ffi";
-import { Node } from "../core/Node";
+import { Node, PointerEventArgs } from "../core/Node";
 import { throwNullArgument } from "../core/Errors";
 import {
   canRestorePersistedScrollOffset,
@@ -20,7 +20,7 @@ import { NodeTransitions } from "../core/Transitions";
 const DEFAULT_SCROLLBAR_GUTTER: f32 = 0.0;
 const OVERFLOW_TOLERANCE: f32 = 0.5;
 
-function noopPointerCallback(_x: f32, _y: f32): void {}
+function noopPointerCallback(_event: PointerEventArgs): void {}
 
 export class ScrollBox extends FlexBox {
   private readonly scrollStateValue: ScrollState;
@@ -137,6 +137,11 @@ export class ScrollBox extends FlexBox {
     this.verticalScrollEnabledValue = flag;
     this.viewportValue.scrollEnabledY(flag);
     this.refreshChrome();
+    return this;
+  }
+
+  smoothScrolling(flag: bool = true): this {
+    this.viewportValue.smoothScrolling(flag);
     return this;
   }
 

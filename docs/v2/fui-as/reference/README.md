@@ -25,9 +25,11 @@ All controls and nodes listed below inherit common `Node` state APIs, including 
 
 ## Nodes
 
+- [Bitmap](./nodes/Bitmap.md)
 - [FlexBox](./nodes/FlexBox.md)
 - [GradientStop](./nodes/GradientStop.md)
 - [Grid](./nodes/Grid.md)
+- [DynamicTextLayout](./nodes/DynamicTextLayout.md)
 - [Image](./nodes/Image.md)
 - [Portal](./nodes/Portal.md)
 - [RichText](./nodes/RichText.md)
@@ -37,7 +39,14 @@ All controls and nodes listed below inherit common `Node` state APIs, including 
 - [ScrollView](./nodes/ScrollView.md)
 - [Svg](./nodes/Svg.md)
 - [Text](./nodes/Text.md)
+- [TextLayout](./nodes/TextLayout.md)
 - [VirtualList](./nodes/VirtualList.md)
+
+## Drawing
+
+- [DrawContext](./drawing/DrawContext.md)
+- [Paint](./drawing/Paint.md)
+- [Path](./drawing/Path.md)
 
 ## See also
 

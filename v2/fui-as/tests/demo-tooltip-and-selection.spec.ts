@@ -1,8 +1,376 @@
-import { expect, test } from '@playwright/test';
+import { expect,test,type Page } from '@playwright/test';
 
 import * as demo from './demo-test-support';
 
 demo.registerDemoLifecycle(test);
+
+async function findVisiblePointForSemanticLabel(
+  page: Page,
+  label: string,
+): Promise<{ x: number; y: number; }> {
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  if (canvasBox === null) {
+    throw new Error('Expected scene canvas bounds.');
+  }
+  for (let attempt = 0; attempt < 36; attempt += 1) {
+    const target = await page.evaluate((targetLabel) => {
+      const candidates = (window.__bridgeSemanticTree ?? []).filter((item) => item.label === targetLabel);
+      if (candidates.length === 0) {
+        return null;
+      }
+      return candidates.map((node) => ({ handle: node.handle }));
+    }, label);
+    if (target === null) {
+      await page.mouse.move(canvasBox.x + (canvasBox.width * 0.5), canvasBox.y + Math.min(canvasBox.height - 48, 260));
+      await page.mouse.wheel(0, 220);
+      await page.waitForTimeout(80);
+      continue;
+    }
+    const point = await page.evaluate(({ targets, width, height }) => {
+      const runtime = window.EffinDomBrowserBridge?.getRuntime();
+      if (runtime === undefined || runtime === null) {
+        throw new Error('Expected runtime.');
+      }
+      const targetHandles = new Set(targets.map((target) => target.handle));
+      for (let y = 40; y < height - 40; y += 10) {
+        for (let x = 32; x < width - 32; x += 10) {
+          if (targetHandles.has(runtime.getHandleFromPoint(x, y).toString())) {
+            return { x, y };
+          }
+        }
+      }
+      return null;
+    }, { targets: target, width: canvasBox.width, height: canvasBox.height });
+    if (point !== null) {
+      return point;
+    }
+    await page.mouse.move(canvasBox.x + (canvasBox.width * 0.5), canvasBox.y + Math.min(canvasBox.height - 48, 260));
+    await page.mouse.wheel(0, 220);
+    await page.waitForTimeout(80);
+  }
+  throw new Error(`Unable to find visible hit-test point for ${label}.`);
+}
+
+async function findCurrentVisiblePointForSemanticLabel(
+  page: Page,
+  label: string,
+): Promise<{ x: number; y: number; } | null> {
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  if (canvasBox === null) {
+    throw new Error('Expected scene canvas bounds.');
+  }
+  return await page.evaluate(({ targetLabel, width, height }) => {
+    const runtime = window.EffinDomBrowserBridge?.getRuntime();
+    if (runtime === undefined || runtime === null) {
+      throw new Error('Expected runtime.');
+    }
+    const targets = (window.__bridgeSemanticTree ?? [])
+      .filter((item) => item.label === targetLabel)
+      .map((item) => item.handle);
+    if (targets.length === 0) {
+      return null;
+    }
+    const targetHandles = new Set(targets);
+    for (let y = 40; y < height - 40; y += 8) {
+      for (let x = 32; x < width - 32; x += 8) {
+        if (targetHandles.has(runtime.getHandleFromPoint(x, y).toString())) {
+          return { x, y };
+        }
+      }
+    }
+    return null;
+  }, { targetLabel: label, width: canvasBox.width, height: canvasBox.height });
+}
+
+async function touchLongPressCanvasPoint(
+  page: Page,
+  point: { x: number; y: number; },
+  pointerId: number,
+): Promise<void> {
+  await page.evaluate(({ sceneX, sceneY, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + sceneX,
+      clientY: rect.top + sceneY,
+    }));
+  }, { sceneX: point.x, sceneY: point.y, touchPointerId: pointerId });
+  await page.waitForTimeout(680);
+  await page.evaluate(({ sceneX, sceneY, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+      clientX: rect.left + sceneX,
+      clientY: rect.top + sceneY,
+    }));
+  }, { sceneX: point.x, sceneY: point.y, touchPointerId: pointerId });
+  await page.waitForTimeout(120);
+}
+
+async function nativeTouchLongPressCanvasPoint(
+  page: Page,
+  point: { x: number; y: number; },
+  pointerId: number,
+): Promise<void> {
+  const client = await page.context().newCDPSession(page);
+  await client.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: point.x, y: point.y, id: pointerId, radiusX: 6, radiusY: 6, force: 1 }],
+  });
+  await page.waitForTimeout(680);
+  await client.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  });
+  await page.waitForTimeout(160);
+  await client.detach();
+}
+
+async function touchLongPressSemanticLabelAtFraction(
+  page: Page,
+  label: string,
+  xFraction: number,
+  yFraction: number,
+  pointerId: number,
+): Promise<void> {
+  const bounds = await demo.findSemanticBounds(page, label);
+  expect(bounds).not.toBeNull();
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  if (bounds === null || canvasBox === null) {
+    throw new Error(`Expected semantic bounds and canvas for ${label}.`);
+  }
+  const x = bounds.x + (bounds.width * xFraction);
+  const y = bounds.y + (bounds.height * yFraction);
+  await page.evaluate(({ sceneX, sceneY, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + sceneX,
+      clientY: rect.top + sceneY,
+    }));
+  }, { sceneX: x, sceneY: y, touchPointerId: pointerId });
+  await page.waitForTimeout(680);
+  await page.evaluate(({ sceneX, sceneY, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+      clientX: rect.left + sceneX,
+      clientY: rect.top + sceneY,
+    }));
+  }, { sceneX: x, sceneY: y, touchPointerId: pointerId });
+  await page.waitForTimeout(120);
+}
+
+async function touchTapSemanticLabel(page: Page, label: string, pointerId: number): Promise<void> {
+  const target = await page.evaluate((targetLabel) => {
+    const candidates = (window.__bridgeSemanticTree ?? []).filter((node) => node.label === targetLabel);
+    const canvas = document.getElementById('fui-canvas');
+    const runtime = window.EffinDomBrowserBridge?.getRuntime();
+    if (candidates.length === 0 || !(canvas instanceof HTMLCanvasElement) || runtime === undefined || runtime === null) {
+      throw new Error(`Expected semantic target and canvas for ${targetLabel}.`);
+    }
+    for (let index = candidates.length - 1; index >= 0; index -= 1) {
+      const candidate = candidates[index];
+      const x = candidate.bounds.x + (candidate.bounds.width * 0.5);
+      const y = candidate.bounds.y + (candidate.bounds.height * 0.5);
+      if (runtime.getHandleFromPoint(x, y).toString() === candidate.handle) {
+        return { x, y };
+      }
+    }
+    const target = candidates[candidates.length - 1];
+    return {
+      x: target.bounds.x + (target.bounds.width * 0.5),
+      y: target.bounds.y + (target.bounds.height * 0.5),
+    };
+  }, label);
+  await page.evaluate(({ sceneX, sceneY, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + sceneX,
+      clientY: rect.top + sceneY,
+    }));
+  }, { sceneX: target.x, sceneY: target.y, touchPointerId: pointerId });
+  await page.waitForTimeout(80);
+  await page.evaluate(({ sceneX, sceneY, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+      clientX: rect.left + sceneX,
+      clientY: rect.top + sceneY,
+    }));
+  }, { sceneX: target.x, sceneY: target.y, touchPointerId: pointerId });
+  await page.waitForTimeout(120);
+}
+
+async function readCrossSelectionEndpointRects(
+  page: Page,
+  areaHandle: string,
+): Promise<{
+  start: { x: number; y: number; width: number; height: number };
+  end: { x: number; y: number; width: number; height: number };
+} | null> {
+  return await page.evaluate((handleString) => {
+    const runtime = window.EffinDomBrowserBridge?.getRuntime();
+    if (runtime === undefined || runtime === null) {
+      throw new Error('Expected runtime.');
+    }
+    const ui = runtime.ui;
+    const ptr = BigInt(Number(ui._malloc(8 * 4)));
+    const offset = Number(ptr);
+    try {
+      const copied = ui._ui_copy_cross_selection_endpoint_rects(BigInt(handleString), ptr);
+      if (copied === 0) {
+        return null;
+      }
+      const view = new DataView(ui.HEAPU8.buffer);
+      return {
+        start: {
+          x: view.getFloat32(offset, true),
+          y: view.getFloat32(offset + 4, true),
+          width: view.getFloat32(offset + 8, true),
+          height: view.getFloat32(offset + 12, true),
+        },
+        end: {
+          x: view.getFloat32(offset + 16, true),
+          y: view.getFloat32(offset + 20, true),
+          width: view.getFloat32(offset + 24, true),
+          height: view.getFloat32(offset + 28, true),
+        },
+      };
+    } finally {
+      ui._free(ptr);
+    }
+  }, areaHandle);
+}
+
+async function dragTouchCanvasPointWithoutRelease(
+  page: Page,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  pointerId: number,
+): Promise<void> {
+  await page.evaluate(({ startPoint, endPoint, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    const dispatch = (type: string, point: { x: number; y: number }): void => {
+      canvas.dispatchEvent(new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        pointerId: touchPointerId,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: type === 'pointerup' ? 0 : 1,
+        clientX: rect.left + point.x,
+        clientY: rect.top + point.y,
+      }));
+    };
+    dispatch('pointerdown', startPoint);
+    dispatch('pointermove', {
+      x: startPoint.x + ((endPoint.x - startPoint.x) * 0.35),
+      y: startPoint.y + ((endPoint.y - startPoint.y) * 0.35),
+    });
+    dispatch('pointermove', {
+      x: startPoint.x + ((endPoint.x - startPoint.x) * 0.7),
+      y: startPoint.y + ((endPoint.y - startPoint.y) * 0.7),
+    });
+    dispatch('pointermove', endPoint);
+  }, { startPoint: start, endPoint: end, touchPointerId: pointerId });
+  await page.waitForTimeout(120);
+}
+
+async function releaseTouchCanvasPoint(
+  page: Page,
+  point: { x: number; y: number },
+  pointerId: number,
+): Promise<void> {
+  await page.evaluate(({ endPoint, touchPointerId }) => {
+    const canvas = document.getElementById('fui-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Expected scene canvas.');
+    }
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      cancelable: true,
+      pointerId: touchPointerId,
+      pointerType: 'touch',
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+      clientX: rect.left + endPoint.x,
+      clientY: rect.top + endPoint.y,
+    }));
+  }, { endPoint: point, touchPointerId: pointerId });
+  await page.waitForTimeout(120);
+}
 
 test('demo tooltip sample opens as multiline on hover and hides on leave', async ({ page }) => {
   await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?tooltip-sample=1`);
@@ -165,7 +533,7 @@ test('demo hover tooltip dismisses when scrolling starts', async ({ page }) => {
     if (nextBounds !== null) {
       scrolledButtonBounds = nextBounds;
     }
-    return Math.abs((scrolledButtonBounds?.y ?? 0) - tooltipButtonBounds.y) > 1;
+    return Math.abs(scrolledButtonBounds.y - tooltipButtonBounds.y) > 1;
   }).toBe(true);
 
   const scrolledProbeRegion = buildProbeRegion(scrolledButtonBounds);
@@ -324,7 +692,7 @@ test('rounded sidebar shell clips scrolled rows and scrollbar chrome at the bott
     return await demo.readFirstVisibleItemIndex(page);
   }).toBeGreaterThanOrEqual(200);
 
-  const firstVisibleLabel = `Item ${await demo.readFirstVisibleItemIndex(page)}`;
+  const firstVisibleLabel = `Item ${String(await demo.readFirstVisibleItemIndex(page))}`;
   const firstVisibleBounds = await demo.findSemanticBounds(page, firstVisibleLabel);
   expect(firstVisibleBounds).not.toBeNull();
   if (firstVisibleBounds === null) {
@@ -374,9 +742,9 @@ test('shift arrow down extends an existing wrapped selection through the browser
   await page.mouse.up();
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).not.toBe('');
-  const initialSelection = await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+  const initialSelection = await page.evaluate(() => window.__fuiSelectionText ?? '');
 
   await page.evaluate(() => {
     if (window.__bridgeLogs !== undefined) {
@@ -390,7 +758,7 @@ test('shift arrow down extends an existing wrapped selection through the browser
   await expect.poll(async () => {
     return await page.evaluate(() => window.__bridgeLogs?.crossSelectionChanges.length ?? 0);
   }).toBeGreaterThan(0);
-  const verticalSelection = await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+  const verticalSelection = await page.evaluate(() => window.__fuiSelectionText ?? '');
   expect(verticalSelection.length).toBeGreaterThanOrEqual(initialSelection.length);
 });
 
@@ -416,7 +784,7 @@ test('double-clicking selectable text selects the clicked word in the demo', asy
   await page.mouse.dblclick(clickX, clickY);
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe('Scrollable');
 });
 
@@ -442,7 +810,7 @@ test('triple-clicking selectable text selects the clicked paragraph in the demo'
   await page.mouse.click(clickX, clickY, { clickCount: 3 });
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe('Scrollable list');
 });
 
@@ -478,12 +846,227 @@ test('plain text context-menu select-all clears when clicking the selection in t
   );
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe('Scrollable list');
 
   await page.mouse.click(clickX, clickY);
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe('');
+});
+
+test('mobile long press on advanced TextArea shows selection handles and toolbar', async ({ page }) => {
+  const textAreaLabel = 'Advanced controls demo text area';
+
+  await demo.forceCoarsePointer(page);
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+
+  const point = await findVisiblePointForSemanticLabel(page, textAreaLabel);
+  await nativeTouchLongPressCanvasPoint(page, point, 701);
+
+  await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(['Cut', 'Copy', 'Paste', 'More']);
+  await expect.poll(async () => {
+    const selection = await demo.readHiddenTextEditorState(page);
+    return selection === null ? null : {
+      start: selection.absoluteStart,
+      end: selection.absoluteEnd,
+    };
+  }).not.toBeNull();
+  await expect.poll(async () => {
+    const selection = await demo.readHiddenTextEditorState(page);
+    return selection === null ? null : selection.end > selection.start;
+  }).toBe(true);
+
+  await touchTapSemanticLabel(page, 'More', 703);
+  await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(['Select all', '<']);
+  await touchTapSemanticLabel(page, 'Select all', 704);
+
+  await expect.poll(async () => {
+    const selection = await demo.readHiddenTextEditorState(page);
+    return selection === null ? null : {
+      start: selection.absoluteStart,
+      end: selection.absoluteEnd,
+      length: selection.value.length,
+    };
+  }).toEqual({ start: 0, end: 80, length: 80 });
+});
+
+test('mobile TextArea selection handle drag works from the visible handle child', async ({ page }) => {
+  const textAreaLabel = 'Advanced controls demo text area';
+
+  await demo.forceCoarsePointer(page);
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+
+  const point = await findVisiblePointForSemanticLabel(page, textAreaLabel);
+  await nativeTouchLongPressCanvasPoint(page, point, 711);
+
+  const initialSelection = await demo.readHiddenTextEditorState(page);
+  expect(initialSelection).not.toBeNull();
+  if (initialSelection === null) {
+    throw new Error('Expected initial TextArea selection.');
+  }
+
+  const selectionHandles = await page.evaluate(async () => {
+    const runtime = window.EffinDomBrowserBridge?.getRuntime();
+    const tree = await window.__fui_debug?.getDebugTree();
+    if (runtime === undefined || runtime === null || tree === undefined || typeof runtime.ui._ui_preserves_selection_on_pointer_down !== 'function') {
+      throw new Error('Expected runtime selection handle query.');
+    }
+    const preservesSelectionOnPointerDown = runtime.ui._ui_preserves_selection_on_pointer_down;
+    const handles = tree.nodes
+      .filter((node) => node.visibleBounds.width > 0 &&
+        node.visibleBounds.height > 0 &&
+        preservesSelectionOnPointerDown(BigInt(node.handle)) === 1 &&
+        Math.round(node.visibleBounds.width) === 90 &&
+        Math.round(node.visibleBounds.height) === 90)
+      .map((node) => ({ handle: node.handle, bounds: node.visibleBounds }))
+      .sort((left, right) => left.bounds.x - right.bounds.x);
+    if (handles.length === 0) {
+      throw new Error('Expected visible selection handle.');
+    }
+    return handles;
+  });
+  expect(selectionHandles.length).toBeGreaterThanOrEqual(2);
+  const startHandle = selectionHandles[0];
+  const stationaryEndHandle = selectionHandles[1];
+
+  const start = {
+    x: startHandle.bounds.x + 63,
+    y: startHandle.bounds.y + 34,
+  };
+  const dragEnd = {
+    x: stationaryEndHandle.bounds.x + stationaryEndHandle.bounds.width + 80,
+    y: start.y + 36,
+  };
+  await expect.poll(async () => {
+    return await page.evaluate((args) => {
+      const runtime = window.EffinDomBrowserBridge?.getRuntime();
+      if (runtime === undefined || runtime === null) {
+        return 0;
+      }
+      const hit = runtime.getHandleFromPoint(args.x, args.y);
+      return runtime.ui._ui_preserves_selection_on_pointer_down?.(hit) ?? 0;
+    }, { x: start.x, y: start.y });
+  }, { timeout: 10000 }).toBe(1);
+
+  await dragTouchCanvasPointWithoutRelease(
+    page,
+    start,
+    dragEnd,
+    712,
+  );
+  await expect.poll(async () => {
+    return await page.evaluate(async (handle) => {
+      const tree = await window.__fui_debug?.getDebugTree();
+      const node = tree?.nodes.find((entry) => entry.handle === handle.handle);
+      return node === undefined ? null : Math.round(node.visibleBounds.x);
+    }, stationaryEndHandle);
+  }, { timeout: 10000 }).toBe(Math.round(stationaryEndHandle.bounds.x));
+  await releaseTouchCanvasPoint(page, dragEnd, 712);
+
+  const finalSelection = await demo.readHiddenTextEditorState(page);
+  expect(finalSelection).not.toBeNull();
+  expect(finalSelection?.end).toBeGreaterThan(finalSelection?.start ?? 0);
+  expect({
+    start: finalSelection?.absoluteStart,
+    end: finalSelection?.absoluteEnd,
+  }).not.toEqual({
+    start: initialSelection.absoluteStart,
+    end: initialSelection.absoluteEnd,
+  });
+});
+
+test('mobile toolbar Select all expands a touch word selection in the dashboard', async ({ page }) => {
+  await demo.forceCoarsePointer(page);
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?mobile-selection=1`);
+  await demo.waitForDemoReady(page);
+
+  await touchLongPressSemanticLabelAtFraction(page, 'Scrollable list', 0.22, 0.5, 702);
+  await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(['Copy', 'Select all']);
+  await expect.poll(async () => {
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
+  }).toBe('Scrollable');
+});
+
+test('mobile touch handle drag updates selection live when crossing nested scroll boundary', async ({ page }) => {
+  await demo.forceCoarsePointer(page);
+  await page.setViewportSize({ width: 960, height: 900 });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?mobile-selection=1`);
+  await demo.waitForDemoReady(page);
+  const nestedOriginPoint = await findVisiblePointForSemanticLabel(page, 'Nested origin marker');
+
+  await page.evaluate(() => {
+    if (window.__bridgeLogs !== undefined) {
+      window.__bridgeLogs.crossSelectionChanges.length = 0;
+    }
+  });
+  await touchLongPressCanvasPoint(page, nestedOriginPoint, 708);
+  await expect.poll(async () => {
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
+  }).toBe('Nested');
+
+  const areaHandle = await page.evaluate(() => {
+    const changes = window.__bridgeLogs?.crossSelectionChanges ?? [];
+    return changes.length === 0 ? '' : changes[changes.length - 1]?.areaHandle ?? '';
+  });
+  expect(areaHandle).not.toBe('');
+
+  const endpointRects = await readCrossSelectionEndpointRects(page, areaHandle);
+  expect(endpointRects).not.toBeNull();
+  const parentTextPoint = await findCurrentVisiblePointForSemanticLabel(page, 'Nested scroll sandbox');
+  expect(parentTextPoint).not.toBeNull();
+  if (endpointRects === null || parentTextPoint === null) {
+    throw new Error('Expected endpoint rects and visible parent heading point.');
+  }
+
+  const startHandlePoint = {
+    x: endpointRects.start.x - 8,
+    y: endpointRects.start.y + endpointRects.start.height + 20,
+  };
+
+  await dragTouchCanvasPointWithoutRelease(page, startHandlePoint, parentTextPoint, 709);
+
+  const beforeReleaseSelection = await page.evaluate(() => window.__fuiSelectionText ?? '');
+  await releaseTouchCanvasPoint(page, parentTextPoint, 709);
+
+  const afterReleaseSelection = await page.evaluate(() => window.__fuiSelectionText ?? '');
+  const parentBoundaryText = 'Nested scroll sandbox';
+  expect(afterReleaseSelection).toContain(parentBoundaryText);
+  expect(beforeReleaseSelection).toContain(parentBoundaryText);
+});
+
+test('mobile toolbar Select all targets the touched advanced title text node', async ({ page }) => {
+  await demo.forceCoarsePointer(page);
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+
+  const point = await page.evaluate(() => {
+    const target = (window.__bridgeSemanticTree ?? [])
+      .filter((node) => node.label === 'Advanced controls')
+      .find((node) => node.bounds.width > 200 && node.bounds.height > 50);
+    if (target === undefined) {
+      throw new Error('Expected large Advanced controls heading.');
+    }
+    return {
+      x: target.bounds.x + 12,
+      y: target.bounds.y + 18,
+    };
+  });
+  await touchLongPressCanvasPoint(page, point, 705);
+  await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(['Copy', 'Select all']);
+
+  await touchTapSemanticLabel(page, 'Select all', 706);
+  await touchTapSemanticLabel(page, 'Copy', 707);
+
+  await expect.poll(async () => {
+    const writes = await page.evaluate(() => window.__bridgeLogs?.clipboardWrites ?? []);
+    return writes.length == 0 ? '' : writes[writes.length - 1] ?? '';
+  }).toBe('Advanced controls');
 });

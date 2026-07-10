@@ -1,4 +1,4 @@
-import { BorderStyle, CursorStyle, Unit } from "../../core/ffi";
+import { CursorStyle, Unit } from "../../core/ffi";
 import { Node } from "../../core/Node";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
@@ -54,7 +54,7 @@ class DefaultTextInputPresenter extends TextInputPresenter {
     this.host
       .bgColor(bg)
       .cornerRadius(theme.spacing.sm)
-      .border(1.0, borderColor, BorderStyle.Solid)
+      .border(1.0, borderColor)
       .padding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
       .cursor(shellCursor);
     this.host.opacity(state.enabled ? 1.0 : 0.6);

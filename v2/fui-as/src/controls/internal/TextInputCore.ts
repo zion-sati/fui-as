@@ -1,14 +1,15 @@
 import * as ui from "../../bindings/ui";
 import { HandlerAction } from "../../core/Action";
-import { Callback1, Callback2, Handler1, Handler2 } from "../../core/BoundCallback";
+import { Callback1, Handler1 } from "../../core/BoundCallback";
 import { Disposable, disposeAll } from "../../core/Disposable";
 import { FocusAdornerManager } from "../../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../../core/FocusVisibility";
-import { Node } from "../../core/Node";
+import { FocusChangedEventArgs, Node, SelectionChangedEventArgs, TextChangedEventArgs } from "../../core/Node";
 import {
-  BorderStyle,
   CursorStyle,
   HandleValue,
+  KeyEventType,
+  KeyModifier,
   PointerEventType,
   SemanticRole,
   TextVerticalAlign,
@@ -18,7 +19,7 @@ import { Theme, activeTheme } from "../../core/Theme";
 import { FontFamily } from "../../core/Typography";
 import { PersistedStringCodec, PersistedValueState } from "../../core/PersistedState";
 import { FlexBox, ScrollBarVisibility, ScrollBox, TextCore } from "../../nodes";
-import { bind1, bind2 } from "../../core/bind";
+import { bind1 } from "../../core/bind";
 import { ScrollState } from "../../nodes/ScrollState";
 import { ScrollView } from "../../nodes/ScrollView";
 import { getControlTemplates } from "../ControlTemplateSet";
@@ -40,6 +41,93 @@ function clampSelection(position: u32, textLength: i32): u32 {
 function utf8ByteLength(text: string): u32 {
   const bytes = Uint8Array.wrap(String.UTF8.encode(text, false));
   return <u32>bytes.length;
+}
+
+function utf8CodePointByteLength(codePoint: u32): u32 {
+  if (codePoint <= 0x7F) {
+    return 1;
+  }
+  if (codePoint <= 0x7FF) {
+    return 2;
+  }
+  if (codePoint <= 0xFFFF) {
+    return 3;
+  }
+  return 4;
+}
+
+function readCodePoint(text: string, index: i32): u32 {
+  const first = <u32>text.charCodeAt(index);
+  if (first < 0xD800 || first > 0xDBFF || index + 1 >= text.length) {
+    return first;
+  }
+  const second = <u32>text.charCodeAt(index + 1);
+  if (second < 0xDC00 || second > 0xDFFF) {
+    return first;
+  }
+  return 0x10000 + ((first - 0xD800) << 10) + (second - 0xDC00);
+}
+
+function codePointStringLength(codePoint: u32): i32 {
+  return codePoint > 0xFFFF ? 2 : 1;
+}
+
+function codePointCount(text: string): u32 {
+  let count: u32 = 0;
+  let cursor = 0;
+  while (cursor < text.length) {
+    const codePoint = readCodePoint(text, cursor);
+    cursor += codePointStringLength(codePoint);
+    count += 1;
+  }
+  return count;
+}
+
+function utf8ByteOffsetFromCodePointIndex(text: string, index: u32): u32 {
+  const countLimit = codePointCount(text);
+  const clampedIndex = index > countLimit ? countLimit : index;
+  let byteOffset: u32 = 0;
+  let cursor = 0;
+  let count: u32 = 0;
+  while (cursor < text.length && count < clampedIndex) {
+    const codePoint = readCodePoint(text, cursor);
+    byteOffset += utf8CodePointByteLength(codePoint);
+    cursor += codePointStringLength(codePoint);
+    count += 1;
+  }
+  return byteOffset;
+}
+
+function stringOffsetFromCodePointIndex(text: string, index: u32): i32 {
+  const countLimit = codePointCount(text);
+  const clampedIndex = index > countLimit ? countLimit : index;
+  let cursor = 0;
+  let count: u32 = 0;
+  while (cursor < text.length && count < clampedIndex) {
+    const codePoint = readCodePoint(text, cursor);
+    cursor += codePointStringLength(codePoint);
+    count += 1;
+  }
+  return cursor;
+}
+
+function codePointIndexFromUtf8ByteOffset(text: string, byteOffset: u32): u32 {
+  const length = utf8ByteLength(text);
+  const clampedOffset = byteOffset > length ? length : byteOffset;
+  let bytes: u32 = 0;
+  let cursor = 0;
+  let count: u32 = 0;
+  while (cursor < text.length) {
+    const codePoint = readCodePoint(text, cursor);
+    const byteLength = utf8CodePointByteLength(codePoint);
+    if (bytes + byteLength > clampedOffset) {
+      break;
+    }
+    bytes += byteLength;
+    cursor += codePointStringLength(codePoint);
+    count += 1;
+  }
+  return count;
 }
 
 export class TextInputProfile {
@@ -109,6 +197,16 @@ class TextInputEditorText extends TextCore {
     super._handleSelectionChanged(start, end);
     this.owner.handleEditorSelectionChanged(start, end);
   }
+
+  _handleKeyEvent(eventType: KeyEventType, key: string, modifiers: u32): bool {
+    if (super._handleKeyEvent(eventType, key, modifiers)) {
+      return true;
+    }
+    if (eventType == KeyEventType.Down && this.owner.handleEditorKeyDown(key, modifiers)) {
+      return true;
+    }
+    return false;
+  }
 }
 
 class TextInputPlaceholderHost extends FlexBox {
@@ -163,9 +261,13 @@ export class TextInputCore extends FlexBox {
   private placeholderValue: string = "";
   private selectionStartValue: u32 = 0;
   private selectionEndValue: u32 = 0;
+  private selectionStartByteValue: u32 = 0;
+  private selectionEndByteValue: u32 = 0;
   private focusedState: bool = false;
   private readOnlyValue: bool = false;
   private passwordValue: bool = false;
+  private acceptsTabValue: bool = false;
+  private hostAutofillHintValue: string | null = null;
   private maxCharsValue: i32 = UNLIMITED_TEXT_LENGTH;
   private wrappingValue: bool;
   private verticalScrollbarVisibilityValue: ScrollBarVisibility = ScrollBarVisibility.Auto;
@@ -173,12 +275,12 @@ export class TextInputCore extends FlexBox {
   private fontFamilyOverride: FontFamily | null = null;
   private fontSizeOverride: f32 = 0.0;
   private hasFontSizeOverride: bool = false;
-  private changedCb: ((text: string) => void) | null = null;
-  private changedBinding: Callback1<string> | null = null;
-  private selectionChangedCb: ((start: u32, end: u32) => void) | null = null;
-  private selectionChangedBinding: Callback2<u32, u32> | null = null;
-  private focusChangedListener: ((focused: bool) => void) | null = null;
-  private textInputFocusChangedBinding: Callback1<bool> | null = null;
+  private changedCb: ((event: TextChangedEventArgs) => void) | null = null;
+  private changedBinding: Callback1<TextChangedEventArgs> | null = null;
+  private selectionChangedCb: ((event: SelectionChangedEventArgs) => void) | null = null;
+  private selectionChangedBinding: Callback1<SelectionChangedEventArgs> | null = null;
+  private focusChangedListener: ((event: FocusChangedEventArgs) => void) | null = null;
+  private textInputFocusChangedBinding: Callback1<FocusChangedEventArgs> | null = null;
   private templateValue: TextInputTemplate | null = null;
   private colorsValue: TextInputColors | null = null;
 
@@ -186,6 +288,12 @@ export class TextInputCore extends FlexBox {
     super();
     this.profile = profile;
     this.textValue = text;
+    const initialCaret = codePointCount(text);
+    const initialCaretByte = utf8ByteLength(text);
+    this.selectionStartValue = initialCaret;
+    this.selectionEndValue = initialCaret;
+    this.selectionStartByteValue = initialCaretByte;
+    this.selectionEndByteValue = initialCaretByte;
     this.wrappingValue = profile.wrapsByDefault;
     this.editorText = new TextInputEditorText(this, text);
     this.placeholderText = new TextCore("");
@@ -213,6 +321,7 @@ export class TextInputCore extends FlexBox {
     this.syncSemanticLabel();
     this.syncEditorLimits();
     this.syncEditorEditability();
+    this.syncBrowserInputMetadata();
     this.syncThemeState(activeTheme.value);
     this.syncPlaceholderVisibility();
     this.persistState(TEXT_INPUT_PERSISTED_STATE);
@@ -232,6 +341,14 @@ export class TextInputCore extends FlexBox {
 
   get selectionEnd(): u32 {
     return this.selectionEndValue;
+  }
+
+  get selectionStartByteOffset(): u32 {
+    return this.selectionStartByteValue;
+  }
+
+  get selectionEndByteOffset(): u32 {
+    return this.selectionEndByteValue;
   }
 
   get isFocused(): bool {
@@ -266,11 +383,41 @@ export class TextInputCore extends FlexBox {
 
   text(value: string): this {
     this.textValue = value;
-    this.clampSelectionToText();
     this.editorText.text(value);
+    this.caretStringIndex(codePointCount(value));
     this.syncSemanticLabel();
     this.syncPlaceholderVisibility();
     return this;
+  }
+
+  selectionRange(start: u32, end: u32): this {
+    const length = codePointCount(this.textValue);
+    const clampedStart = clampSelection(start, <i32>length);
+    const clampedEnd = clampSelection(end, <i32>length);
+    const clampedStartByte = utf8ByteOffsetFromCodePointIndex(this.textValue, clampedStart);
+    const clampedEndByte = utf8ByteOffsetFromCodePointIndex(this.textValue, clampedEnd);
+    this.selectionStartValue = clampedStart;
+    this.selectionEndValue = clampedEnd;
+    this.selectionStartByteValue = clampedStartByte;
+    this.selectionEndByteValue = clampedEndByte;
+    const handle = this.editorText.builtHandle;
+    if (handle != <u64>HandleValue.Invalid) {
+      ui.setTextSelectionRange(handle, clampedStartByte, clampedEndByte);
+    }
+    return this;
+  }
+
+  caret(position: u32): this {
+    return this.caretStringIndex(position);
+  }
+
+  caretToEnd(): this {
+    const end = codePointCount(this.textValue);
+    return this.caretStringIndex(end);
+  }
+
+  private caretStringIndex(position: u32): this {
+    return this.selectionRange(position, position);
   }
 
   placeholder(value: string): this {
@@ -293,65 +440,78 @@ export class TextInputCore extends FlexBox {
     return this;
   }
 
+  acceptsTab(flag: bool = true): this {
+    this.acceptsTabValue = flag;
+    this.editorText._editorAcceptsTab(flag);
+    return this;
+  }
+
   password(flag: bool = true): this {
     this.passwordValue = flag;
     this.editorText.obscured(flag);
+    this.syncBrowserInputMetadata();
     this.syncSemanticLabel();
     return this;
   }
 
-  onChanged(cb: (text: string) => void): this {
+  hostAutofill(hint: string | null = null): this {
+    this.hostAutofillHintValue = hint !== null && hint.length > 0 ? hint : null;
+    this.syncBrowserInputMetadata();
+    return this;
+  }
+
+  onChanged(cb: (event: TextChangedEventArgs) => void): this {
     this.changedCb = cb;
     this.changedBinding = null;
     return this;
   }
 
-  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, TextChangedEventArgs>): this {
     this.changedCb = null;
-    this.changedBinding = bind1<Owner, string>(owner, handler);
+    this.changedBinding = bind1<Owner, TextChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, TextChangedEventArgs>): this {
     this.bindChanged(owner, handler);
     return this;
   }
 
-  onTextChanged(cb: (text: string) => void): this {
+  onTextChanged(cb: (event: TextChangedEventArgs) => void): this {
     this.onChanged(cb);
     return this;
   }
 
-  onSelectionChanged(cb: (start: u32, end: u32) => void): this {
+  onSelectionChanged(cb: (event: SelectionChangedEventArgs) => void): this {
     this.selectionChangedCb = cb;
     this.selectionChangedBinding = null;
     return this;
   }
 
-  bindSelectionChanged<Owner>(owner: Owner, handler: Handler2<Owner, u32, u32>): this {
+  bindSelectionChanged<Owner>(owner: Owner, handler: Handler1<Owner, SelectionChangedEventArgs>): this {
     this.selectionChangedCb = null;
-    this.selectionChangedBinding = bind2<Owner, u32, u32>(owner, handler);
+    this.selectionChangedBinding = bind1<Owner, SelectionChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onSelectionChangedWith<Owner>(owner: Owner, handler: Handler2<Owner, u32, u32>): this {
+  onSelectionChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, SelectionChangedEventArgs>): this {
     this.bindSelectionChanged(owner, handler);
     return this;
   }
 
-  onFocusChanged(cb: (focused: bool) => void): this {
+  onFocusChanged(cb: (event: FocusChangedEventArgs) => void): this {
     this.focusChangedListener = cb;
     this.textInputFocusChangedBinding = null;
     return this;
   }
 
-  bindFocusChanged<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  bindFocusChanged<Owner>(owner: Owner, handler: Handler1<Owner, FocusChangedEventArgs>): this {
     this.focusChangedListener = null;
-    this.textInputFocusChangedBinding = bind1<Owner, bool>(owner, handler);
+    this.textInputFocusChangedBinding = bind1<Owner, FocusChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onFocusChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  onFocusChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, FocusChangedEventArgs>): this {
     this.bindFocusChanged(owner, handler);
     return this;
   }
@@ -382,6 +542,7 @@ export class TextInputCore extends FlexBox {
 
   focusNow(): this {
     this.focusEditor();
+    this.selectionByteRange(this.selectionStartByteValue, this.selectionEndByteValue);
     return this;
   }
 
@@ -420,8 +581,12 @@ export class TextInputCore extends FlexBox {
     if (this.builtHandle != <u64>HandleValue.Invalid) {
       return this.builtHandle;
     }
+    const intendedSelectionStartByte = this.selectionStartByteValue;
+    const intendedSelectionEndByte = this.selectionEndByteValue;
     const handle = super.build();
     ui.setSelectionAreaBarrier(handle, true);
+    this.syncBrowserInputMetadata();
+    this.selectionByteRange(intendedSelectionStartByte, intendedSelectionEndByte);
     return handle;
   }
 
@@ -524,7 +689,7 @@ export class TextInputCore extends FlexBox {
       this.bgColor(colors.backgroundColor);
     }
     if (colors !== null && colors.hasBorder) {
-      this.border(1.0, colors.borderColor, BorderStyle.Solid);
+      this.border(1.0, colors.borderColor);
     }
 
     this.syncFocusChrome(theme);
@@ -537,17 +702,21 @@ export class TextInputCore extends FlexBox {
     this.focusedState = focused;
     this.syncFocusChrome(activeTheme.value);
     this.syncPlaceholderVisibility();
+    const event = new FocusChangedEventArgs(focused);
     const callback = this.focusChangedListener;
     if (callback !== null) {
-      callback(focused);
+      callback(event);
     }
     const binding = this.textInputFocusChangedBinding;
     if (binding !== null) {
-      binding.invoke(focused);
+      binding.invoke(event);
     }
   }
 
   handleEditorTextChanged(value: string): void {
+    if (this.textValue == value) {
+      return;
+    }
     this.textValue = value;
     this.clampSelectionToText();
     this.syncSemanticLabel();
@@ -555,27 +724,97 @@ export class TextInputCore extends FlexBox {
     this.emitTextChanged(value);
   }
 
+  handleEditorKeyDown(key: string, modifiers: u32): bool {
+    if (!this.isEnabled) {
+      return false;
+    }
+    const nonShiftModifiers = modifiers & (<u32>KeyModifier.Ctrl | <u32>KeyModifier.Alt | <u32>KeyModifier.Meta);
+    if (
+      nonShiftModifiers == 0 &&
+      (
+        key == "ArrowLeft" ||
+        key == "ArrowRight" ||
+        key == "ArrowUp" ||
+        key == "ArrowDown" ||
+        key == "Home" ||
+        key == "End" ||
+        key == "PageUp" ||
+        key == "PageDown"
+      )
+    ) {
+      return true;
+    }
+    if (this.acceptsTabValue && key == "Tab" && modifiers == 0 && !this.readOnlyValue) {
+      this.replaceSelectionWithText("\t");
+      return true;
+    }
+    return false;
+  }
+
+  private replaceSelectionWithText(inserted: string): void {
+    const text = this.textValue;
+    const start = this.selectionStartValue < this.selectionEndValue ? this.selectionStartValue : this.selectionEndValue;
+    const end = this.selectionStartValue > this.selectionEndValue ? this.selectionStartValue : this.selectionEndValue;
+    const currentLength = codePointCount(text);
+    const insertedLength = codePointCount(inserted);
+    const replacementLength = end - start;
+    if (currentLength - replacementLength + insertedLength > <u32>this.maxCharsValue) {
+      return;
+    }
+    const startOffset = stringOffsetFromCodePointIndex(text, start);
+    const endOffset = stringOffsetFromCodePointIndex(text, end);
+    const value = text.substring(0, startOffset) + inserted + text.substring(endOffset);
+    const caret = start + insertedLength;
+    this.textValue = value;
+    const handle = this.editorText.builtHandle;
+    if (handle != 0) {
+      const startByte = utf8ByteOffsetFromCodePointIndex(text, start);
+      const endByte = utf8ByteOffsetFromCodePointIndex(text, end);
+      const caretByte = utf8ByteOffsetFromCodePointIndex(value, caret);
+      ui.replaceTextRange(handle, startByte, endByte, inserted, caretByte);
+      this.selectionStartValue = caret;
+      this.selectionEndValue = caret;
+      this.selectionStartByteValue = caretByte;
+      this.selectionEndByteValue = caretByte;
+    } else {
+      this.editorText.text(value);
+      this.selectionRange(caret, caret);
+    }
+    this.syncSemanticLabel();
+    this.syncPlaceholderVisibility();
+    this.emitTextChanged(value);
+    this.emitSelectionChanged();
+  }
+
   private emitTextChanged(value: string): void {
+    const event = new TextChangedEventArgs(value);
     const callback = this.changedCb;
     if (callback !== null) {
-      callback(value);
+      callback(event);
     }
     const binding = this.changedBinding;
     if (binding !== null) {
-      binding.invoke(value);
+      binding.invoke(event);
     }
   }
 
   handleEditorSelectionChanged(start: u32, end: u32): void {
-    this.selectionStartValue = start;
-    this.selectionEndValue = end;
+    this.selectionStartByteValue = start;
+    this.selectionEndByteValue = end;
+    this.selectionStartValue = codePointIndexFromUtf8ByteOffset(this.textValue, start);
+    this.selectionEndValue = codePointIndexFromUtf8ByteOffset(this.textValue, end);
+    this.emitSelectionChanged();
+  }
+
+  private emitSelectionChanged(): void {
+    const event = new SelectionChangedEventArgs(this.selectionStartValue, this.selectionEndValue);
     const callback = this.selectionChangedCb;
     if (callback !== null) {
-      callback(start, end);
+      callback(event);
     }
     const binding = this.selectionChangedBinding;
     if (binding !== null) {
-      binding.invoke(start, end);
+      binding.invoke(event);
     }
   }
 
@@ -586,6 +825,14 @@ export class TextInputCore extends FlexBox {
   private syncEditorEditability(): void {
     this.editorText.selectable(this.isEnabled);
     this.editorText.editable(!this.readOnlyValue && this.isEnabled);
+  }
+
+  private syncBrowserInputMetadata(): void {
+    const handle = this.editorText.builtHandle;
+    if (handle == <u64>HandleValue.Invalid) {
+      return;
+    }
+    ui.registerTextInputMetadata(handle, this.passwordValue, this.hostAutofillHintValue);
   }
 
   private syncSemanticLabel(): void {
@@ -618,9 +865,26 @@ export class TextInputCore extends FlexBox {
   }
 
   private clampSelectionToText(): void {
-    const length = this.textValue.length;
-    this.selectionStartValue = clampSelection(this.selectionStartValue, length);
-    this.selectionEndValue = clampSelection(this.selectionEndValue, length);
+    const length = codePointCount(this.textValue);
+    this.selectionStartValue = clampSelection(this.selectionStartValue, <i32>length);
+    this.selectionEndValue = clampSelection(this.selectionEndValue, <i32>length);
+    this.selectionStartByteValue = utf8ByteOffsetFromCodePointIndex(this.textValue, this.selectionStartValue);
+    this.selectionEndByteValue = utf8ByteOffsetFromCodePointIndex(this.textValue, this.selectionEndValue);
+  }
+
+  private selectionByteRange(start: u32, end: u32): this {
+    const length = utf8ByteLength(this.textValue);
+    const clampedStart = clampSelection(start, <i32>length);
+    const clampedEnd = clampSelection(end, <i32>length);
+    this.selectionStartByteValue = clampedStart;
+    this.selectionEndByteValue = clampedEnd;
+    this.selectionStartValue = codePointIndexFromUtf8ByteOffset(this.textValue, clampedStart);
+    this.selectionEndValue = codePointIndexFromUtf8ByteOffset(this.textValue, clampedEnd);
+    const handle = this.editorText.builtHandle;
+    if (handle != <u64>HandleValue.Invalid) {
+      ui.setTextSelectionRange(handle, clampedStart, clampedEnd);
+    }
+    return this;
   }
 
   focusEditor(): void {
@@ -635,7 +899,11 @@ export class TextInputCore extends FlexBox {
       return;
     }
     if (!this.profile.multiline) {
-      this.focusEditor();
+      if (this.focusedState) {
+        this.focusEditor();
+      } else {
+        this.focusNow();
+      }
       return;
     }
     this.handleViewportPointerDown();
@@ -645,13 +913,11 @@ export class TextInputCore extends FlexBox {
     if (!this.isEnabled) {
       return;
     }
-    const handle = this.editorText.builtHandle;
-    if (handle == <u64>HandleValue.Invalid) {
+    if (this.focusedState) {
       this.focusEditor();
       return;
     }
-    const documentEnd = utf8ByteLength(this.textValue);
-    ui.setTextSelectionRange(handle, documentEnd, documentEnd);
+    this.focusNow();
   }
 
   private syncEditorWrapping(): void {

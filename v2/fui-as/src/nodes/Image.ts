@@ -11,6 +11,7 @@ import {
 import { Action, HandlerAction } from "../core/Action";
 import * as ui from "../bindings/ui";
 import { NodeType, ObjectFit, SemanticRole, Unit } from "../core/ffi";
+import { ImageSampling } from "../core/ImageSampling";
 import { Signal } from "../core/Signal";
 import { FlexBox, FlexBoxProps } from "./FlexBox";
 
@@ -18,6 +19,7 @@ export class Image extends FlexBox {
   private textureIdValue: u32;
   private sourceUrlValue: string = "";
   private objectFitValue: ObjectFit;
+  private samplingValue: ImageSampling = ImageSampling.linear();
   private ownedTextureAssetId: u32 = 0;
   private hasNinePatch: bool = false;
   private insetLeft: f32 = 0.0;
@@ -106,6 +108,15 @@ export class Image extends FlexBox {
 
   objectFit(objectFit: ObjectFit): this {
     this.objectFitValue = objectFit;
+    if (this.hasBuiltHandle()) {
+      this.applyImageSource();
+      this.notifyRetainedMutation();
+    }
+    return this;
+  }
+
+  sampling(sampling: ImageSampling): this {
+    this.samplingValue = sampling;
     if (this.hasBuiltHandle()) {
       this.applyImageSource();
       this.notifyRetainedMutation();
@@ -207,10 +218,18 @@ export class Image extends FlexBox {
         this.insetTop,
         this.insetRight,
         this.insetBottom,
+        <u32>this.samplingValue.kind,
+        this.samplingValue.maxAniso,
       );
       return;
     }
-    ui.setImage(this.handle, this.textureIdValue, <u32>this.objectFitValue);
+    ui.setImage(
+      this.handle,
+      this.textureIdValue,
+      <u32>this.objectFitValue,
+      <u32>this.samplingValue.kind,
+      this.samplingValue.maxAniso,
+    );
   }
 
   private applyResolvedSizing(): void {

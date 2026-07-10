@@ -1,6 +1,5 @@
 import {
   AlignItems,
-  BorderStyle,
   FlexDirection,
   JustifyContent,
   TextVerticalAlign,
@@ -103,7 +102,7 @@ export abstract class DropdownFieldPresenter {
 }
 
 export abstract class DropdownFieldTemplate {
-  abstract create(): DropdownFieldPresenter;
+  abstract create(sizing?: DropdownSizing | null): DropdownFieldPresenter;
 }
 
 class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
@@ -145,7 +144,7 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
       .alignItems(AlignItems.Center)
       .height(metrics.height, Unit.Pixel)
       .cornerRadius(theme.spacing.sm)
-      .border(2.0, borderColor, BorderStyle.Solid)
+      .border(2.0, borderColor)
       .padding(metrics.paddingLeft, metrics.paddingTop, metrics.paddingRight, metrics.paddingBottom)
       .bgColor(bg);
     this.valueHost
@@ -154,7 +153,8 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
       ? theme.colors.textMuted
       : (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary);
     this.valueNode
-      .font(theme.fonts.body, metrics.fontSize)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(metrics.fontSize)
       .lineHeight(contentHeight)
       .textColor(textColor);
     this.chevronHost
@@ -166,8 +166,8 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
 }
 
 class DefaultDropdownFieldTemplate extends DropdownFieldTemplate {
-  create(): DropdownFieldPresenter {
-    return new DefaultDropdownFieldPresenter();
+  create(sizing: DropdownSizing | null = null): DropdownFieldPresenter {
+    return createDefaultDropdownFieldPresenter(sizing);
   }
 }
 

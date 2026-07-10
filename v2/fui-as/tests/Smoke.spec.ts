@@ -6,11 +6,14 @@ import { expect, test } from '@playwright/test';
 
 import { startStaticServer, type StaticServerHandle } from './static_server';
 
+const EXPECTED_EFFINDOM_CORE_ABI_VERSION = 2;
+const EXPECTED_EFFINDOM_UI_ABI_VERSION = 1;
+
 declare global {
   interface Window {
-    __fuiAsReady?: boolean;
-    __fuiAsError?: string;
-    __fuiAsState?: {
+    __fuiReady?: boolean;
+    __fuiError?: string;
+    __fuiState?: {
       readonly commandWordCount: number;
       readonly commandWords: readonly number[];
       readonly rootHandle: string | null;
@@ -47,18 +50,30 @@ test('renders the fui-as smoke through the browser bridge', async ({ page }) => 
 
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      if (window.__fuiAsError !== undefined) return `error:${window.__fuiAsError}`;
-      return window.__fuiAsReady === true ? 'ready' : 'pending';
+      if (window.__fuiError !== undefined) return `error:${window.__fuiError}`;
+      return window.__fuiReady === true ? 'ready' : 'pending';
     });
   }).toBe('ready');
 
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join('; ')}`);
 
-  const state = await page.evaluate(() => window.__fuiAsState);
+  const state = await page.evaluate(() => window.__fuiState);
   expect(state).toBeDefined();
   if (state === undefined) throw new Error('Expected fui-as state.');
   expect(state.commandWordCount).toBeGreaterThan(0);
   expect(state.rootHandle).not.toBeNull();
+
+  const abiVersions = await page.evaluate(() => {
+    const runtime = window.EffinDomBrowserBridge?.getRuntime();
+    return {
+      core: runtime?.core._ed_get_abi_version?.() ?? 0,
+      ui: runtime?.ui._ui_get_abi_version?.() ?? 0,
+    };
+  });
+  expect(abiVersions).toEqual({
+    core: EXPECTED_EFFINDOM_CORE_ABI_VERSION,
+    ui: EXPECTED_EFFINDOM_UI_ABI_VERSION,
+  });
 
   await page.screenshot({ path: screenshotPath('fui-as-smoke.png') });
 });

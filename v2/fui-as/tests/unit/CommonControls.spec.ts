@@ -5,6 +5,10 @@ import {
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
   Button,
+  ComboBox,
+  ComboBoxCommitMode,
+  ComboBoxFilterMode,
+  ComboBoxItem,
   Dropdown,
   DropdownFieldMetrics,
   DropdownFieldPresenter,
@@ -30,8 +34,9 @@ import {
   TextInput,
 } from "../../src/controls";
 import { Application } from "../../src/core/Application";
-import { Node } from "../../src/core/Node";
+import { CheckboxChangedEventArgs, ComboBoxChangedEventArgs, DropdownChangedEventArgs, Node, PointerType, RadioButtonChangedEventArgs, RadioGroupChangedEventArgs, SliderChangedEventArgs, SwitchChangedEventArgs, TextChangedEventArgs } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
+import { flushCommit } from "../../src/core/FrameScheduler";
 import { AlignItems, AlignSelf, CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
 import { rgb } from "../../src/color";
@@ -43,6 +48,7 @@ import {
   CALL_SET_FILL_HEIGHT,
   CALL_SET_FONT,
   CALL_SET_LINE_HEIGHT,
+  CALL_SET_ALIGN_ITEMS,
   CALL_SET_TEXT_VERTICAL_ALIGN,
   CALL_ADD_CHILD,
   CALL_REMOVE_CHILD,
@@ -83,19 +89,58 @@ function requireChild<T>(node: Node, index: i32): T {
   return node.getChildAt(index)! as T;
 }
 
+function requireComboBoxEditor(comboBox: ComboBox): TextInput {
+  return requireChild<TextInput>(comboBox, 0);
+}
+
+function requireComboBoxChevronHost(comboBox: ComboBox): FlexBox {
+  return requireChild<FlexBox>(comboBox, 1);
+}
+
+function requireComboBoxOptionsHost(comboBox: ComboBox): FlexBox {
+  const portal = requireChild<Node>(comboBox, 2);
+  const overlay = requireChild<FlexBox>(portal, 0);
+  const panel = requireChild<FlexBox>(overlay, 0);
+  const scrollBox = requireChild<ScrollBox>(panel, 0);
+  return requireChild<FlexBox>(scrollBox.viewport, 0);
+}
+
+function requirePopupOptionLabel(optionsHost: FlexBox, index: i32): string {
+  const optionNode = requireChild<FlexBox>(optionsHost, index);
+  const presenterRoot = requireChild<FlexBox>(optionNode, 0);
+  return requireChild<Text>(presenterRoot, 0).content;
+}
+
 function resetTheme(): void {
   activeTheme.value = defaultDarkTheme;
 }
 
 let checkboxChangedState: SemanticCheckedState = SemanticCheckedState.None;
 let dropdownSelectedValue = "";
+let comboBoxSelectedValue = "";
+let comboBoxTextValue = "";
 
-function handleCheckboxChanged(state: SemanticCheckedState): void {
-  checkboxChangedState = state;
+function handleCheckboxChanged(event: CheckboxChangedEventArgs): void {
+  checkboxChangedState = event.state;
 }
 
-function handleDropdownChanged(item: DropdownItem, _index: i32): void {
-  dropdownSelectedValue = item.value;
+function handleDropdownChanged(event: DropdownChangedEventArgs<DropdownItem>): void {
+  dropdownSelectedValue = event.item.value;
+}
+
+function handleComboBoxChanged(event: ComboBoxChangedEventArgs<ComboBoxItem>): void {
+  comboBoxSelectedValue = event.item.value;
+}
+
+function handleComboBoxTextChanged(event: TextChangedEventArgs): void {
+  comboBoxTextValue = event.text;
+}
+
+function dispatchEditorTextChanged(editorHandle: u64, text: string): void {
+  const encoded = Uint8Array.wrap(String.UTF8.encode(text, false));
+  const textBufferPtr = __fui_text_buffer();
+  memory.copy(textBufferPtr, encoded.dataStart, encoded.length);
+  __fui_on_text_changed(editorHandle, textBufferPtr, <u32>encoded.length);
 }
 
 function lastCallIndex(op: i32): i32 {
@@ -166,7 +211,10 @@ class FixedCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
 }
 
 class FixedCheckboxIndicatorTemplate extends CheckboxIndicatorTemplate {
-  create(): CheckboxIndicatorPresenter {
+  lastSizing: LabeledControlSizing | null = null;
+
+  create(sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
+    this.lastSizing = sizing;
     return new FixedCheckboxIndicatorPresenter();
   }
 }
@@ -186,7 +234,10 @@ class FixedSliderPresenter extends SliderPresenter {
 }
 
 class FixedSliderTemplate extends SliderTemplate {
-  create(): SliderPresenter {
+  lastSizing: SliderSizing | null = null;
+
+  create(sizing: SliderSizing | null = null): SliderPresenter {
+    this.lastSizing = sizing;
     return new FixedSliderPresenter();
   }
 }
@@ -215,7 +266,7 @@ class FixedDropdownFieldPresenter extends DropdownFieldPresenter {
 
   apply(theme: Theme, _state: DropdownFieldVisualState, _colors: DropdownColors | null = null): void {
     this.root.height(44.0, Unit.Pixel);
-    this.valueNode.font(theme.fonts.body, 18.0);
+    this.valueNode.fontFamily(theme.fonts.bodyFamily).fontSize(18.0);
     this.chevronHost
       .width(19.0, Unit.Pixel)
       .height(19.0, Unit.Pixel);
@@ -223,7 +274,10 @@ class FixedDropdownFieldPresenter extends DropdownFieldPresenter {
 }
 
 class FixedDropdownFieldTemplate extends DropdownFieldTemplate {
-  create(): DropdownFieldPresenter {
+  lastSizing: DropdownSizing | null = null;
+
+  create(sizing: DropdownSizing | null = null): DropdownFieldPresenter {
+    this.lastSizing = sizing;
     return new FixedDropdownFieldPresenter();
   }
 }
@@ -232,6 +286,32 @@ let textInputChangedValue = "";
 let textInputFocusChangedCount = 0;
 let textInputSelectionStart = 0;
 let textInputSelectionEnd = 0;
+let programmaticCheckboxState = SemanticCheckedState.None;
+let programmaticRadioChecked = false;
+let programmaticSwitchChecked = false;
+let programmaticRadioGroupValue = "<unset>";
+let programmaticSliderValue: f32 = 25.0;
+
+function handleProgrammaticCheckboxChanged(event: CheckboxChangedEventArgs): void {
+  programmaticCheckboxState = event.state;
+}
+
+function handleProgrammaticRadioGroupChanged(event: RadioGroupChangedEventArgs): void {
+  programmaticRadioGroupValue = event.value;
+}
+
+function handleProgrammaticRadioChanged(event: RadioButtonChangedEventArgs): void {
+  programmaticRadioChecked = event.checked;
+}
+
+function handleProgrammaticSwitchChanged(event: SwitchChangedEventArgs): void {
+  programmaticSwitchChecked = event.checked;
+}
+
+function handleProgrammaticSliderChanged(event: SliderChangedEventArgs): void {
+  programmaticSliderValue = event.value;
+}
+
 
 function handleTextInputChanged(text: string): void {
   textInputChangedValue = text;
@@ -275,6 +355,56 @@ describe("Common controls", () => {
     expect<SemanticCheckedState>(checkboxChangedState).toBe(SemanticCheckedState.True);
 
     checkbox.dispose();
+  });
+
+  it("programmatic checkbox, radio, switch, radio-group, and slider changes emit without semantic announcements", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    programmaticCheckboxState = SemanticCheckedState.None;
+    programmaticRadioChecked = false;
+    programmaticSwitchChecked = false;
+    programmaticRadioGroupValue = "<unset>";
+    programmaticSliderValue = 25.0;
+
+    const checkbox = new Checkbox("Accept terms")
+      .onChanged(handleProgrammaticCheckboxChanged) as Checkbox;
+    const radioGroup = new RadioGroup()
+      .addOptions([
+        new RadioButton("alpha", "Alpha"),
+        new RadioButton("beta", "Beta"),
+      ])
+      .onChanged(handleProgrammaticRadioGroupChanged) as RadioGroup;
+    const radio = requireChild<RadioButton>(radioGroup, 1);
+    radio.onChanged(handleProgrammaticRadioChanged);
+    const control = new Switch("Notifications")
+      .onChanged(handleProgrammaticSwitchChanged) as Switch;
+    const slider = new Slider(25.0)
+      .onChanged(handleProgrammaticSliderChanged) as Slider;
+
+    checkbox.build();
+    radioGroup.build();
+    control.build();
+    slider.build();
+    resetCalls();
+
+    checkbox.check(true);
+    radioGroup.selectIndex(1);
+    control.check(true);
+    slider.min(30.0);
+
+    expect<SemanticCheckedState>(programmaticCheckboxState).toBe(SemanticCheckedState.True);
+    expect<bool>(programmaticRadioChecked).toBe(true);
+    expect<string>(programmaticRadioGroupValue).toBe("beta");
+    expect<bool>(programmaticSwitchChecked).toBe(true);
+    expect<f32>(programmaticSliderValue).toBe(30.0);
+    expect<i32>(lastCallIndex(CALL_REQUEST_SEMANTIC_ANNOUNCEMENT)).toBe(-1);
+
+    checkbox.dispose();
+    radioGroup.dispose();
+    control.dispose();
+    slider.dispose();
   });
 
   it("button default label color follows the accent foreground token", () => {
@@ -471,17 +601,20 @@ describe("Common controls", () => {
     checkbox.dispose();
   });
 
-  it("checkbox sizing leaves custom indicator templates authoritative", () => {
+  it("checkbox sizing is passed to custom indicator templates", () => {
     EventRouter.reset();
     resetTheme();
     resetCalls();
 
+    const sizing = new LabeledControlSizing().indicatorSize(16.0).labelFontSize(14.0);
+    const template = new FixedCheckboxIndicatorTemplate();
     const checkbox = new Checkbox("Compact")
-      .sizing(new LabeledControlSizing().indicatorSize(16.0).labelFontSize(14.0))
-      .template(new FixedCheckboxIndicatorTemplate());
+      .sizing(sizing)
+      .template(template);
     checkbox.build();
     const indicatorHandle = requireChildHandle(checkbox, 0);
 
+    expect<bool>(template.lastSizing === sizing).toBe(true);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, indicatorHandle), 1)).toBe(33.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, indicatorHandle), 1)).toBe(33.0);
 
@@ -549,6 +682,23 @@ describe("Common controls", () => {
     control.check(true);
 
     expect<i32>(findPositionCall(21.0, 2.0)).toBeGreaterThan(-1);
+    control.dispose();
+  });
+
+  it("switch sizing updates the built-in indicator and label font size", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const control = new Switch("Compact")
+      .sizing(new LabeledControlSizing().indicatorSize(32.0).labelFontSize(14.0));
+    control.build();
+    const indicatorHandle = requireChildHandle(control, 0);
+    const labelHandle = requireChildHandle(requireChild<Node>(control, 2), 0);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, indicatorHandle), 1)).toBe(32.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_FONT, labelHandle), 2)).toBe(14.0);
+
     control.dispose();
   });
 
@@ -808,16 +958,19 @@ describe("Common controls", () => {
     slider.dispose();
   });
 
-  it("slider sizing leaves custom templates authoritative", () => {
+  it("slider sizing is passed to custom templates", () => {
     EventRouter.reset();
     resetTheme();
     resetCalls();
 
+    const sizing = new SliderSizing().thumbSize(16.0).trackThickness(4.0);
+    const template = new FixedSliderTemplate();
     const slider = new Slider()
-      .sizing(new SliderSizing().thumbSize(16.0).trackThickness(4.0))
-      .template(new FixedSliderTemplate());
+      .sizing(sizing)
+      .template(template);
     slider.build();
 
+    expect<bool>(template.lastSizing === sizing).toBe(true);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(35.0);
 
     slider.dispose();
@@ -1012,7 +1165,7 @@ describe("Common controls", () => {
     dropdown.dispose();
   });
 
-  it("dropdown sizing leaves custom field templates authoritative", () => {
+  it("dropdown sizing is passed to custom field templates", () => {
     EventRouter.reset();
     resetTheme();
     resetCalls();
@@ -1020,13 +1173,16 @@ describe("Common controls", () => {
     const items = new Array<DropdownItem>();
     items.push(new DropdownItem("one", "One"));
     items.push(new DropdownItem("two", "Two"));
+    const sizing = new DropdownSizing().fieldHeight(28.0).fieldFontSize(14.0);
+    const template = new FixedDropdownFieldTemplate();
     const dropdown = new Dropdown()
-      .sizing(new DropdownSizing().fieldHeight(28.0).fieldFontSize(14.0))
-      .fieldTemplate(new FixedDropdownFieldTemplate())
+      .sizing(sizing)
+      .fieldTemplate(template)
       .items(items);
     dropdown.build();
     const fieldHandle = requireChildHandle(dropdown, 0);
 
+    expect<bool>(template.lastSizing === sizing).toBe(true);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fieldHandle), 1)).toBe(44.0);
 
     dropdown.dispose();
@@ -1128,5 +1284,468 @@ describe("Common controls", () => {
     expect<i32>(dropdown.selectedIndex).toBe(0);
     dropdown.selectIndex(999);
     expect<i32>(dropdown.selectedIndex).toBe(1);
+  });
+
+  it("combobox filters typed text and commits the highlighted item from the editor keyboard path", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    comboBoxSelectedValue = "";
+    comboBoxTextValue = "";
+    const comboBox = new ComboBox()
+      .items(["Apple", "Banana", "Zebra"])
+      .onChanged(handleComboBoxChanged)
+      .onTextChanged(handleComboBoxTextChanged) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+    resetCalls();
+
+    dispatchEditorTextChanged(editorHandle, "ze");
+    expect<string>(comboBox.value).toBe("ze");
+    expect<string>(comboBoxTextValue).toBe("ze");
+    expect<i32>(comboBox.selectedIndex).toBe(-1);
+    let expandedIndex = lastCallIndex(CALL_SET_SEMANTIC_EXPANDED);
+    expect<i32>(expandedIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(expandedIndex, 2)).toBe(1.0);
+
+    EventRouter.dispatchKeyEvent(editorHandle, KeyEventType.Down, "Enter", 0);
+
+    expect<string>(comboBoxSelectedValue).toBe("Zebra");
+    expect<i32>(comboBox.selectedIndex).toBe(2);
+    expect<string>(comboBox.value).toBe("Zebra");
+    const selectionRangeIndex = lastCallIndexForHandle(CALL_SET_TEXT_SELECTION_RANGE, editorHandle);
+    expect<i32>(selectionRangeIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(selectionRangeIndex, 1)).toBe(5.0);
+    expect<f64>(getCallArg(selectionRangeIndex, 2)).toBe(5.0);
+    expandedIndex = lastCallIndex(CALL_SET_SEMANTIC_EXPANDED);
+    expect<i32>(expandedIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(expandedIndex, 2)).toBe(0.0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox supports custom text without forcing a selected item", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    comboBoxTextValue = "";
+    const comboBox = new ComboBox()
+      .items([
+        "Alpha",
+        "Beta",
+      ])
+      .onTextChanged(handleComboBoxTextChanged) as ComboBox;
+    comboBox.build();
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    dispatchEditorTextChanged(editorHandle, "Custom value");
+
+    expect<string>(comboBox.value).toBe("Custom value");
+    expect<string>(comboBoxTextValue).toBe("Custom value");
+    expect<i32>(comboBox.selectedIndex).toBe(-1);
+
+    comboBox.dispose();
+  });
+
+  it("combobox moves the editor caret to the end for constructor text", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox("Melbourne")
+      .items([
+        "Melbourne",
+        "Sydney",
+      ]) as ComboBox;
+    comboBox.build();
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    const selectionRangeIndex = lastCallIndexForHandle(CALL_SET_TEXT_SELECTION_RANGE, editorHandle);
+    expect<i32>(selectionRangeIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(selectionRangeIndex, 1)).toBe(9.0);
+    expect<f64>(getCallArg(selectionRangeIndex, 2)).toBe(9.0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox can use starts-with filtering and keyboard navigation within the filtered list", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    comboBoxSelectedValue = "";
+    const comboBox = new ComboBox()
+      .filterMode(ComboBoxFilterMode.StartsWith)
+      .items([
+        "Apple",
+        "Apricot",
+        "Grape",
+      ])
+      .onChanged(handleComboBoxChanged) as ComboBox;
+    comboBox.build();
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    dispatchEditorTextChanged(editorHandle, "ap");
+    EventRouter.dispatchKeyEvent(editorHandle, KeyEventType.Down, "ArrowDown", 0);
+    EventRouter.dispatchKeyEvent(editorHandle, KeyEventType.Down, "Enter", 0);
+
+    expect<string>(comboBoxSelectedValue).toBe("Apricot");
+    expect<i32>(comboBox.selectedIndex).toBe(1);
+    expect<string>(comboBox.value).toBe("Apricot");
+
+    comboBox.dispose();
+  });
+
+  it("combobox supports explicit selected index and commit-mode revert", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .items([
+        "Alpha",
+        "Beta",
+      ])
+      .selectIndex(1)
+      .commitMode(ComboBoxCommitMode.RevertToSelection) as ComboBox;
+    comboBox.build();
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    expect<string>(comboBox.value).toBe("Beta");
+    dispatchEditorTextChanged(editorHandle, "Temporary");
+    expect<string>(comboBox.value).toBe("Temporary");
+    EventRouter.dispatchFocusChanged(editorHandle, true);
+    resetCalls();
+    EventRouter.dispatchFocusChanged(editorHandle, false);
+
+    expect<string>(comboBox.value).toBe("Beta");
+    expect<i32>(comboBox.selectedIndex).toBe(1);
+    const selectionRangeIndex = lastCallIndexForHandle(CALL_SET_TEXT_SELECTION_RANGE, editorHandle);
+    expect<i32>(selectionRangeIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(selectionRangeIndex, 1)).toBe(4.0);
+    expect<f64>(getCallArg(selectionRangeIndex, 2)).toBe(4.0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox refreshes visible options while the popup is already open", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .items([
+        "Apple",
+        "Apricot",
+        "Banana",
+        "Blackberry",
+      ]) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    dispatchEditorTextChanged(editorHandle, "ap");
+    let optionsHost = requireComboBoxOptionsHost(comboBox);
+    expect<i32>(optionsHost.childCount).toBe(2);
+    expect<string>(requirePopupOptionLabel(optionsHost, 0)).toBe("Apple");
+    expect<string>(requirePopupOptionLabel(optionsHost, 1)).toBe("Apricot");
+
+    dispatchEditorTextChanged(editorHandle, "bl");
+    optionsHost = requireComboBoxOptionsHost(comboBox);
+    expect<i32>(optionsHost.childCount).toBe(1);
+    expect<string>(requirePopupOptionLabel(optionsHost, 0)).toBe("Blackberry");
+    expect<i32>(requireChild<Node>(comboBox, 2).childCount).toBe(1);
+
+    comboBox.dispose();
+  });
+
+  it("combobox maxVisibleItems caps popup viewport height without limiting option count", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const items = new Array<string>();
+    for (let index = 0; index < 20; ++index) {
+      items.push("Item " + index.toString());
+    }
+    const comboBox = new ComboBox()
+      .items(items)
+      .maxVisibleItems(5) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    EventRouter.dispatchKeyEvent(editorHandle, KeyEventType.Down, "ArrowDown", 0);
+
+    const optionsHost = requireComboBoxOptionsHost(comboBox);
+    expect<i32>(optionsHost.childCount).toBe(20);
+    const portal = requireChild<Node>(comboBox, 2);
+    const overlay = requireChild<FlexBox>(portal, 0);
+    const panel = requireChild<FlexBox>(overlay, 0);
+    const scrollBox = requireChild<ScrollBox>(panel, 0);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_HEIGHT, scrollBox.builtHandle)).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, scrollBox.builtHandle), 1)).toBe(170.0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox centers editor text vertically within the field", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .sizing(new DropdownSizing().fieldHeight(36.0).fieldFontSize(14.0))
+      .items([
+        "Alpha",
+        "Beta",
+      ]) as ComboBox;
+    comboBox.build();
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    expect<i32>(findCall(CALL_SET_ALIGN_ITEMS)).toBeGreaterThan(-1);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_LINE_HEIGHT, editorHandle)).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_LINE_HEIGHT, editorHandle), 1)).toBe(32.0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox chevron click opens the popup even when the editor text is empty", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .items([
+        "Melbourne",
+        "Sydney",
+      ]) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const chevronHandle = requireComboBoxChevronHost(comboBox).builtHandle;
+
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Down, 230.0, 30.0);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Up, 230.0, 30.0);
+
+    expect<i32>(requireComboBoxOptionsHost(comboBox).childCount).toBe(2);
+
+    comboBox.dispose();
+  });
+
+  it("combobox chevron focus preserves the editor caret for constructor text", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox("Melbourne")
+      .items([
+        "Melbourne",
+        "Sydney",
+      ]) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+    const chevronHandle = requireComboBoxChevronHost(comboBox).builtHandle;
+    resetCalls();
+
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Down, 230.0, 30.0);
+
+    const selectionRangeIndex = lastCallIndexForHandle(CALL_SET_TEXT_SELECTION_RANGE, editorHandle);
+    expect<i32>(selectionRangeIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(selectionRangeIndex, 1)).toBe(9.0);
+    expect<f64>(getCallArg(selectionRangeIndex, 2)).toBe(9.0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox chevron reopens a filtered popup after it has been collapsed", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .items([
+        "Melbourne",
+        "Sydney",
+      ]) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+    const chevronHandle = requireComboBoxChevronHost(comboBox).builtHandle;
+
+    dispatchEditorTextChanged(editorHandle, "Melbo");
+    expect<i32>(requireComboBoxOptionsHost(comboBox).childCount).toBe(1);
+
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Down, 230.0, 30.0);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Up, 230.0, 30.0);
+    expect<i32>(requireChild<Node>(comboBox, 2).childCount).toBe(0);
+
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Down, 230.0, 30.0);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Up, 230.0, 30.0);
+    expect<i32>(requireComboBoxOptionsHost(comboBox).childCount).toBe(1);
+    expect<string>(requirePopupOptionLabel(requireComboBoxOptionsHost(comboBox), 0)).toBe("Melbourne");
+
+    comboBox.dispose();
+  });
+
+  it("combobox autocomplete does not undo backspace deletion", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    comboBoxTextValue = "";
+    const comboBox = new ComboBox()
+      .items([
+        "Melbourne",
+        "Sydney",
+      ])
+      .autoComplete(true)
+      .onTextChanged(handleComboBoxTextChanged) as ComboBox;
+    comboBox.build();
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+
+    dispatchEditorTextChanged(editorHandle, "Mel");
+
+    expect<string>(comboBox.value).toBe("Melbourne");
+    expect<string>(comboBoxTextValue).toBe("Melbourne");
+    let selectionRangeIndex = lastCallIndexForHandle(CALL_SET_TEXT_SELECTION_RANGE, editorHandle);
+    expect<i32>(selectionRangeIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(selectionRangeIndex, 1)).toBe(3.0);
+    expect<f64>(getCallArg(selectionRangeIndex, 2)).toBe(9.0);
+
+    dispatchEditorTextChanged(editorHandle, "Mel");
+
+    expect<string>(comboBox.value).toBe("Mel");
+    expect<string>(comboBoxTextValue).toBe("Mel");
+
+    dispatchEditorTextChanged(editorHandle, "Me");
+
+    expect<string>(comboBox.value).toBe("Me");
+    expect<string>(comboBoxTextValue).toBe("Me");
+
+    comboBox.dispose();
+  });
+
+  it("combobox closes the popup when focus leaves for another text input", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .items([
+        "Melbourne",
+        "Sydney",
+      ]) as ComboBox;
+    const textInput = new TextInput();
+    const root = new FlexBox()
+      .child(comboBox)
+      .child(textInput);
+    root.build();
+    setNodeBounds(comboBox.builtHandle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+    const textInputEditorHandle = requireChild<Node>(textInput, 0).builtHandle;
+
+    EventRouter.dispatchFocusChanged(editorHandle, true);
+    dispatchEditorTextChanged(editorHandle, "Mel");
+    expect<i32>(requireComboBoxOptionsHost(comboBox).childCount).toBe(1);
+
+    EventRouter.dispatchFocusChanged(editorHandle, false);
+    EventRouter.dispatchFocusChanged(textInputEditorHandle, true);
+    flushCommit();
+
+    expect<i32>(requireChild<Node>(comboBox, 2).childCount).toBe(0);
+    const expandedIndex = lastCallIndex(CALL_SET_SEMANTIC_EXPANDED);
+    expect<i32>(expandedIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(expandedIndex, 2)).toBe(0.0);
+
+    root.dispose();
+  });
+
+  it("combobox pointer option selection survives editor blur during popup click", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    comboBoxSelectedValue = "";
+    const comboBox = new ComboBox()
+      .items([
+        "Melbourne",
+        "Sydney",
+      ])
+      .onChanged(handleComboBoxChanged) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+    const chevronHandle = requireComboBoxChevronHost(comboBox).builtHandle;
+
+    EventRouter.dispatchFocusChanged(editorHandle, true);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Down, 230.0, 30.0);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Up, 230.0, 30.0);
+    const optionsHost = requireComboBoxOptionsHost(comboBox);
+    expect<i32>(optionsHost.childCount).toBe(2);
+    const optionHandle = requireChild<Node>(optionsHost, 1).builtHandle;
+
+    EventRouter.dispatchPointerEvent(optionHandle, PointerEventType.Down, 30.0, 72.0, 0, 17, PointerType.Touch, 0, 1);
+    EventRouter.dispatchFocusChanged(editorHandle, false);
+    EventRouter.dispatchPointerEvent(optionHandle, PointerEventType.Up, 30.0, 72.0, 0, 17, PointerType.Touch, 0, 0);
+
+    expect<string>(comboBoxSelectedValue).toBe("Sydney");
+    expect<i32>(comboBox.selectedIndex).toBe(1);
+    expect<string>(comboBox.value).toBe("Sydney");
+    expect<i32>(requireChild<Node>(comboBox, 2).childCount).toBe(0);
+
+    comboBox.dispose();
+  });
+
+  it("combobox closes after popup pointer cancel when editor blur was deferred", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const comboBox = new ComboBox()
+      .items([
+        "Melbourne",
+        "Sydney",
+      ]) as ComboBox;
+    const handle = comboBox.build();
+    setNodeBounds(handle, 20.0, 20.0, 220.0, 32.0);
+    const input = requireComboBoxEditor(comboBox);
+    const editorHandle = requireChild<Node>(input, 0).builtHandle;
+    const chevronHandle = requireComboBoxChevronHost(comboBox).builtHandle;
+
+    EventRouter.dispatchFocusChanged(editorHandle, true);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Down, 230.0, 30.0);
+    EventRouter.dispatchPointerEvent(chevronHandle, PointerEventType.Up, 230.0, 30.0);
+    const optionsHost = requireComboBoxOptionsHost(comboBox);
+    expect<i32>(optionsHost.childCount).toBe(2);
+    const optionHandle = requireChild<Node>(optionsHost, 1).builtHandle;
+
+    EventRouter.dispatchPointerEvent(optionHandle, PointerEventType.Down, 30.0, 72.0, 0, 18, PointerType.Touch, 0, 1);
+    EventRouter.dispatchFocusChanged(editorHandle, false);
+    EventRouter.dispatchPointerEvent(optionHandle, PointerEventType.Cancel, 30.0, 72.0, 0, 18, PointerType.Touch, 0, 0);
+    flushCommit();
+
+    expect<bool>(comboBox.isOpen).toBe(false);
+    const expandedIndex = lastCallIndex(CALL_SET_SEMANTIC_EXPANDED);
+    expect<i32>(expandedIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(expandedIndex, 2)).toBe(0.0);
+
+    comboBox.dispose();
   });
 });

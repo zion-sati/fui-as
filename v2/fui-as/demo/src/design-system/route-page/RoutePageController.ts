@@ -1,10 +1,10 @@
-import { Application, Disposable, Node, Theme, bindTheme, currentRoute, disposeAll, hslToColor, rgb, useCustomTheme, viewportWidthSignal } from "../../../../src/Fui";
+import { Application, Disposable, Node, Theme, bindTheme, currentRoute, disposeAll, rgb, useCustomTheme, viewportWidthSignal } from "../../../../src/Fui";
 import { bind1 } from "../../../../src/FuiPrimitives";
 import {
+  clearDemoShellAccentColorChanged,
   clearDemoShellDarkModeChanged,
-  clearDemoShellHueChanged,
+  onDemoShellAccentColorChanged,
   onDemoShellDarkModeChanged,
-  onDemoShellHueChanged,
 } from "../../generated/HostEvents";
 import { demoShellAccentColorHex, demoShellIsDarkMode } from "../../generated/HostServices";
 import { generateDemoTheme } from "../theme";
@@ -20,14 +20,6 @@ export interface RoutePageLifecycleOwner extends RoutePageThemeObserver {
   dispose(): void;
 }
 
-function normalizeHue(value: i32): i32 {
-  let normalized = value % 360;
-  if (normalized < 0) {
-    normalized += 360;
-  }
-  return normalized;
-}
-
 function parseHexDigit(code: i32): i32 {
   if (code >= 48 && code <= 57) {
     return code - 48;
@@ -41,8 +33,7 @@ function parseHexDigit(code: i32): i32 {
   return -1;
 }
 
-function resolveShellAccentColor(fallback: u32): u32 {
-  const value = demoShellAccentColorHex();
+function parseShellAccentColor(value: string, fallback: u32): u32 {
   if (value.length != 7 || value.charCodeAt(0) != 35) {
     return fallback;
   }
@@ -62,6 +53,10 @@ function resolveShellAccentColor(fallback: u32): u32 {
   );
 }
 
+function resolveShellAccentColor(fallback: u32): u32 {
+  return parseShellAccentColor(demoShellAccentColorHex(), fallback);
+}
+
 export class RoutePageController {
   readonly view: RoutePageView;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
@@ -79,11 +74,11 @@ export class RoutePageController {
     this.accentColorValue = resolveShellAccentColor(model.accentColor);
     this.view = new RoutePageView(model, sections);
     this.view.syncViewportLayout();
-    this.view.actionButton.onClickWith(this, (controller) => {
+    this.view.actionButton.onClickWith(this, (controller, _event) => {
       controller.model.actionCount.value += 1;
     });
-    onDemoShellHueChanged(bind1<RoutePageController, i32>(this, (controller, next) => {
-      controller.setHue(next);
+    onDemoShellAccentColorChanged(bind1<RoutePageController, u32>(this, (controller, next) => {
+      controller.setAccentColor(next);
     }));
     onDemoShellDarkModeChanged(bind1<RoutePageController, bool>(this, (controller, flag) => {
       controller.setDarkMode(flag);
@@ -118,7 +113,7 @@ export class RoutePageController {
   }
 
   dispose(): void {
-    clearDemoShellHueChanged();
+    clearDemoShellAccentColorChanged();
     clearDemoShellDarkModeChanged();
     disposeAll(this.disposables);
     const lifecycleOwner = this.lifecycleOwner;
@@ -145,8 +140,8 @@ export class RoutePageController {
     this.syncTheme();
   }
 
-  private setHue(next: i32): void {
-    this.accentColorValue = hslToColor(<f32>normalizeHue(next), 0.72, 0.45);
+  private setAccentColor(next: u32): void {
+    this.accentColorValue = next;
     this.syncTheme();
   }
 

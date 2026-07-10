@@ -51,7 +51,7 @@ export class Text extends TextCore {
     if (props.hasFont && props.hasFontFamily) {
       text.fontSize(props.fontSize);
     } else if (props.hasFont) {
-      text.font(props.fontId, props.fontSize);
+      text._fontId(props.fontId, props.fontSize);
     }
     if (props.hasFontWeight) {
       text.fontWeight(props.fontWeightValue);

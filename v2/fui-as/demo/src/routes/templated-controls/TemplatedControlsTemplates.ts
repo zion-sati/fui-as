@@ -1,6 +1,5 @@
 import {
   AlignItems,
-  BorderStyle,
   ButtonColors,
   ButtonPresenter,
   ButtonTemplate,
@@ -14,6 +13,7 @@ import {
   DropdownChevronVisualState,
   DropdownFieldPresenter,
   DropdownColors,
+  DropdownSizing,
   DropdownFieldTemplate,
   DropdownFieldVisualState,
   DropdownOptionRowMetrics,
@@ -24,6 +24,7 @@ import {
   FlexDirection,
   JustifyContent,
   LabeledControlColors,
+  LabeledControlSizing,
   Orientation,
   PressableIndicatorMetrics,
   RadioIndicatorPresenter,
@@ -33,6 +34,7 @@ import {
   SliderPresenter,
   SliderColors,
   SliderPresenterMetrics,
+  SliderSizing,
   SliderTemplate,
   SliderVisualState,
   Svg,
@@ -69,8 +71,8 @@ class HouseCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
     const root = new FlexBox()
       .width(24.0, Unit.Pixel)
       .height(24.0, Unit.Pixel)
-      .alignItems(1)
-      .justifyContent(1);
+      .alignItems(AlignItems.Center)
+      .justifyContent(JustifyContent.Center);
     super(root, new PressableIndicatorMetrics(24.0, 24.0));
     const fillNode = new FlexBox()
       .width(12.0, Unit.Pixel)
@@ -84,7 +86,7 @@ class HouseCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
     const checked = state.checkedState != SemanticCheckedState.False;
     this.root
       .cornerRadius(8.0)
-      .border(2.0, checked ? accent : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border), BorderStyle.Solid)
+      .border(2.0, checked ? accent : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border))
       .bgColor(checked ? accent : (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface));
     this.fillNode
       .cornerRadius(state.checkedState == SemanticCheckedState.Mixed ? 3.0 : 6.0)
@@ -96,7 +98,7 @@ class HouseCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter {
 }
 
 class HouseCheckboxIndicatorTemplate extends CheckboxIndicatorTemplate {
-  create(): CheckboxIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
     return new HouseCheckboxIndicatorPresenter();
   }
 }
@@ -108,8 +110,8 @@ class LocalOverrideCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter
     const root = new FlexBox()
       .width(24.0, Unit.Pixel)
       .height(24.0, Unit.Pixel)
-      .alignItems(1)
-      .justifyContent(1);
+      .alignItems(AlignItems.Center)
+      .justifyContent(JustifyContent.Center);
     super(root, new PressableIndicatorMetrics(24.0, 24.0));
     const stripeNode = new FlexBox()
       .width(14.0, Unit.Pixel)
@@ -123,7 +125,7 @@ class LocalOverrideCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter
     const checked = state.checkedState != SemanticCheckedState.False;
     this.root
       .cornerRadius(4.0)
-      .border(2.0, accent, BorderStyle.Solid)
+      .border(2.0, accent)
       .bgColor(checked ? (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.background) : (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface));
     this.stripeNode
       .cornerRadius(state.checkedState == SemanticCheckedState.Mixed ? 2.0 : 5.0)
@@ -135,7 +137,7 @@ class LocalOverrideCheckboxIndicatorPresenter extends CheckboxIndicatorPresenter
 }
 
 class LocalOverrideCheckboxIndicatorTemplate extends CheckboxIndicatorTemplate {
-  create(): CheckboxIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
     return new LocalOverrideCheckboxIndicatorPresenter();
   }
 }
@@ -147,8 +149,8 @@ class HouseRadioIndicatorPresenter extends RadioIndicatorPresenter {
     const root = new FlexBox()
       .width(24.0, Unit.Pixel)
       .height(24.0, Unit.Pixel)
-      .alignItems(1)
-      .justifyContent(1);
+      .alignItems(AlignItems.Center)
+      .justifyContent(JustifyContent.Center);
     super(root, new PressableIndicatorMetrics(24.0, 24.0));
     const dotNode = new FlexBox()
       .width(10.0, Unit.Pixel)
@@ -162,7 +164,7 @@ class HouseRadioIndicatorPresenter extends RadioIndicatorPresenter {
     const borderColor = state.checked ? accent : (colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.border);
     this.root
       .cornerRadius(12.0)
-      .border(2.0, borderColor, BorderStyle.Solid)
+      .border(2.0, borderColor)
       .bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
     this.dotNode
       .cornerRadius(5.0)
@@ -172,7 +174,7 @@ class HouseRadioIndicatorPresenter extends RadioIndicatorPresenter {
 }
 
 class HouseRadioIndicatorTemplate extends RadioIndicatorTemplate {
-  create(): RadioIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
     return new HouseRadioIndicatorPresenter();
   }
 }
@@ -202,18 +204,18 @@ class HouseSwitchIndicatorPresenter extends SwitchIndicatorPresenter {
     const trackColor = state.checked ? accent : background;
     this.root
       .cornerRadius(15.0)
-      .border(2.0, state.checked ? accent : border, BorderStyle.Solid)
+      .border(2.0, state.checked ? accent : border)
       .bgColor(trackColor);
     this.thumbNode
       .position(state.checked ? 26.0 : 4.0, 4.0)
       .cornerRadius(11.0)
       .bgColor(state.checked ? background : theme.colors.background)
-      .border(1.0, state.checked ? accent : border, BorderStyle.Solid);
+      .border(1.0, state.checked ? accent : border);
   }
 }
 
 class HouseSwitchIndicatorTemplate extends SwitchIndicatorTemplate {
-  create(): SwitchIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): SwitchIndicatorPresenter {
     return new HouseSwitchIndicatorPresenter();
   }
 }
@@ -301,19 +303,19 @@ class HouseSliderPresenter extends SliderPresenter {
     this.trackNode
       .cornerRadius(4.0)
       .bgColor(colors !== null && colors.hasTrack ? colors.trackColor : theme.colors.background)
-      .border(1.0, theme.colors.border, BorderStyle.Solid);
+      .border(1.0, theme.colors.border);
     this.fillNode
       .cornerRadius(4.0)
       .bgColor(accent);
     this.thumbNode
       .cornerRadius(11.0)
       .bgColor(colors !== null && colors.hasThumb ? colors.thumbColor : theme.colors.surface)
-      .border(2.0, accent, BorderStyle.Solid);
+      .border(2.0, accent);
   }
 }
 
 class HouseSliderTemplate extends SliderTemplate {
-  create(): SliderPresenter {
+  create(_sizing: SliderSizing | null = null): SliderPresenter {
     return new HouseSliderPresenter();
   }
 }
@@ -351,7 +353,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
       .flexDirection(FlexDirection.Row)
       .alignItems(AlignItems.Center)
       .cornerRadius(16.0)
-      .border(2.0, accent, BorderStyle.Solid)
+      .border(2.0, accent)
       .padding(14.0, 10.0, 14.0, 10.0)
       .bgColor(
         colors !== null && colors.hasBackground
@@ -361,7 +363,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
     this.valueHost
       .fillWidth();
     this.valueNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily).fontSize(theme.fonts.sizeBody)
       .textColor(
         state.enabled
           ? (colors !== null && colors.hasTextPrimary ? colors.textPrimaryColor : theme.colors.textPrimary)
@@ -378,7 +380,7 @@ class HouseDropdownFieldPresenter extends DropdownFieldPresenter {
 }
 
 class HouseDropdownFieldTemplate extends DropdownFieldTemplate {
-  create(): DropdownFieldPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownFieldPresenter {
     return new HouseDropdownFieldPresenter();
   }
 }
@@ -411,7 +413,7 @@ class HouseDropdownChevronPresenter extends DropdownChevronPresenter {
 }
 
 class HouseDropdownChevronTemplate extends DropdownChevronTemplate {
-  create(): DropdownChevronPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownChevronPresenter {
     return new HouseDropdownChevronPresenter();
   }
 }
@@ -445,11 +447,10 @@ class HouseDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
       )
       .border(
         state.selected || state.highlighted ? 1.0 : 0.0,
-        state.selected ? accentPressed : theme.colors.border,
-        BorderStyle.Solid,
+        state.selected ? accentPressed : theme.colors.border
       );
     this.labelNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily).fontSize(theme.fonts.sizeBody)
       .textColor(
         !state.enabled
           ? theme.colors.textMuted
@@ -461,7 +462,7 @@ class HouseDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
 }
 
 class HouseDropdownOptionRowTemplate extends DropdownOptionRowTemplate {
-  create(): DropdownOptionRowPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownOptionRowPresenter {
     return new HouseDropdownOptionRowPresenter();
   }
 }
@@ -490,14 +491,14 @@ class HouseButtonPresenter extends ButtonPresenter {
       : (colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.background);
     this.host
       .cornerRadius(18.0)
-      .border(2.0, state.focused ? theme.colors.accent : border, BorderStyle.Solid)
+      .border(2.0, state.focused ? theme.colors.accent : border)
       .padding(16.0, 10.0, 16.0, 10.0)
       .bgColor(background);
     this.contentRoot
       .alignItems(AlignItems.Center)
       .justifyContent(JustifyContent.Center);
     this.labelNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily).fontSize(theme.fonts.sizeBody)
       .textColor(textColor);
   }
 }
@@ -518,7 +519,7 @@ class HouseTextInputPresenter extends TextInputPresenter {
     const insetY: f32 = state.multiline ? 12.0 : 10.0;
     this.host
       .cornerRadius(this.multiline ? 20.0 : 16.0)
-      .border(2.0, colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, colors !== null && colors.hasBorder ? colors.borderColor : theme.colors.accent)
       .padding(insetX, insetY, insetX, insetY)
       .bgColor(colors !== null && colors.hasBackground ? colors.backgroundColor : theme.colors.surface);
     this.placeholderHost

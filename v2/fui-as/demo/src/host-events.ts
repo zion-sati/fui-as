@@ -1,9 +1,9 @@
-import { defineHostEvents, hostEvent } from "../../browser/src/host-events";
+import { defineHostEvents, hostEvent } from "../../browser/src/shared-browser";
 import {
+  subscribeDemoShellAccentColor,
   readDemoShellState,
   subscribeDemoShellClockTick,
   subscribeDemoShellDarkMode,
-  subscribeDemoShellHue,
 } from "./host-service-state";
 
 export const demoHostEvents = defineHostEvents({
@@ -15,11 +15,11 @@ export const demoHostEvents = defineHostEvents({
         return subscribeDemoShellClockTick((value) => emit(value));
       },
     }),
-    hueChanged: hostEvent({
-      args: ["i32"] as const,
+    accentColorChanged: hostEvent({
+      args: ["u32"] as const,
       subscribe(emit) {
-        emit(readDemoShellState().hue);
-        return subscribeDemoShellHue((value) => emit(value));
+        emit(readDemoShellState().accentColor);
+        return subscribeDemoShellAccentColor((value) => emit(value));
       },
     }),
     darkModeChanged: hostEvent({

@@ -2,7 +2,6 @@ import { SemanticCheckedState, Signal } from "../../../src/Fui";
 
 export class DashboardModel {
   readonly clockTick: Signal<i32> = new Signal<i32>(0);
-  readonly hue: Signal<i32> = new Signal<i32>(210);
   readonly clickCount: Signal<i32> = new Signal<i32>(0);
   readonly counterHovered: Signal<bool> = new Signal<bool>(false);
   readonly keyTargetFocused: Signal<bool> = new Signal<bool>(false);
@@ -18,6 +17,8 @@ export class DashboardModel {
   commonHorizontalSliderValue: f32 = 40.0;
   commonVerticalSliderValue: f32 = 60.0;
   commonDropdownValue: string = "Balanced";
+  commonComboBoxValue: string = "Melbourne";
+  commonComboBoxText: string = "Melbourne";
   commonTextInputValue: string = "";
   commonTextInputSelectionStart: u32 = 0;
   commonTextInputSelectionEnd: u32 = 0;

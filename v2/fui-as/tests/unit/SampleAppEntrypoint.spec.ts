@@ -2,7 +2,7 @@ import { Application } from "../../src/core/Application";
 import { __disposeApp, __flushRenders, __runApp } from "../../src/FuiExports";
 import { AlignItems, HandleValue, JustifyContent, PointerEventType, Unit } from "../../src/core/ffi";
 import { EventRouter } from "../../src/core/EventRouter";
-import { Node } from "../../src/core/Node";
+import { ClickEventArgs, Node } from "../../src/core/Node";
 import { activeTheme, defaultDarkTheme, defaultLightTheme, useCustomTheme } from "../../src/core/Theme";
 import { Button } from "../../src/controls";
 import { FlexBox, Text } from "../../src/nodes";
@@ -30,7 +30,7 @@ class SampleFixture {
 
   buildPage(): Node {
     const button = new Button("Toggle light / dark");
-    button.onClickWith(this, (fixture) => {
+    button.onClickWith(this, (fixture, _event: ClickEventArgs) => {
       fixture.toggleTheme();
     });
     this.toggleButton = button;

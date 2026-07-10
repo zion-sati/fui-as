@@ -1,4 +1,4 @@
-import { BorderStyle, Orientation, Unit } from "../../core/ffi";
+import { Orientation, Unit } from "../../core/ffi";
 import { Theme } from "../../core/Theme";
 import { FlexBox } from "../../nodes";
 import { SliderSizing } from "../ControlSizing";
@@ -81,7 +81,7 @@ export abstract class SliderPresenter {
 }
 
 export abstract class SliderTemplate {
-  abstract create(): SliderPresenter;
+  abstract create(sizing?: SliderSizing | null): SliderPresenter;
 }
 
 class DefaultSliderPresenter extends SliderPresenter {
@@ -184,13 +184,13 @@ class DefaultSliderPresenter extends SliderPresenter {
       .cornerRadius(thumbSize * 0.5);
     const thumbColor = colors !== null && colors.hasThumb ? colors.thumbColor : accent;
     this.thumbNode.bgColor(thumbColor);
-    this.thumbNode.border(1.0, theme.colors.surface, BorderStyle.Solid);
+    this.thumbNode.border(1.0, theme.colors.surface);
   }
 }
 
 class DefaultSliderTemplate extends SliderTemplate {
-  create(): SliderPresenter {
-    return new DefaultSliderPresenter();
+  create(sizing: SliderSizing | null = null): SliderPresenter {
+    return createDefaultSliderPresenter(sizing);
   }
 }
 

@@ -1,4 +1,3 @@
-import { BorderStyle } from "../core/ffi";
 import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { Theme, activeTheme } from "../core/Theme";
@@ -154,7 +153,7 @@ export class ProgressBar extends FlexBox {
       this.fillNode.cornerRadius(this.thicknessValue * 0.5);
     }
     super.bgColor(trackColor);
-    super.border(1.0, theme.colors.border, BorderStyle.Solid);
+    super.border(1.0, theme.colors.border);
     this.fillNode.bgColor(fillColor);
   }
 

@@ -1,10 +1,10 @@
-import { startHarness, type HarnessExports, type HarnessState } from '../../../browser/src/common-harness';
+import { startHarness,type HarnessExports,type HarnessState } from '../../../browser/src/common-harness';
 
 declare global {
   interface Window {
-    __fuiAsReady?: boolean;
-    __fuiAsError?: string;
-    __fuiAsState?: HarnessState;
+    __fuiReady?: boolean;
+    __fuiError?: string;
+    __fuiState?: HarnessState;
   }
 }
 
@@ -24,16 +24,16 @@ startHarness<FuiAppExports>({
     exports.__runSmokeApp();
   },
   onStateUpdated(state): void {
-    window.__fuiAsState = state;
+    window.__fuiState = state;
   },
   async onReady({ waitForFrame }): Promise<void> {
     await waitForFrame();
     await waitForFrame();
-    window.__fuiAsReady = true;
-    delete window.__fuiAsError;
+    window.__fuiReady = true;
+    delete window.__fuiError;
   },
   onError(error): void {
     const message = error instanceof Error ? error.message : String(error);
-    window.__fuiAsError = message;
+    window.__fuiError = message;
   },
 });

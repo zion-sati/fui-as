@@ -1,5 +1,5 @@
 import * as ui from "../bindings/ui";
-import { BorderStyle, Unit } from "./ffi";
+import { Unit } from "./ffi";
 import { Node } from "./Node";
 import { activeTheme } from "./Theme";
 import { Portal, FlexBox } from "../nodes";
@@ -53,7 +53,7 @@ export class FocusAdornerManager {
     const ringNode = new FlexBox()
       .positionAbsolute()
       .bgColor(0x00000000)
-      .border(STANDARD_FOCUS_RING_WIDTH, 0x00000000, BorderStyle.Solid);
+      .border(STANDARD_FOCUS_RING_WIDTH, 0x00000000);
     const hostRoot = new Portal()
       .positionAbsolute()
       .position(0.0, 0.0)
@@ -168,7 +168,7 @@ export class FocusAdornerManager {
       style.bottomLeftRadius != this.lastBottomLeftRadius
     ) {
       ringNode.corners(style.topLeftRadius, style.topRightRadius, style.bottomRightRadius, style.bottomLeftRadius);
-      ringNode.border(STANDARD_FOCUS_RING_WIDTH, color, BorderStyle.Solid);
+      ringNode.border(STANDARD_FOCUS_RING_WIDTH, color);
       this.lastColor = color;
       this.lastTopLeftRadius = style.topLeftRadius;
       this.lastTopRightRadius = style.topRightRadius;

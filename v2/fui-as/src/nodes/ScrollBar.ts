@@ -8,6 +8,7 @@ import { isCoarsePointer } from "../core/Platform";
 import { Signal } from "../core/Signal";
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
+import { PointerEventArgs } from "../core/Node";
 import { FlexBox } from "./FlexBox";
 import { Column } from "./helpers";
 import { ScrollState } from "./ScrollState";
@@ -16,7 +17,7 @@ const DEFAULT_TRACK_WIDTH: f32 = 8.0;
 const DEFAULT_THUMB_WIDTH: f32 = 8.0;
 const DEFAULT_MIN_THUMB_HEIGHT: f32 = 18.0;
 
-function noopPointerCallback(_x: f32, _y: f32): void {}
+function noopPointerCallback(_event: PointerEventArgs): void {}
 
 class ScrollMetrics {
   viewportSize: f32 = 0.0;

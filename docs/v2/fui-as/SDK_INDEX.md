@@ -36,6 +36,7 @@ This is the primary SDK navigation page for `v2/fui-as`.
 - [Browser fetch bridge quickstart](./QUICKSTART.md#7-browser-fetch-bridge)
 - [JS host services quickstart](./QUICKSTART.md#8-js-host-services-and-host-events)
 - [Text input reference](./TEXT_INPUT_REFERENCE.md)
+- [DevTools DOM Mirror](../browser-bridge/DEVTOOLS_DOM_MIRROR.md)
 
 ## Theme
 

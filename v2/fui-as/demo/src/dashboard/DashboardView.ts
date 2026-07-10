@@ -1,15 +1,28 @@
 import {
+  AlignItems,
   Column,
   ContextMenu,
   Dialog,
+  Form,
   SelectionArea,
   FlexBox,
   FlexDirection,
+  FlexWrap,
+  GestureEventArgs,
+  GestureEventKind,
+  GestureEventPhase,
   Image,
+  LongPressEventArgs,
+  LongPressGesture,
   Node,
   ObjectFit,
   Orientation,
+  PanGestureEventArgs,
+  PinchGestureEventArgs,
   PopupPlacement,
+  PointerEventArgs,
+  PointerEventType,
+  PointerType,
   Row,
   ScrollBarVisibility,
   ScrollBox,
@@ -22,6 +35,7 @@ import {
   ToolTip,
   Unit,
   VirtualList,
+  WheelEventArgs,
   activeTheme,
   Bitmap,
   rgba,
@@ -32,6 +46,7 @@ import {
   DemoButton,
   DemoButtonTone,
   DemoCheckbox,
+  DemoComboBox,
   DemoDropdown,
   DemoDropdownItem,
   DemoScrollBox,
@@ -59,7 +74,6 @@ import {
 } from "../design-system";
 import {
   ACCENT_SWATCH_HEIGHT,
-  FONT_REGULAR,
   FULL_SIZE,
   MAIN_CONTENT_STARTUP_HEIGHT,
   MIN_SIDEBAR_LIST_VIEWPORT_HEIGHT,
@@ -147,10 +161,10 @@ function ensureDemoListItemTemplate(container: FlexBox): void {
     return;
   }
   const primary = new DemoText("", DemoTextRecipe.ListTitle)
-    .font(FONT_REGULAR, 17.0)
+    .fontSize(17.0)
     .selectable();
   const detail = new DemoText("", DemoTextRecipe.ListMeta)
-    .font(FONT_REGULAR, 13.0)
+    .fontSize(13.0)
     .selectable();
 
   container
@@ -195,8 +209,490 @@ function computeMainContentViewportHeight(): f32 {
 class DashboardText extends DemoText {
   constructor(content: string = "", size: f32 = 14.0, recipe: DemoTextRecipe = DemoTextRecipe.Body, selectable: bool = true) {
     super(content, recipe, selectable);
-    this.font(FONT_REGULAR, size);
+    this.fontSize(size);
   }
+}
+
+class DashboardEventInspector extends FlexBox {
+  private childHandlesWheel: bool = false;
+  private parentHandlesWheel: bool = false;
+  private childDisabled: bool = false;
+  private childGesturePan: bool = false;
+  private childGesturePinch: bool = false;
+  private childGestureLongPress: bool = false;
+  private fastLongPress: bool = false;
+  private parentGesturePan: bool = false;
+  private parentGesturePinch: bool = false;
+  private parentGestureLongPress: bool = false;
+  private readonly childHandledButton: DemoButton = new DemoButton("Child handled: off")
+    .width(172.0, Unit.Pixel) as DemoButton;
+  private readonly parentHandledButton: DemoButton = new DemoButton("Parent handled: off")
+    .width(182.0, Unit.Pixel) as DemoButton;
+  private readonly childDisabledButton: DemoButton = new DemoButton("Child disabled: off")
+    .width(184.0, Unit.Pixel) as DemoButton;
+  private readonly gesturePanButton: DemoButton = new DemoButton("Pan gesture: off")
+    .width(156.0, Unit.Pixel) as DemoButton;
+  private readonly gesturePinchButton: DemoButton = new DemoButton("Pinch gesture: off")
+    .width(168.0, Unit.Pixel) as DemoButton;
+  private readonly gestureLongPressButton: DemoButton = new DemoButton("Long press: off")
+    .width(166.0, Unit.Pixel) as DemoButton;
+  private readonly longPressConfigButton: DemoButton = new DemoButton("Long config: default")
+    .width(206.0, Unit.Pixel) as DemoButton;
+  private readonly parentGesturePanButton: DemoButton = new DemoButton("Parent pan: off")
+    .width(166.0, Unit.Pixel) as DemoButton;
+  private readonly parentGesturePinchButton: DemoButton = new DemoButton("Parent pinch: off")
+    .width(178.0, Unit.Pixel) as DemoButton;
+  private readonly parentGestureLongPressButton: DemoButton = new DemoButton("Parent long: off")
+    .width(174.0, Unit.Pixel) as DemoButton;
+  private readonly statusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
+  private readonly logText: Text = new DashboardText("", 13.0, DemoTextRecipe.Hint);
+  private readonly childPanel: FlexBox = new DemoSurface(DemoSurfaceRecipe.CalloutInset)
+    .width(FULL_SIZE, Unit.Percent)
+    .height(70.0, Unit.Pixel)
+    .padding(12.0, 12.0, 12.0, 12.0) as FlexBox;
+  private readonly childLabel: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
+  private eventSerial: i32 = 0;
+  private logA: string = "Wheel, click, drag, or touch the child panel";
+  private logB: string = "Toggle child handled to stop bubbling";
+  private logC: string = "Pointer logs include local coords and pointer metadata";
+  private logD: string = "Right-click logs here, then opens context menu unless handled";
+  private logE: string = "";
+  private logF: string = "";
+
+  constructor() {
+    super();
+    this.width(FULL_SIZE, Unit.Percent)
+      .semanticLabel("Wheel event inspector");
+
+    const title = new DashboardText("Input event inspector", 20.0, DemoTextRecipe.SectionTitle);
+    const subtitle = new DashboardText("A child panel bubbles pointer, wheel, and gesture events to its parent until a handler marks e.handled.", 14.0, DemoTextRecipe.Supporting);
+    const toggles = new FlexBox()
+      .flexDirection(FlexDirection.Row)
+      .flexWrap(FlexWrap.Wrap)
+      .width(FULL_SIZE, Unit.Percent)
+      .child(this.childHandledButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.parentHandledButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.childDisabledButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.gesturePanButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.gesturePinchButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.gestureLongPressButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.longPressConfigButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.parentGesturePanButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.parentGesturePinchButton.margin(0.0, 6.0, 6.0, 0.0))
+      .child(this.parentGestureLongPressButton.margin(0.0, 6.0, 6.0, 0.0));
+
+    this.statusText.height(94.0, Unit.Pixel);
+    this.logText.height(148.0, Unit.Pixel);
+    this.childHandledButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleChildHandled();
+    });
+    this.parentHandledButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleParentHandled();
+    });
+    this.childDisabledButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleChildDisabled();
+    });
+    this.gesturePanButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleGesturePan();
+    });
+    this.gesturePinchButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleGesturePinch();
+    });
+    this.gestureLongPressButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleGestureLongPress();
+    });
+    this.longPressConfigButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleLongPressConfig();
+    });
+    this.parentGesturePanButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleParentGesturePan();
+    });
+    this.parentGesturePinchButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleParentGesturePinch();
+    });
+    this.parentGestureLongPressButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
+      owner.toggleParentGestureLongPress();
+    });
+    this.childPanel
+      .child(this.childLabel)
+      .onWheelWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: WheelEventArgs): void => {
+        owner.handleChildWheel(event);
+      })
+      .onPointerDownWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleChildPointer(event);
+      })
+      .onPointerMoveWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleChildPointer(event);
+      })
+      .onPointerUpWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleChildPointer(event);
+      })
+      .onPointerCancelWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleChildPointer(event);
+      });
+
+    this.onWheelWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: WheelEventArgs): void => {
+      owner.handleParentWheel(event);
+    })
+      .onPointerDownWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleParentPointer(event);
+      })
+      .onPointerMoveWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleParentPointer(event);
+      })
+      .onPointerUpWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleParentPointer(event);
+      })
+      .onPointerCancelWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
+        owner.handleParentPointer(event);
+    });
+
+    this.child(
+      Column(
+        title,
+        new FlexBox().height(8.0, Unit.Pixel),
+        subtitle,
+        new FlexBox().height(12.0, Unit.Pixel),
+        toggles,
+        new FlexBox().height(8.0, Unit.Pixel),
+        this.statusText,
+        this.childPanel,
+        new FlexBox().height(10.0, Unit.Pixel),
+        this.logText,
+      ).width(FULL_SIZE, Unit.Percent),
+    );
+    this.refresh();
+  }
+
+  private toggleChildHandled(): void {
+    this.childHandlesWheel = !this.childHandlesWheel;
+    this.refresh();
+  }
+
+  private toggleParentHandled(): void {
+    this.parentHandlesWheel = !this.parentHandlesWheel;
+    this.refresh();
+  }
+
+  private toggleChildDisabled(): void {
+    this.childDisabled = !this.childDisabled;
+    this.childPanel.enabled(!this.childDisabled);
+    this.refresh();
+  }
+
+  private toggleGesturePan(): void {
+    this.childGesturePan = !this.childGesturePan;
+    this.refresh();
+  }
+
+  private toggleGesturePinch(): void {
+    this.childGesturePinch = !this.childGesturePinch;
+    this.refresh();
+  }
+
+  private toggleGestureLongPress(): void {
+    this.childGestureLongPress = !this.childGestureLongPress;
+    this.refresh();
+  }
+
+  private toggleLongPressConfig(): void {
+    this.fastLongPress = !this.fastLongPress;
+    this.refresh();
+  }
+
+  private toggleParentGesturePan(): void {
+    this.parentGesturePan = !this.parentGesturePan;
+    this.refresh();
+  }
+
+  private toggleParentGesturePinch(): void {
+    this.parentGesturePinch = !this.parentGesturePinch;
+    this.refresh();
+  }
+
+  private toggleParentGestureLongPress(): void {
+    this.parentGestureLongPress = !this.parentGestureLongPress;
+    this.refresh();
+  }
+
+  private handleChildWheel(event: WheelEventArgs): void {
+    this.pushLog(
+      "child wheel x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " dx=" + (<i32>event.deltaX).toString() +
+      " dy=" + (<i32>event.deltaY).toString() +
+      (this.childHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.childHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleParentWheel(event: WheelEventArgs): void {
+    this.pushLog(
+      "parent wheel x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " dx=" + (<i32>event.deltaX).toString() +
+      " dy=" + (<i32>event.deltaY).toString() +
+      (this.parentHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.parentHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleChildPointer(event: PointerEventArgs): void {
+    this.pushLog(
+      "child " + this.pointerEventName(event.eventType) +
+      " x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " id=" + event.pointerId.toString() +
+      " " + this.pointerTypeName(event.pointerType) +
+      " b=" + event.button.toString() +
+      " bs=" + event.buttons.toString() +
+      " p=" + this.formatPointerFloat(event.pressure) +
+      this.formatClickCount(event) +
+      (this.childHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.childHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleParentPointer(event: PointerEventArgs): void {
+    this.pushLog(
+      "parent " + this.pointerEventName(event.eventType) +
+      " x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " id=" + event.pointerId.toString() +
+      " " + this.pointerTypeName(event.pointerType) +
+      " b=" + event.button.toString() +
+      " bs=" + event.buttons.toString() +
+      " p=" + this.formatPointerFloat(event.pressure) +
+      this.formatClickCount(event) +
+      (this.parentHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.parentHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleChildGesture(event: GestureEventArgs): void {
+    this.pushLog(
+      "child gesture " + this.gesturePhaseName(event.phase) +
+      " " + this.gestureKindName(event) +
+      " x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " dx=" + (<i32>event.deltaX).toString() +
+      " dy=" + (<i32>event.deltaY).toString() +
+      " s=" + this.formatGestureScale(event.scale) +
+      (this.childHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.childHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleParentGesture(event: GestureEventArgs): void {
+    this.pushLog(
+      "parent gesture " + this.gesturePhaseName(event.phase) +
+      " " + this.gestureKindName(event) +
+      " x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " dx=" + (<i32>event.deltaX).toString() +
+      " dy=" + (<i32>event.deltaY).toString() +
+      " s=" + this.formatGestureScale(event.scale) +
+      (this.parentHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.parentHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleChildLongPress(event: LongPressEventArgs): void {
+    this.pushLog(
+      "child long press x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " id=" + event.pointerId.toString() +
+      " " + this.pointerTypeName(event.pointerType) +
+      " ms=" + event.durationMs.toString() +
+      (this.childHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.childHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private handleParentLongPress(event: LongPressEventArgs): void {
+    this.pushLog(
+      "parent long press x=" + (<i32>event.x).toString() +
+      " y=" + (<i32>event.y).toString() +
+      " id=" + event.pointerId.toString() +
+      " " + this.pointerTypeName(event.pointerType) +
+      " ms=" + event.durationMs.toString() +
+      (this.parentHandlesWheel ? " handled" : " unhandled"),
+    );
+    if (this.parentHandlesWheel) {
+      event.handled = true;
+    }
+  }
+
+  private pointerEventName(eventType: PointerEventType): string {
+    if (eventType === PointerEventType.Down) return "down";
+    if (eventType === PointerEventType.Move) return "move";
+    if (eventType === PointerEventType.Up) return "up";
+    if (eventType === PointerEventType.Enter) return "enter";
+    if (eventType === PointerEventType.Leave) return "leave";
+    if (eventType === PointerEventType.Cancel) return "cancel";
+    return "pointer";
+  }
+
+  private gesturePhaseName(phase: GestureEventPhase): string {
+    if (phase === GestureEventPhase.Begin) return "begin";
+    if (phase === GestureEventPhase.Update) return "update";
+    if (phase === GestureEventPhase.End) return "end";
+    if (phase === GestureEventPhase.Cancel) return "cancel";
+    return "gesture";
+  }
+
+  private gestureKindName(event: GestureEventArgs): string {
+    if (event.kind == GestureEventKind.Pan) return "pan";
+    if (event.kind == GestureEventKind.Pinch) return "pinch";
+    return "gesture";
+  }
+
+  private pointerTypeName(pointerType: PointerType): string {
+    if (pointerType === PointerType.Mouse) return "mouse";
+    if (pointerType === PointerType.Touch) return "touch";
+    if (pointerType === PointerType.Pen) return "pen";
+    return "unknown";
+  }
+
+  private formatPointerFloat(value: f32): string {
+    return (<i32>(value * 100.0)).toString();
+  }
+
+  private formatClickCount(event: PointerEventArgs): string {
+    return event.eventType === PointerEventType.Down && event.clickCount > 0
+      ? " count=" + event.clickCount.toString()
+      : "";
+  }
+
+  private formatGestureScale(value: f32): string {
+    return (<i32>(value * 100.0)).toString();
+  }
+
+  private pushLog(line: string): void {
+    this.eventSerial += 1;
+    this.logF = this.logE;
+    this.logE = this.logD;
+    this.logD = this.logC;
+    this.logC = this.logB;
+    this.logB = this.logA;
+    this.logA = "#" + this.eventSerial.toString() + " " + line;
+    this.refresh();
+  }
+
+  private refresh(): void {
+    const childState = this.childDisabled
+      ? "disabled"
+      : (this.childHandlesWheel ? "handles events" : "does not handle");
+    const parentState = this.parentHandlesWheel ? "parent handles" : "parent observes";
+    if (this.childGesturePan) {
+      this.childPanel.panGestureWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PanGestureEventArgs): void => {
+        owner.handleChildGesture(event);
+      });
+    } else {
+      this.childPanel.panGesture(null);
+    }
+    if (this.childGesturePinch) {
+      this.childPanel.pinchGestureWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PinchGestureEventArgs): void => {
+        owner.handleChildGesture(event);
+      });
+    } else {
+      this.childPanel.pinchGesture(null);
+    }
+    if (this.childGestureLongPress) {
+      this.childPanel.longPressRecognizer(this.createLongPressGesture(true));
+    } else {
+      this.childPanel.longPressRecognizer(null);
+    }
+    if (this.parentGesturePan) {
+      this.panGestureWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PanGestureEventArgs): void => {
+        owner.handleParentGesture(event);
+      });
+    } else {
+      this.panGesture(null);
+    }
+    if (this.parentGesturePinch) {
+      this.pinchGestureWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PinchGestureEventArgs): void => {
+        owner.handleParentGesture(event);
+      });
+    } else {
+      this.pinchGesture(null);
+    }
+    if (this.parentGestureLongPress) {
+      this.longPressRecognizer(this.createLongPressGesture(false));
+    } else {
+      this.longPressRecognizer(null);
+    }
+    this.childHandledButton.label(this.childHandlesWheel ? "Child handled: on" : "Child handled: off");
+    this.parentHandledButton.label(this.parentHandlesWheel ? "Parent handled: on" : "Parent handled: off");
+    this.childDisabledButton.label(this.childDisabled ? "Child disabled: on" : "Child disabled: off");
+    this.gesturePanButton.label(this.childGesturePan ? "Child pan: on" : "Child pan: off");
+    this.gesturePinchButton.label(this.childGesturePinch ? "Child pinch: on" : "Child pinch: off");
+    this.gestureLongPressButton.label(this.childGestureLongPress ? "Child long: on" : "Child long: off");
+    this.longPressConfigButton.label(this.fastLongPress ? "Long config: fast" : "Long config: default");
+    this.parentGesturePanButton.label(this.parentGesturePan ? "Parent pan: on" : "Parent pan: off");
+    this.parentGesturePinchButton.label(this.parentGesturePinch ? "Parent pinch: on" : "Parent pinch: off");
+    this.parentGestureLongPressButton.label(this.parentGestureLongPress ? "Parent long: on" : "Parent long: off");
+    this.statusText.text(
+      "Child: " + childState +
+      "\nParent: " + parentState +
+      "\nChild rec: " + this.childGestureRecognizerName() +
+      "\nParent rec: " + this.parentGestureRecognizerName() +
+      "\nLong press: " + (this.fastLongPress ? "250ms / 18px" : "500ms / 10px"),
+    );
+    this.childLabel.text(this.childDisabled ? "Disabled child: events start at parent" : "Child wheel, pointer, and gesture zone");
+    this.logText.text(this.logA + "\n" + this.logB + "\n" + this.logC + "\n" + this.logD + "\n" + this.logE + "\n" + this.logF);
+  }
+
+  private createLongPressGesture(child: bool): LongPressGesture {
+    const gesture = LongPressGesture.create();
+    if (this.fastLongPress) {
+      gesture.minimumDuration(250).movementTolerance(18.0);
+    }
+    if (child) {
+      gesture.onRecognizedWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: LongPressEventArgs): void => {
+        owner.handleChildLongPress(event);
+      });
+    } else {
+      gesture.onRecognizedWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: LongPressEventArgs): void => {
+        owner.handleParentLongPress(event);
+      });
+    }
+    return gesture;
+  }
+
+  private childGestureRecognizerName(): string {
+    return this.gestureRecognizerName(this.childGesturePan, this.childGesturePinch, this.childGestureLongPress);
+  }
+
+  private parentGestureRecognizerName(): string {
+    return this.gestureRecognizerName(this.parentGesturePan, this.parentGesturePinch, this.parentGestureLongPress);
+  }
+
+  private gestureRecognizerName(pan: bool, pinch: bool, longPress: bool): string {
+    if (pan && pinch && longPress) return "pan + pinch + long";
+    if (pan && pinch) return "pan + pinch";
+    if (pan && longPress) return "pan + long";
+    if (pinch && longPress) return "pinch + long";
+    if (pan) return "pan";
+    if (pinch) return "pinch";
+    if (longPress) return "long press";
+    return "none";
+  }
+
 }
 
 function createDashboardMainContentScrollState(): ScrollState {
@@ -240,10 +736,38 @@ export class DashboardView {
     .itemPadding(14.0, 10.0, 14.0, 10.0)
     .panelCornerRadius(SURFACE_RADIUS_SMALL)
     .itemCornerRadius(14.0) as ContextMenu;
+  readonly dialogUsernameInput: DemoTextInput = new DemoTextInput()
+    .semanticLabel("Username")
+    .placeholder("Username or email")
+    .hostAutofill("username")
+    .width(100.0, Unit.Percent)
+    .nodeId("username") as DemoTextInput;
+  readonly dialogPasswordInput: DemoTextInput = new DemoTextInput()
+    .semanticLabel("Password")
+    .placeholder("Password")
+    .password()
+    .hostAutofill("current-password")
+    .width(100.0, Unit.Percent)
+    .nodeId("dialog-current-password") as DemoTextInput;
+  readonly dialogCredentialsContent: Form = (new Form())
+    .child(Column(
+      new DashboardText("Username", 14.0, DemoTextRecipe.Hint),
+      this.verticalSpacer(6.0),
+      this.dialogUsernameInput,
+      this.verticalSpacer(12.0),
+      new DashboardText("Password", 14.0, DemoTextRecipe.Hint),
+      this.verticalSpacer(6.0),
+      this.dialogPasswordInput,
+    )
+      .width(100.0, Unit.Percent) as FlexBox) as Form;
   readonly dialog: Dialog = new Dialog(
     "Confirm action",
     "Press Enter to accept, Escape to cancel, or click the backdrop to dismiss this dialog.",
   )
+    .bodyContent(this.dialogCredentialsContent)
+    .onShownWith(this, (view, _event): void => {
+      view.dialogUsernameInput.focusNow();
+    })
     .backdropColor(0x00000024)
     .backgroundBlur(10.0)
     .cardCornerRadius(SURFACE_RADIUS_MEDIUM)
@@ -259,7 +783,6 @@ export class DashboardView {
   readonly accentSwatch: FlexBox = new FlexBox()
     .width(FULL_SIZE, Unit.Percent)
     .height(ACCENT_SWATCH_HEIGHT, Unit.Pixel) as FlexBox;
-  readonly hueText: Text = new DashboardText("", 17.0);
   readonly viewportText: Text = new DashboardText("", 15.0);
   readonly clickCountText: Text = new DashboardText("", 17.0);
   readonly pointerStatusText: Text = new DashboardText("", 15.0);
@@ -381,11 +904,12 @@ export class DashboardView {
         .width(FULL_SIZE, Unit.Percent),
     ) as FlexBox;
   readonly commonControlsHeadingText: Text = new DashboardText("Common controls", 20.0, DemoTextRecipe.SectionTitle);
-  readonly commonControlsDescriptionText: Text = new DashboardText("Checkbox, switch, radio, slider, dropdown, and text input samples all sit on the same retained semantic and focus foundation.", 14.0, DemoTextRecipe.Supporting);
+  readonly commonControlsDescriptionText: Text = new DashboardText("Checkbox, switch, radio, slider, dropdown, combobox, and text input samples all sit on the same retained semantic and focus foundation.", 14.0, DemoTextRecipe.Supporting);
   readonly commonToggleStatusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
   readonly commonRadioStatusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
   readonly commonSliderStatusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
   readonly commonDropdownStatusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
+  readonly commonComboBoxStatusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
   readonly commonTextInputStatusText: Text = new DashboardText("", 14.0, DemoTextRecipe.StatusValue);
   readonly mediaHeadingText: Text = new DashboardText("Media assets", 20.0, DemoTextRecipe.SectionTitle);
   readonly mediaDescriptionText: Text = new DashboardText("Compare texture-backed images with SVG-backed assets and an app-owned premultiplied RGBA bitmap upload.", 14.0, DemoTextRecipe.Supporting);
@@ -468,6 +992,7 @@ export class DashboardView {
         this.nestedScrollViewportFrame,
       ).width(FULL_SIZE, Unit.Percent),
     ) as FlexBox;
+  readonly eventInspectorCard: DashboardEventInspector = new DashboardEventInspector();
   readonly commonCheckbox: DemoCheckbox = new DemoCheckbox("Email updates", true)
     .nodeId("demo-dashboard:email-updates-checkbox") as DemoCheckbox;
   readonly commonTriStateCheckbox: DemoCheckbox = new DemoCheckbox("Review state", true)
@@ -508,14 +1033,44 @@ export class DashboardView {
     .selectIndex(0)
     .width(220.0, Unit.Pixel)
     .nodeId("demo-dashboard:render-mode-dropdown") as DemoDropdown;
+  readonly commonComboBox: DemoComboBox = new DemoComboBox()
+    .placeholder("Search city")
+    .items([
+      "Melbourne",
+      "Sydney",
+      "Singapore",
+      "San Francisco",
+      "Seattle",
+      "Tokyo",
+      "Osaka",
+      "London",
+      "Paris",
+      "Berlin",
+      "Toronto",
+      "Vancouver",
+      "Auckland",
+      "Wellington",
+      "Hong Kong",
+      "Bangkok",
+      "Seoul",
+      "Taipei",
+      "New York",
+      "Chicago",
+    ])
+    .selectIndex(0)
+    .width(220.0, Unit.Pixel)
+    .nodeId("demo-dashboard:city-combobox") as DemoComboBox;
   readonly commonTextInput: DemoTextInput = new DemoTextInput()
     .placeholder("Type here")
     .maxChars(32)
+    .hostAutofill("username")
     .width(220.0, Unit.Pixel)
     .nodeId("demo-dashboard:text-input") as DemoTextInput;
   readonly commonPasswordInput: DemoTextInput = new DemoTextInput("super-secret")
     .password()
-    .width(220.0, Unit.Pixel) as DemoTextInput;
+    .hostAutofill("current-password")
+    .width(220.0, Unit.Pixel)
+    .nodeId("current-password") as DemoTextInput;
   readonly commonReadOnlyInput: DemoTextInput = new DemoTextInput("Read-only selection sample")
     .readOnly()
     .width(220.0, Unit.Pixel) as DemoTextInput;
@@ -539,9 +1094,11 @@ export class DashboardView {
           this.commonHorizontalSlider,
           this.horizontalSpacer(18.0),
           this.commonVerticalSlider,
-        ).alignItems(2),
+        ).alignItems(AlignItems.Center),
         this.verticalSpacer(12.0),
         this.commonDropdown,
+        this.verticalSpacer(12.0),
+        this.commonComboBox,
         this.verticalSpacer(12.0),
         this.commonTextInput,
         this.verticalSpacer(8.0),
@@ -558,6 +1115,8 @@ export class DashboardView {
         this.commonSliderStatusText,
         this.verticalSpacer(6.0),
         this.commonDropdownStatusText,
+        this.verticalSpacer(6.0),
+        this.commonComboBoxStatusText,
       ).width(FULL_SIZE, Unit.Percent),
     ) as FlexBox;
   readonly mediaCard: FlexBox = new DemoSurface(DemoSurfaceRecipe.SectionPanel)
@@ -594,8 +1153,6 @@ export class DashboardView {
         this.previewDescriptionText,
         this.verticalSpacer(12.0),
         this.accentSwatch,
-        this.verticalSpacer(8.0),
-        this.hueText,
         this.verticalSpacer(4.0),
         this.viewportText,
         this.verticalSpacer(4.0),
@@ -651,9 +1208,11 @@ export class DashboardView {
         this.inspectorDivider,
         this.verticalSpacer(SPACING_MEDIUM),
         this.inspectorDescriptionText,
+        this.verticalSpacer(SPACING_MEDIUM),
+        this.eventInspectorCard,
       ).width(FULL_SIZE, Unit.Percent),
     ) as FlexBox;
-  readonly mainHeadingText: Text = new DashboardText("EffinDom FUI-AS Samples", 30.0, DemoTextRecipe.PageTitle);
+  readonly mainHeadingText: Text = new DashboardText("EffinDom FUI-AS Demo", 30.0, DemoTextRecipe.PageTitle);
   readonly mainDescriptionText: Text = new DashboardText("Explore layout, scrolling, state, media, and input behavior in one retained scene.", 16.0, DemoTextRecipe.Supporting);
   readonly dashboardScrollState: ScrollState = new ScrollState();
   readonly dashboardContentRow: FlexBox = new FlexBox()

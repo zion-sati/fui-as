@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
 
 import * as demo from './demo-test-support';
 
@@ -80,7 +80,7 @@ test('dialog Enter activation waits for key release before accepting', async ({ 
       const layer = document.getElementById('semantic-layer');
       const dialog = layer?.querySelector('[role="dialog"][aria-label="Confirm action"]');
       const body = Array.from(layer?.querySelectorAll('[data-role="text"]') ?? [])
-        .map((node) => node.textContent ?? '')
+        .map((node) => node.textContent)
         .find((text) => text.includes('Press Enter to accept'));
       return {
         hasDialog: dialog !== null,
@@ -243,14 +243,14 @@ test('right-clicking selected text shows Copy and clicking it writes the stitche
   await page.mouse.up();
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).not.toBe('');
-  const expectedSelection = await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+  const expectedSelection = await page.evaluate(() => window.__fuiSelectionText ?? '');
 
   await page.mouse.click(contextMenuX, selectionY, { button: 'right' });
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(['Copy', 'Select All', 'Reload Page']);
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe(expectedSelection);
 
   const copyBounds = await demo.findSemanticBounds(page, 'Copy');
@@ -297,7 +297,7 @@ test('right-clicking outside the current selection clears it and hides Copy', as
   await page.mouse.up();
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).not.toBe('');
 
   await page.mouse.click(
@@ -308,8 +308,37 @@ test('right-clicking outside the current selection clears it and hides Copy', as
 
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(['Reload Page']);
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe('');
+});
+
+test('secondary-button release after opening the context menu does not invoke the first item', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?context-menu-secondary-up=1`);
+  await demo.waitForDemoReady(page);
+
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  if (canvasBox === null) {
+    throw new Error('Expected scene canvas bounds.');
+  }
+
+  const clickX = canvasBox.x + 48;
+  const clickY = canvasBox.y + 48;
+  const initialUrl = page.url();
+
+  await page.mouse.move(clickX, clickY);
+  await page.mouse.down({ button: 'right' });
+
+  await expect.poll(async () => {
+    const labels = await demo.readContextMenuLabels(page);
+    return labels.length > 0 ? labels : null;
+  }).not.toBeNull();
+  const labelsAfterDown = await demo.readContextMenuLabels(page);
+
+  await page.mouse.up({ button: 'right' });
+
+  await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual(labelsAfterDown);
+  await expect(page).toHaveURL(initialUrl);
 });
 
 test('Escape closes the context menu and clears the active text selection', async ({ page }) => {
@@ -339,7 +368,7 @@ test('Escape closes the context menu and clears the active text selection', asyn
   await page.mouse.up();
 
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).not.toBe('');
 
   await page.mouse.click(contextMenuX, selectionY, { button: 'right' });
@@ -349,7 +378,7 @@ test('Escape closes the context menu and clears the active text selection', asyn
 
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([]);
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__fuiDemoSelectionText ?? '');
+    return await page.evaluate(() => window.__fuiSelectionText ?? '');
   }).toBe('');
 });
 
@@ -406,7 +435,7 @@ test('editable text exposes default text actions and Select All works from the c
   );
   await expect.poll(async () => {
     return await page.evaluate(() => {
-      const input = document.querySelector('input[data-effindom-hidden-editor="true"]') as HTMLInputElement | null;
+      const input = document.querySelector<HTMLInputElement>('input[data-effindom-hidden-editor="true"]');
       return input?.value ?? null;
     });
   }).toBe('');
@@ -614,6 +643,36 @@ test('images expose default image actions in the context menu', async ({ page, c
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
     'Open Image in New Tab',
     'Open Image',
+    'Reload Page',
+  ]);
+});
+
+test('right-clicking a nav link opens link actions without navigating', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls');
+
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  if (canvasBox === null) {
+    throw new Error('Expected scene canvas bounds.');
+  }
+  const linkBounds = await demo.findSemanticBounds(page, 'Advanced controls');
+  expect(linkBounds).not.toBeNull();
+  if (linkBounds === null) {
+    throw new Error('Expected Advanced controls link bounds.');
+  }
+
+  await page.mouse.click(
+    canvasBox.x + linkBounds.x + (linkBounds.width * 0.5),
+    canvasBox.y + linkBounds.y + (linkBounds.height * 0.5),
+    { button: 'right' },
+  );
+
+  await expect(page).toHaveURL(`${demo.baseUrl}/v2/fui-as/demo/index.html`);
+  await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
+    'Open Link in New Tab',
+    'Open Link',
     'Reload Page',
   ]);
 });

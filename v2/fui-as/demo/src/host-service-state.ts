@@ -1,21 +1,21 @@
 interface DemoShellState {
   tick: number;
-  hue: number;
+  accentColor: number;
   darkMode: boolean;
 }
 
 type TickListener = (tick: number) => void;
-type HueListener = (hue: number) => void;
+type AccentColorListener = (accentColor: number) => void;
 type DarkModeListener = (darkMode: boolean) => void;
 
 const state: DemoShellState = {
   tick: 0,
-  hue: 210,
+  accentColor: 0x2563ebff,
   darkMode: false,
 };
 
 const tickListeners = new Set<TickListener>();
-const hueListeners = new Set<HueListener>();
+const accentColorListeners = new Set<AccentColorListener>();
 const darkModeListeners = new Set<DarkModeListener>();
 
 function emitTick(tick: number): void {
@@ -24,9 +24,9 @@ function emitTick(tick: number): void {
   }
 }
 
-function emitHue(hue: number): void {
-  for (const listener of hueListeners) {
-    listener(hue);
+function emitAccentColor(accentColor: number): void {
+  for (const listener of accentColorListeners) {
+    listener(accentColor);
   }
 }
 
@@ -45,17 +45,13 @@ export function setDemoShellTick(tick: number): void {
   emitTick(normalized);
 }
 
-export function setDemoShellHue(hue: number): void {
-  let normalized = hue % 360;
-  if (normalized < 0) {
-    normalized += 360;
-  }
-  normalized |= 0;
-  if (state.hue === normalized) {
+export function setDemoShellAccentColor(accentColor: number): void {
+  const normalized = accentColor >>> 0;
+  if (state.accentColor === normalized) {
     return;
   }
-  state.hue = normalized;
-  emitHue(normalized);
+  state.accentColor = normalized;
+  emitAccentColor(normalized);
 }
 
 export function setDemoShellDarkMode(darkMode: boolean): void {
@@ -77,10 +73,10 @@ export function subscribeDemoShellClockTick(listener: TickListener): () => void 
   };
 }
 
-export function subscribeDemoShellHue(listener: HueListener): () => void {
-  hueListeners.add(listener);
+export function subscribeDemoShellAccentColor(listener: AccentColorListener): () => void {
+  accentColorListeners.add(listener);
   return () => {
-    hueListeners.delete(listener);
+    accentColorListeners.delete(listener);
   };
 }
 

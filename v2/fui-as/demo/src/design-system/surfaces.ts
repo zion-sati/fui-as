@@ -1,4 +1,4 @@
-import { BorderStyle, Disposable, FlexBox, Theme, activeTheme, bindTheme, disposeAll } from "../../../src/Fui";
+import { Border, BorderStyle, Disposable, FlexBox, Theme, activeTheme, bindTheme, disposeAll } from "../../../src/Fui";
 import {
   SURFACE_PANEL_MARGIN,
   SURFACE_BORDER_WIDTH,
@@ -226,7 +226,7 @@ export function applyDemoSurfaceRecipe(
   surface
     .bgColor(style.background)
     .cornerRadius(style.radius)
-    .border(style.borderWidth, style.borderColor, style.borderStyle)
+    .borderConfig(new Border(style.borderWidth, style.borderColor, style.borderStyle))
     .margin(style.margin)
     .dropShadow(style.shadowColor, style.shadowOffsetX, style.shadowOffsetY, style.shadowBlur, style.shadowSpread);
 }

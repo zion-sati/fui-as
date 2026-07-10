@@ -821,7 +821,7 @@ test('dragging selection at the list edge auto-scrolls without hanging the demo'
 
   const responsivenessProbe = await page.evaluate(() => {
     return {
-      ready: window.__fuiAsReady === true,
+      ready: window.__fuiReady === true,
       firstVisible: (window.__bridgeSemanticTree ?? []).find((item) => item.label.startsWith('First visible item '))?.label ?? null,
     };
   });
@@ -830,8 +830,41 @@ test('dragging selection at the list edge auto-scrolls without hanging the demo'
 
   await page.mouse.up();
 
-  const selectionLength = await page.evaluate(() => (window.__fuiDemoSelectionText ?? '').length);
+  const selectionLength = await page.evaluate(() => (window.__fuiSelectionText ?? '').length);
   expect(selectionLength).toBe(0);
+});
+
+test('semantic bounds track debug visible bounds after scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 960, height: 900 });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html?wheel-routing=1`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Nested scroll sandbox');
+
+  const comparison = await page.evaluate(async () => {
+    const semantic = (window.__bridgeSemanticTree ?? []).find((node) => node.label === 'Nested origin marker');
+    const debug = window.__fui_debug;
+    if (semantic === undefined || debug === undefined || typeof debug.getDebugTree !== 'function') {
+      return null;
+    }
+    const tree = await debug.getDebugTree();
+    const debugNode = tree.nodes.find((node) => node.semanticLabel === 'Nested origin marker');
+    if (debugNode === undefined) {
+      return null;
+    }
+    return {
+      semantic: semantic.bounds,
+      visible: debugNode.visibleBounds,
+    };
+  });
+
+  expect(comparison).not.toBeNull();
+  if (comparison === null) {
+    throw new Error('Expected semantic and debug bounds for Nested origin marker.');
+  }
+  expect(Math.abs(comparison.semantic.x - comparison.visible.x)).toBeLessThan(1);
+  expect(Math.abs(comparison.semantic.y - comparison.visible.y)).toBeLessThan(1);
+  expect(Math.abs(comparison.semantic.width - comparison.visible.width)).toBeLessThan(1);
+  expect(Math.abs(comparison.semantic.height - comparison.visible.height)).toBeLessThan(1);
 });
 
 test('exposes debug console helpers and structured logs', async ({ page }) => {

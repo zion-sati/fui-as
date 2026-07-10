@@ -1,4 +1,4 @@
-import { BorderStyle, Button, ContextMenu, Dialog, Dropdown, NavLink, ProgressBar, Text, Theme, rgb } from "../../../../src/Fui";
+import { Border, BorderStyle, Button, ComboBox, ContextMenu, Dialog, Dropdown, NavLink, ProgressBar, Text, Theme, rgb } from "../../../../src/Fui";
 import {
   HEADER_SHADOW_BLUR,
   SURFACE_BORDER_WIDTH,
@@ -110,7 +110,7 @@ export function applyDemoNavLinkRecipe(link: NavLink, labelNode: Text, theme: Th
   const style = resolveDemoNavLinkRecipe(theme, recipe);
   link
     .bgColor(style.background)
-    .border(style.borderWidth, style.borderColor, style.borderStyle);
+    .borderConfig(new Border(style.borderWidth, style.borderColor, style.borderStyle));
   labelNode.textColor(style.textColor);
 }
 
@@ -159,6 +159,13 @@ export function resolveDemoDropdownRecipe(theme: Theme, _recipe: DemoDropdownRec
 export function applyDemoDropdownRecipe(dropdown: Dropdown, theme: Theme, recipe: DemoDropdownRecipe = DemoDropdownRecipe.Popup): void {
   const style = resolveDemoDropdownRecipe(theme, recipe);
   dropdown
+    .popupPanelColor(style.popupPanelColor)
+    .popupPanelBackgroundBlur(style.popupPanelBackgroundBlur);
+}
+
+export function applyDemoComboBoxRecipe(comboBox: ComboBox, theme: Theme, recipe: DemoDropdownRecipe = DemoDropdownRecipe.Popup): void {
+  const style = resolveDemoDropdownRecipe(theme, recipe);
+  comboBox
     .popupPanelColor(style.popupPanelColor)
     .popupPanelBackgroundBlur(style.popupPanelBackgroundBlur);
 }

@@ -1,4 +1,4 @@
-import { defineHostServices, hostService } from "../../browser/src/host-services";
+import { defineHostServices, hostService } from "../../browser/src/shared-browser";
 
 export const demoWorkerHostServices = defineHostServices({
   demoWorkerClock: {

@@ -1,7 +1,9 @@
-import { Button, Dialog, Form } from "../../src/controls";
+import { Button, Dialog, DialogShownEventArgs, Form } from "../../src/controls";
 import { EventRouter } from "../../src/core/EventRouter";
+import { ClickEventArgs } from "../../src/core/Node";
 import { __fui_key_buffer, __fui_on_focus_changed, __fui_on_key_event } from "../../src/core/event_exports";
 import { KeyEventType, Unit } from "../../src/core/ffi";
+import { flushCommit, markNeedsCommit } from "../../src/core/FrameScheduler";
 import { activeTheme, defaultDarkTheme, generateTheme, useCustomTheme } from "../../src/core/Theme";
 import {
   CALL_ADD_CHILD,
@@ -33,6 +35,18 @@ function handleAccept(): void {
 
 function handleCancel(): void {
   cancelCount += 1;
+}
+
+function handleAcceptClick(_event: ClickEventArgs): void {
+  handleAccept();
+}
+
+function handleCancelClick(_event: ClickEventArgs): void {
+  handleCancel();
+}
+
+function handleDialogShownFocusAccept(owner: Dialog, _event: DialogShownEventArgs): void {
+  owner.acceptActionButton.focusNow();
 }
 
 function lastBackgroundColor(): u32 {
@@ -80,8 +94,8 @@ describe("Dialog and Form", () => {
     resetCalls();
 
     const form = new Form();
-    const accept = new Button("OK").onClick(handleAccept);
-    const cancel = new Button("Cancel").onClick(handleCancel);
+    const accept = new Button("OK").onClick(handleAcceptClick);
+    const cancel = new Button("Cancel").onClick(handleCancelClick);
     form.width(100.0, Unit.Percent);
     form.defaultBtn(accept);
     form.cancelBtn(cancel);
@@ -117,7 +131,7 @@ describe("Dialog and Form", () => {
     resetCounts();
 
     const form = new Form();
-    const accept = new Button("OK").onClick(handleAccept);
+    const accept = new Button("OK").onClick(handleAcceptClick);
     form.defaultBtn(accept).child(accept);
     form.build();
     form.activate();
@@ -137,8 +151,8 @@ describe("Dialog and Form", () => {
     resetCalls();
 
     const form = new Form();
-    const accept = new Button("OK").onClick(handleAccept);
-    const cancel = new Button("Cancel").onClick(handleCancel);
+    const accept = new Button("OK").onClick(handleAcceptClick);
+    const cancel = new Button("Cancel").onClick(handleCancelClick);
     form.defaultBtn(accept);
     form.cancelBtn(cancel);
     form.child(accept);
@@ -192,23 +206,25 @@ describe("Dialog and Form", () => {
     dialog.dispose();
   });
 
-  it("requests focus for the accept button when a dialog is shown", () => {
+  it("runs shown callbacks after commit so callers can request dialog focus", () => {
     EventRouter.reset();
     resetCalls();
 
     const opener = new Button("Open dialog");
     const dialog = new Dialog("Confirm action", "Body copy");
+    dialog.onShownWith<Dialog>(dialog, handleDialogShownFocusAccept);
     opener.build();
     dialog.build();
     resetCalls();
 
     dialog.show();
+    markNeedsCommit();
+    flushCommit();
 
     const focusIndex = findCall(CALL_REQUEST_FOCUS);
     expect<i32>(focusIndex).toBeGreaterThan(-1);
     expect<f64>(getCallArg(focusIndex, 0)).toBe(<f64>dialog.acceptActionButton.builtHandle);
 
-    opener.dispose();
     opener.dispose();
     dialog.dispose();
   });

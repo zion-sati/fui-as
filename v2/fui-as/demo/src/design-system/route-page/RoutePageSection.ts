@@ -1,5 +1,4 @@
 import { Column, FlexBox, Node, SemanticRole, Text, Unit } from "../../../../src/Fui";
-import { FONT_REGULAR } from "../tokens";
 import { DemoSurface, DemoSurfaceRecipe } from "../surfaces";
 import { DemoText, DemoTextRecipe } from "../text";
 
@@ -17,11 +16,11 @@ function verticalSpacer(height: f32): FlexBox {
 
 export function createRoutePageSection(title: string, description: string, body: Node): RoutePageSection {
   const heading = new DemoText(title, DemoTextRecipe.SectionTitle)
-    .font(FONT_REGULAR, 20.0)
+    .fontSize(20.0)
     .semanticRole(SemanticRole.Heading) as Text;
 
   const descriptionText = new DemoText(description, DemoTextRecipe.Supporting)
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(3) as Text;
 
   const card = new DemoSurface(DemoSurfaceRecipe.SectionPanel)

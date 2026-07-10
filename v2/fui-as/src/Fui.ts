@@ -30,15 +30,22 @@ export {
   loadSvg,
   loadTexture,
 } from "./core/Assets";
-export { Bitmap } from "./core/Bitmap";
+export { Bitmap, BitmapTextReadyEventArgs, BitmapTextReadyHandler } from "./core/Bitmap";
+export { ImageSampling } from "./core/ImageSampling";
 export { DrawContext } from "./drawing/DrawContext";
 export { Paint } from "./drawing/Paint";
 export { Path } from "./drawing/Path";
-export { Fetch, FetchRequest, FetchResponse } from "./core/Fetch";
+export { TextLayout, TextLayoutReadyEventArgs, TextLayoutReadyHandler, TextMetrics } from "./text/TextLayout";
+export {
+  DynamicTextLayout,
+  DynamicTextLayoutReadyHandler,
+  DynamicTextOverflow,
+} from "./text/DynamicTextLayout";
+export { Fetch, FetchErrorEventArgs, FetchRequest, FetchResponse } from "./core/Fetch";
 export { log } from "./core/Logger";
 export { disposeAll, Disposable } from "./core/Disposable";
 export { cancelAllTimers, cancelTimer, hasTimer, scheduleTimer } from "./core/Timers";
-export { onLoaded } from "./core/FrameScheduler";
+export { LoadedEventArgs, LoadedHandler, onLoaded, onLoadedWith } from "./core/FrameScheduler";
 export { SetBackgroundAction, SetTextAction } from "./core/Actions";
 export { hslToColor, mixColor, rgb, rgba } from "./color";
 export {
@@ -60,6 +67,13 @@ export {
 } from "./core/Animation";
 export { NodeTransitions } from "./core/Transitions";
 export {
+  CheckboxChangedEventArgs,
+  ClickEventArgs,
+  ComboBoxChangedEventArgs,
+  ContextMenuEventArgs,
+  DragCompletedEventArgs,
+  DropdownChangedEventArgs,
+  PointerClickEventArgs,
   DragDataObject,
   DragDropEffects,
   DragEventArgs,
@@ -68,10 +82,36 @@ export {
   ExternalDropEventArgs,
   ExternalDropItemInfo,
   ExternalDropItemKind,
+  DEFAULT_LONG_PRESS_MINIMUM_DURATION_MS,
+  DEFAULT_LONG_PRESS_MOVEMENT_TOLERANCE,
+  FocusChangedEventArgs,
+  GestureEventArgs,
+  GestureEventKind,
+  GestureEventPhase,
+  HoverChangedEventArgs,
+  KeyEventArgs,
+  LongPressGesture,
+  LongPressEventArgs,
   Node,
+  PointerButton,
+  PointerButtons,
+  PanGestureEventArgs,
+  PinchGestureEventArgs,
+  PointerEventArgs,
+  PointerType,
+  RadioButtonChangedEventArgs,
+  RadioGroupChangedEventArgs,
+  SelectionChangedEventArgs,
+  SliderChangedEventArgs,
+  SwitchChangedEventArgs,
+  TextChangedEventArgs,
+  VisibilityChangedEventArgs,
+  WheelDeltaMode,
+  WheelEventArgs,
 } from "./core/Node";
 export { DragCompletedEvent, DragDeltaEvent, DragGesture, DragGestureHost, DragStartedEvent } from "./core/DragGesture";
 export { ContextMenuManager } from "./core/ContextMenuManager";
+export { NavigateEventArgs } from "./controls/NavLink";
 export {
   AlignSelf,
   AlignItems,
@@ -100,12 +140,26 @@ export {
 export { Signal } from "./core/Signal";
 export { showKeyboardFocusForKeyEvent } from "./core/FocusVisibility";
 export { ToolTip, PopupPlacement } from "./core/ToolTip";
-export { FontFace, FontFamily, FontStack, FontStyle, FontWeight } from "./core/Typography";
+export {
+  FontFace,
+  FontFaceLoadedEventArgs,
+  FontFamily,
+  FontLoadedHandler,
+  FontReadyHandler,
+  FontsLoadedEventArgs,
+  FontStack,
+  FontStackLoadedEventArgs,
+  FontStackLoadedHandler,
+  FontStyle,
+  FontWeight,
+} from "./core/Typography";
 export {
   BrowserFile,
   BrowserFileWriter,
   File,
   FileCapabilities,
+  FileErrorEventArgs,
+  FileOpenEventArgs,
   FileReadChunk,
   FileWorkerProcessProgress,
   FileWorkerProcessRequest,
@@ -115,7 +169,7 @@ export {
   FileSaveResult,
   FileWriteProgress,
 } from "./core/File";
-export { Worker } from "./core/Worker";
+export { Worker, WorkerCompletedEventArgs, WorkerErrorEventArgs, WorkerProgressEventArgs } from "./core/Worker";
 export { Worker as WorkerRuntime } from "./worker/Worker";
 export { WorkerJob } from "./worker/WorkerJob";
 export { currentRoute, navigateTo } from "./core/Navigation";
@@ -140,6 +194,7 @@ export {
   useSystemTheme,
 } from "./core/Theme";
 export { frameTimeSignal, viewportHeightSignal, viewportWidthSignal } from "./core/event_exports";
+export { getDevicePixelRatio as devicePixelRatio } from "./bindings/ui";
 export {
   AntiSelectionArea,
   Button,
@@ -152,6 +207,10 @@ export {
   CheckboxIndicatorVisualState,
   Checkbox,
   clearControlTemplates,
+  ComboBox,
+  ComboBoxCommitMode,
+  ComboBoxFilterMode,
+  ComboBoxItem,
   ControlTemplateSet,
   ContextMenu,
   Dialog,
@@ -204,6 +263,7 @@ export {
   useControlTemplates,
 } from "./controls";
 export {
+  Border,
   FlexBox,
   FlexBoxProps,
   CustomDrawable,

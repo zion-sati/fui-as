@@ -9,6 +9,7 @@ export interface GlyphRunSnapshot {
   readonly handle: bigint;
   readonly fontId: number;
   readonly glyphCount: number;
+  readonly glyphFontIds: readonly number[];
   readonly xPositions: readonly number[];
   readonly yPositions: readonly number[];
 }
@@ -44,10 +45,12 @@ export function parseGlyphRuns(words: readonly number[]): GlyphRunSnapshot[] {
       const glyphCount = words[index + 6] ?? 0;
       const low = BigInt(words[index + 1] ?? 0);
       const high = BigInt(words[index + 2] ?? 0);
+      const glyphFontIds: number[] = [];
       const xPositions: number[] = [];
       const yPositions: number[] = [];
       for (let glyphIndex = 0; glyphIndex < glyphCount; glyphIndex += 1) {
         const base = index + 7 + (glyphIndex * 4);
+        glyphFontIds.push(words[base + 3] ?? 0);
         xPositions.push(decodeFloat32(words[base + 1] ?? 0));
         yPositions.push(decodeFloat32(words[base + 2] ?? 0));
       }
@@ -55,10 +58,59 @@ export function parseGlyphRuns(words: readonly number[]): GlyphRunSnapshot[] {
         handle: (high << 32n) | low,
         fontId: words[index + 3] ?? 0,
         glyphCount,
+        glyphFontIds,
         xPositions,
         yPositions,
       });
       index += 7 + (glyphCount * 4);
+      continue;
+    }
+    if (opcode === 44) {
+      const glyphCount = words[index + 5] ?? 0;
+      const low = BigInt(words[index + 1] ?? 0);
+      const high = BigInt(words[index + 2] ?? 0);
+      const glyphFontIds: number[] = [];
+      const xPositions: number[] = [];
+      const yPositions: number[] = [];
+      for (let glyphIndex = 0; glyphIndex < glyphCount; glyphIndex += 1) {
+        const base = index + 6 + (glyphIndex * 5);
+        glyphFontIds.push(words[base + 3] ?? 0);
+        xPositions.push(decodeFloat32(words[base + 1] ?? 0));
+        yPositions.push(decodeFloat32(words[base + 2] ?? 0));
+      }
+      runs.push({
+        handle: (high << 32n) | low,
+        fontId: words[index + 3] ?? 0,
+        glyphCount,
+        glyphFontIds,
+        xPositions,
+        yPositions,
+      });
+      index += 6 + (glyphCount * 5);
+      continue;
+    }
+    if (opcode === 46) {
+      const glyphCount = words[index + 5] ?? 0;
+      const low = BigInt(words[index + 1] ?? 0);
+      const high = BigInt(words[index + 2] ?? 0);
+      const glyphFontIds: number[] = [];
+      const xPositions: number[] = [];
+      const yPositions: number[] = [];
+      for (let glyphIndex = 0; glyphIndex < glyphCount; glyphIndex += 1) {
+        const base = index + 6 + (glyphIndex * 6);
+        glyphFontIds.push(words[base + 3] ?? 0);
+        xPositions.push(decodeFloat32(words[base + 1] ?? 0));
+        yPositions.push(decodeFloat32(words[base + 2] ?? 0));
+      }
+      runs.push({
+        handle: (high << 32n) | low,
+        fontId: words[index + 3] ?? 0,
+        glyphCount,
+        glyphFontIds,
+        xPositions,
+        yPositions,
+      });
+      index += 6 + (glyphCount * 6);
       continue;
     }
 
@@ -74,12 +126,39 @@ export function parseGlyphRuns(words: readonly number[]): GlyphRunSnapshot[] {
       index += 13;
       continue;
     }
-    if (opcode === 30 || opcode === 33) {
+    if (opcode === 21) {
+      index += 6;
+      continue;
+    }
+    if (opcode === 22) {
+      index += 8 + ((words[index + 7] ?? 0) * 2);
+      continue;
+    }
+    if (opcode === 23) {
       index += 5;
       continue;
     }
-    if (opcode === 31) {
+    if (opcode === 24) {
       index += 8;
+      continue;
+    }
+    if (opcode === 30 || opcode === 33) {
+      index += 7;
+      continue;
+    }
+    if (opcode === 31) {
+      index += 10;
+      continue;
+    }
+    if (opcode === 32) {
+      const verbCount = words[index + 6] ?? 0;
+      let pathIndex = index + 7;
+      for (let verbIndex = 0; verbIndex < verbCount && pathIndex < words.length; verbIndex += 1) {
+        const verb = words[pathIndex] ?? 4;
+        pathIndex += 1;
+        pathIndex += verb === 0 || verb === 1 ? 2 : verb === 2 ? 4 : verb === 3 ? 6 : 0;
+      }
+      index = pathIndex;
       continue;
     }
     if (opcode === 41) {
@@ -94,12 +173,16 @@ export function parseGlyphRuns(words: readonly number[]): GlyphRunSnapshot[] {
       index += 5 + ((words[index + 4] ?? 0) * 4);
       continue;
     }
+    if (opcode === 45) {
+      index += 4 + ((words[index + 3] ?? 0) * 5);
+      continue;
+    }
     if (opcode === 98) {
       index += 2 + ((words[index + 1] ?? 0) * 2);
       continue;
     }
     if (opcode === 99) {
-      index += 2 + ((words[index + 1] ?? 0) * 3);
+      index += 2 + ((words[index + 1] ?? 0) * 5);
       continue;
     }
 
@@ -148,6 +231,14 @@ export function parseBounds(words: readonly number[]): BoundsSnapshot[] {
       index += 7 + ((words[index + 6] ?? 0) * 4);
       continue;
     }
+    if (opcode === 44) {
+      index += 6 + ((words[index + 5] ?? 0) * 5);
+      continue;
+    }
+    if (opcode === 46) {
+      index += 6 + ((words[index + 5] ?? 0) * 6);
+      continue;
+    }
     if (opcode === 41) {
       index += 4;
       continue;
@@ -165,7 +256,7 @@ export function parseBounds(words: readonly number[]): BoundsSnapshot[] {
       continue;
     }
     if (opcode === 99) {
-      index += 2 + ((words[index + 1] ?? 0) * 3);
+      index += 2 + ((words[index + 1] ?? 0) * 5);
       continue;
     }
 
@@ -217,6 +308,14 @@ export function parseHighlights(words: readonly number[]): HighlightSnapshot[] {
       index += 7 + ((words[index + 6] ?? 0) * 4);
       continue;
     }
+    if (opcode === 44) {
+      index += 6 + ((words[index + 5] ?? 0) * 5);
+      continue;
+    }
+    if (opcode === 46) {
+      index += 6 + ((words[index + 5] ?? 0) * 6);
+      continue;
+    }
     if (opcode === 41) {
       index += 4;
       continue;
@@ -230,7 +329,7 @@ export function parseHighlights(words: readonly number[]): HighlightSnapshot[] {
       continue;
     }
     if (opcode === 99) {
-      index += 2 + ((words[index + 1] ?? 0) * 3);
+      index += 2 + ((words[index + 1] ?? 0) * 5);
       continue;
     }
 
@@ -284,6 +383,14 @@ export function parseCarets(words: readonly number[]): CaretSnapshot[] {
       index += 7 + ((words[index + 6] ?? 0) * 4);
       continue;
     }
+    if (opcode === 44) {
+      index += 6 + ((words[index + 5] ?? 0) * 5);
+      continue;
+    }
+    if (opcode === 46) {
+      index += 6 + ((words[index + 5] ?? 0) * 6);
+      continue;
+    }
     if (opcode === 41) {
       index += 4;
       continue;
@@ -297,7 +404,7 @@ export function parseCarets(words: readonly number[]): CaretSnapshot[] {
       continue;
     }
     if (opcode === 99) {
-      index += 2 + ((words[index + 1] ?? 0) * 3);
+      index += 2 + ((words[index + 1] ?? 0) * 5);
       continue;
     }
 

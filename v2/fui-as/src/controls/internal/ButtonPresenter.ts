@@ -1,6 +1,5 @@
 import {
   AlignItems,
-  BorderStyle,
   FlexDirection,
   JustifyContent,
 } from "../../core/ffi";
@@ -70,7 +69,7 @@ class DefaultButtonPresenter extends ButtonPresenter {
       .justifyContent(JustifyContent.Center)
       .alignItems(AlignItems.Center)
       .cornerRadius(theme.spacing.sm)
-      .border(1.0, theme.colors.border, BorderStyle.Solid)
+      .border(1.0, theme.colors.border)
       .padding(theme.spacing.md, theme.spacing.sm, theme.spacing.md, theme.spacing.sm)
       .dropShadow(0x00000000, 0.0, 0.0, 0.0, 0.0)
       .bgColor(background);
@@ -94,3 +93,7 @@ class DefaultButtonTemplate extends ButtonTemplate {
 }
 
 export const defaultButtonTemplate = new DefaultButtonTemplate();
+
+export function createDefaultButtonPresenter(): ButtonPresenter {
+  return new DefaultButtonPresenter();
+}

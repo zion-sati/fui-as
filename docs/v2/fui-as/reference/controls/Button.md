@@ -5,12 +5,12 @@ import { Button, ButtonColors } from "./Fui";
 ```
 
 - **Constructor:** `new Button(label: string)`
-- **Action:** `onClick(cb)`
+- **Action:** `onClick((count) => ...)`
 - **State callback:** `onHoverChanged(cb)`
 - **Content:** `label(text)`
 - **Colors:** `colors(new ButtonColors().background(...).backgroundHover(...).backgroundPressed(...).border(...).textPrimary(...))`
 - **Style overrides:** `bgColor`, `hoverBgColor`, `pressedBgColor`, `textColor`
-- **Typography:** `font`, `fontFamily`, `fontWeight`, `fontStyle`, `fontSize`
+- **Typography:** `fontFamily`, `fontWeight`, `fontStyle`, `fontSize`
 
 `Button` extends `FlexBox`, so layout/box APIs (size, padding, border, radius, shadow) are also available.
 By default, the built-in presenter uses `theme.colors.textOnAccent` for the label

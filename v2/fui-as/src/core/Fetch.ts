@@ -65,13 +65,21 @@ export class FetchResponse {
   }
 }
 
+export class FetchErrorEventArgs {
+  readonly message: string;
+
+  constructor(message: string) {
+    this.message = message;
+  }
+}
+
 export class FetchRequest implements Disposable {
   private urlValue: string;
   private methodValue: string = "GET";
   private headerParts: Array<string> = new Array<string>();
   private bodyBytesValue: Uint8Array | null = null;
   private completeBinding: Callback1<FetchResponse> | null = null;
-  private errorBinding: Callback1<string> | null = null;
+  private errorBinding: Callback1<FetchErrorEventArgs> | null = null;
   private requestId: u32 = 0;
   private started: bool = false;
   private finished: bool = false;
@@ -128,15 +136,15 @@ export class FetchRequest implements Disposable {
     return this.onComplete<Owner>(owner, handler);
   }
 
-  onError<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  onError<Owner>(owner: Owner, handler: Handler1<Owner, FetchErrorEventArgs>): this {
     if (changetype<usize>(handler) == 0) {
       throwNullArgument("FetchRequest.onError", "handler");
     }
-    this.errorBinding = bind1<Owner, string>(owner, handler);
+    this.errorBinding = bind1<Owner, FetchErrorEventArgs>(owner, handler);
     return this;
   }
 
-  onErrorWith<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  onErrorWith<Owner>(owner: Owner, handler: Handler1<Owner, FetchErrorEventArgs>): this {
     return this.onError<Owner>(owner, handler);
   }
 
@@ -147,7 +155,7 @@ export class FetchRequest implements Disposable {
     if (this.urlValue.length == 0) {
       const binding = this.errorBinding;
       if (binding !== null) {
-        binding.invoke("FetchRequest.start: url must not be empty.");
+        binding.invoke(new FetchErrorEventArgs("FetchRequest.start: url must not be empty."));
       }
       return this;
     }
@@ -215,7 +223,7 @@ export class FetchRequest implements Disposable {
     const binding = this.errorBinding;
     this.finish();
     if (binding !== null) {
-      binding.invoke(message);
+      binding.invoke(new FetchErrorEventArgs(message));
     }
   }
 }
@@ -258,7 +266,7 @@ export function disposeAllFetchRequests(): void {
   }
 }
 
-export function __resetFetchForTests(): void {
+export function resetFetchRuntime(): void {
   disposeAllFetchRequests();
   nextFetchRequestId = 1;
 }

@@ -16,7 +16,7 @@ import {
 } from "../../src/core/ffi";
 import { activeTheme, defaultDarkTheme, generateTheme, useCustomTheme } from "../../src/core/Theme";
 import { FontFace, FontFamily, FontStack, FontStyle, FontWeight } from "../../src/core/Typography";
-import { FlexBox, GradientStop, Grid, Portal, ScrollBar, ScrollBox, ScrollState, ScrollView, Text, TextCore } from "../../src/nodes";
+import { Border, FlexBox, GradientStop, Grid, Portal, ScrollBar, ScrollBox, ScrollState, ScrollView, Text, TextCore } from "../../src/nodes";
 import {
   CALL_ADD_CHILD,
   CALL_CREATE_NODE,
@@ -64,6 +64,7 @@ import {
   CALL_SET_SELECTABLE,
   CALL_SET_SCROLL_OFFSET,
   CALL_SET_SCROLL_CONTENT_SIZE,
+  CALL_SET_SMOOTH_SCROLLING,
   CALL_SET_SEMANTIC_LABEL,
   CALL_SET_SEMANTIC_ROLE,
   CALL_SET_TEXT,
@@ -414,8 +415,7 @@ describe("Node builders", () => {
     new FlexBox()
       .bgColor(0xff336699)
       .cornerRadius(12.0)
-      .border(2.0, 0xff0000ff, BorderStyle.Dashed)
-      .borderDashed(6.0, 3.0)
+      .borderConfig(Border.dashed(2.0, 0xff0000ff, 6.0, 3.0))
       .build();
 
     const styleIndex = findCall(CALL_SET_BOX_STYLE);
@@ -508,7 +508,7 @@ describe("Node builders", () => {
     text
       .width(80.0, Unit.Pixel)
       .height(24.0, Unit.Pixel)
-      .font(7, 18.0)
+      .fontStack(FontStack._fromId(7), 18.0)
       .textColor(0xff00ff00)
       .textAlign(TextAlign.Right)
       .verticalAlign(TextVerticalAlign.Bottom)
@@ -565,7 +565,7 @@ describe("Node builders", () => {
   it("builds and updates explicit text line height", () => {
     resetCalls();
 
-    const text = new Text("hello").font(7, 18.0).lineHeight(28.0);
+    const text = new Text("hello").fontStack(FontStack._fromId(7), 18.0).lineHeight(28.0);
     text.build();
 
     const lineHeightIndex = findCall(CALL_SET_LINE_HEIGHT);
@@ -628,7 +628,7 @@ describe("Node builders", () => {
   });
 
   it("updates built text nodes through retained setters", () => {
-    const text = new Text("hello").font(7, 18.0).textColor(0xff00ff00);
+    const text = new Text("hello").fontStack(FontStack._fromId(7), 18.0).textColor(0xff00ff00);
     text.build();
 
     resetCalls();
@@ -642,7 +642,7 @@ describe("Node builders", () => {
   it("resolves family, weight, and style to concrete font ids", () => {
     resetCalls();
 
-    const family = new FontFamily(1, 2, 3, 4);
+    const family = FontFamily._fromIds(1, 2, 3, 4);
     const text = new Text("hello")
       .fontFamily(family)
       .fontWeight(FontWeight.Bold)
@@ -661,7 +661,7 @@ describe("Node builders", () => {
     resetCalls();
 
     const text = new Text("hello")
-      .fontFamily(FontFamily.regularBold(1, 2))
+      .fontFamily(FontFamily.regularBold(FontStack._fromId(1), FontStack._fromId(2)))
       .fontStyle(FontStyle.Italic)
       .fontSize(18.0);
 
@@ -703,8 +703,8 @@ describe("Node builders", () => {
   it("registers font stack fallbacks while text still uses the primary font id", () => {
     resetCalls();
 
-    const stack = new FontStack(1).fallback(2).fallback(3);
-    const text = new Text("hello").font(stack.id, 18.0);
+    const stack = FontStack._fromId(1)._fallbackId(2)._fallbackId(3);
+    const text = new Text("hello").fontStack(stack, 18.0);
 
     text.build();
 
@@ -855,6 +855,23 @@ describe("Node builders", () => {
     expect<f64>(getCallArg(updateIndex, 2)).toBe(720.0);
     expect<f32>(scrollView.scrollState.contentWidth.value).toBe(240.0);
     expect<f32>(scrollView.scrollState.contentHeight.value).toBe(720.0);
+  });
+
+  it("enables smooth wheel scrolling by default and supports retained opt-out", () => {
+    resetCalls();
+
+    const scrollView = new ScrollView();
+    scrollView.build();
+
+    let smoothIndex = findCall(CALL_SET_SMOOTH_SCROLLING);
+    expect<i32>(smoothIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(smoothIndex, 1)).toBe(1.0);
+
+    resetCalls();
+    scrollView.smoothScrolling(false);
+    smoothIndex = findCall(CALL_SET_SMOOTH_SCROLLING);
+    expect<i32>(smoothIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(smoothIndex, 1)).toBe(0.0);
   });
 
   it("keeps raw scroll views hit-testable while ScrollBox root itself stays non-interactive", () => {
@@ -1173,7 +1190,7 @@ describe("Node builders", () => {
     resetCalls();
 
     new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .build();
 
     const interactiveIndex = findCall(CALL_SET_INTERACTIVE);
@@ -1198,7 +1215,7 @@ describe("Node builders", () => {
     resetCalls();
 
     const box = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 3);
     const handle = box.build();
     resetCalls();
@@ -1213,7 +1230,7 @@ describe("Node builders", () => {
     resetCalls();
 
     new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 3)
       .enabled(false)
       .build();
@@ -1226,7 +1243,7 @@ describe("Node builders", () => {
     resetCalls();
 
     const box = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 3);
     const handle = box.build();
     resetCalls();
@@ -1245,7 +1262,7 @@ describe("Node builders", () => {
     const parent = new FlexBox();
     parent.visibility(Visibility.Hidden);
     const child = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 1);
     parent.child(child);
     parent.build();
@@ -1271,7 +1288,7 @@ describe("Node builders", () => {
 
     const parent = new FlexBox();
     const child = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 1);
     parent.child(child);
     parent.build();
@@ -1294,7 +1311,7 @@ describe("Node builders", () => {
     resetCalls();
 
     const child = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 1);
     parent.child(child);
 
@@ -1309,7 +1326,7 @@ describe("Node builders", () => {
 
     const parent = new FlexBox();
     const child = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 1);
     parent.child(child);
     parent.build();
@@ -1329,7 +1346,7 @@ describe("Node builders", () => {
 
     const parent = new FlexBox();
     const child = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 1);
     parent.child(child);
     parent.build();
@@ -1350,7 +1367,7 @@ describe("Node builders", () => {
 
     const parent = new FlexBox();
     const child = new FlexBox()
-      .onClick(() => {})
+      .onPointerClick((_event) => {})
       .focusable(true, 1);
     parent.child(child);
     parent.build();

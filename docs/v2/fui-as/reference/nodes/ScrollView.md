@@ -7,7 +7,12 @@ import { ScrollState, ScrollView } from "./Fui";
 - **Constructor:** `new ScrollView()`
 - **State:** `bindScrollState(state)`, `scrollState` getter
 - **Sizing/layout:** `width`, `height`, `fillWidth`, `fillHeight`, `fillWidthPercent`, `fillHeightPercent`, `fillSize`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`, `flexBasis`
-- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `showScrollbars`, `friction`, `scrollOffset`
+- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `showScrollbars`, `smoothScrolling`, `friction`, `scrollOffset`
+
+`smoothScrolling()` is enabled by default. Wheel deltas accumulate into one
+smooth target without waiting for a burst to finish. Pass `false` to restore
+immediate wheel-step scrolling. Touch, scrollbar, and explicit programmatic
+scrolling remain direct and take ownership immediately.
 - **Children/events:** `child`, `children`, `onClick`, `onPointerEnter`, `onPointerLeave`
 
 ## Sizing guidance

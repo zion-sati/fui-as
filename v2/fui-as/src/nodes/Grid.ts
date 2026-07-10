@@ -1,7 +1,7 @@
 import * as ui from "../bindings/ui";
 import { setGridSharedSizeScope } from "../core/AttachedProperties";
 import { GridUnit, HandleValue, NodeType } from "../core/ffi";
-import { Node } from "../core/Node";
+import { PointerClickEventArgs, PointerEventArgs, Node } from "../core/Node";
 import { FlexBox } from "./FlexBox";
 
 class GridPlacement {
@@ -124,17 +124,17 @@ export class Grid extends FlexBox {
     return this;
   }
 
-  onClick(cb: () => void): this {
-    super.onClick(cb);
+  onPointerClick(cb: (event: PointerClickEventArgs) => void): this {
+    super.onPointerClick(cb);
     return this;
   }
 
-  onPointerEnter(cb: () => void): this {
+  onPointerEnter(cb: (event: PointerEventArgs) => void): this {
     super.onPointerEnter(cb);
     return this;
   }
 
-  onPointerLeave(cb: () => void): this {
+  onPointerLeave(cb: (event: PointerEventArgs) => void): this {
     super.onPointerLeave(cb);
     return this;
   }

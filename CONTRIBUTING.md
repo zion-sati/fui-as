@@ -83,15 +83,14 @@ src/
   runtime/        — bridge to Tier 1/2 engine
 dist/             — build output (not committed)
 published/        — local publish output (not committed)
-docs/             — symlinked from EffinDOM monorepo
+docs/             — SDK reference docs
 ```
 
 ---
 
 ## Docs
 
-Full reference lives in the
-[EffinDOM monorepo](https://github.com/zion-sati/EffinDOM):
+Full reference:
 
 - **[SDK Docs Index](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/SDK_INDEX.md)**
 - **[API Reference](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/API_REFERENCE.md)**

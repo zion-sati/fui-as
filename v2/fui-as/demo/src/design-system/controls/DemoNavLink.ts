@@ -1,6 +1,5 @@
 import { Disposable, NavLink, Text, Theme, activeTheme, bindTheme, disposeAll } from "../../../../src/Fui";
 import {
-  FONT_REGULAR,
   NAV_LINK_RADIUS,
   NAV_LINK_PADDING_X,
   NAV_LINK_PADDING_Y,
@@ -16,7 +15,7 @@ export class DemoNavLink extends NavLink {
   constructor(href: string, label: string = href, openInNewTab: bool = false) {
     super(href, label, openInNewTab);
     this.labelNode = new Text(label)
-      .font(FONT_REGULAR, 15.0)
+      .fontSize(15.0)
       .selectable(false) as Text;
     this
       .cornerRadius(NAV_LINK_RADIUS)

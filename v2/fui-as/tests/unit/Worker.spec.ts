@@ -1,9 +1,9 @@
 import { Application } from "../../src/core/Application";
 import {
-  __resetWorkerControllersForTests,
   handleWorkerComplete,
   handleWorkerError,
   handleWorkerProgress,
+  resetWorkerControllers,
   Worker,
 } from "../../src/core/Worker";
 import { FlexBox, Text } from "../../src/nodes";
@@ -14,6 +14,7 @@ import {
   getCallSequence,
   lastWorkerEntryEquals,
   lastWorkerInputEquals,
+  lastWorkerPathEquals,
   resetCalls,
 } from "./FfiTestImports";
 
@@ -26,15 +27,16 @@ class WorkerOwner {
 
 describe("Worker controller", () => {
   afterEach(() => {
-    __resetWorkerControllersForTests();
+    resetWorkerControllers();
     Application.unmount();
     resetCalls();
   });
 
   it("starts a one-shot string worker through the host surface", () => {
-    Worker.start("processData").sendString("userId=42");
+    new Worker("./workers/test.wasm", "processData").start("userId=42");
 
     expect<i32>(findCall(CALL_WORKER_START_STRING)).toBeGreaterThan(-1);
+    expect<bool>(lastWorkerPathEquals("./workers/test.wasm")).toBe(true);
     expect<bool>(lastWorkerEntryEquals("processData")).toBe(true);
     expect<bool>(lastWorkerInputEquals("userId=42")).toBe(true);
   });
@@ -42,16 +44,16 @@ describe("Worker controller", () => {
   it("routes progress and completion to owner-bound callbacks", () => {
     const owner = new WorkerOwner();
 
-    Worker.start("processData")
+    new Worker("./workers/test.wasm", "processData")
       .onProgress(owner, (target, value) => {
         target.progressCount += 1;
-        target.lastMessage = value;
+        target.lastMessage = value.message;
       })
       .onComplete(owner, (target, value) => {
         target.completeCount += 1;
-        target.lastMessage = value;
+        target.lastMessage = value.result;
       })
-      .sendString("payload");
+      .start("payload");
 
     handleWorkerProgress(1, "Fetching...");
     handleWorkerComplete(1, "Done!");
@@ -65,12 +67,12 @@ describe("Worker controller", () => {
   it("routes worker failures to the bound error callback", () => {
     const owner = new WorkerOwner();
 
-    Worker.start("processData")
+    new Worker("./workers/test.wasm", "processData")
       .onError(owner, (target, value) => {
         target.errorCount += 1;
-        target.lastMessage = value;
+        target.lastMessage = value.message;
       })
-      .sendString("payload");
+      .start("payload");
 
     handleWorkerError(1, "boom");
     handleWorkerError(1, "ignored");
@@ -79,11 +81,11 @@ describe("Worker controller", () => {
     expect<string>(owner.lastMessage).toBe("boom");
   });
 
-  it("ignores duplicate sendString calls for one-shot workers", () => {
-    const worker = Worker.start("processData");
+  it("ignores duplicate start calls for one-shot workers", () => {
+    const worker = new Worker("./workers/test.wasm", "processData");
 
-    worker.sendString("first");
-    worker.sendString("second");
+    worker.start("first");
+    worker.start("second");
 
     const sequence = getCallSequence();
     let startCount = 0;
@@ -97,7 +99,7 @@ describe("Worker controller", () => {
   });
 
   it("cancels started workers during application teardown", () => {
-    Worker.start("processData").sendString("payload");
+    new Worker("./workers/test.wasm", "processData").start("payload");
 
     Application.mount(new FlexBox().child(new Text("root")));
     Application.unmount();
@@ -107,13 +109,13 @@ describe("Worker controller", () => {
 
   it("still routes completion when work finishes before a late cancellation takes effect", () => {
     const owner = new WorkerOwner();
-    const worker = Worker.start("processData")
+    const worker = new Worker("./workers/test.wasm", "processData")
       .onComplete(owner, (target, value) => {
         target.completeCount += 1;
-        target.lastMessage = value;
+        target.lastMessage = value.result;
       });
 
-    worker.sendString("payload");
+    worker.start("payload");
     worker.cancel();
     handleWorkerComplete(1, "Done anyway");
 

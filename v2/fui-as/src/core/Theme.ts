@@ -55,25 +55,35 @@ export class Spacing {
 }
 
 export class Fonts {
+  readonly bodyStack: FontStack;
+  readonly headingStack: FontStack;
+  readonly monoStack: FontStack;
+  readonly monoBoldStack: FontStack;
   readonly bodyFamily: FontFamily;
   readonly headingFamily: FontFamily;
   readonly monoFamily: FontFamily;
 
   constructor(
-    readonly body: u32,
-    readonly heading: u32,
+    bodyStack: FontStack,
+    headingStack: FontStack,
     readonly sizeBody: f32,
     readonly sizeHeading: f32,
-    readonly mono: u32 = 5,
-    readonly monoBold: u32 = 6,
+    monoStack: FontStack | null = null,
+    monoBoldStack: FontStack | null = null,
     readonly sizeMono: f32 = sizeBody,
     bodyFamily: FontFamily | null = null,
     headingFamily: FontFamily | null = null,
     monoFamily: FontFamily | null = null,
   ) {
-    this.bodyFamily = bodyFamily !== null ? changetype<FontFamily>(bodyFamily) : FontFamily.regularBold(body, heading);
-    this.headingFamily = headingFamily !== null ? changetype<FontFamily>(headingFamily) : FontFamily.regularBold(heading, heading);
-    this.monoFamily = monoFamily !== null ? changetype<FontFamily>(monoFamily) : FontFamily.regularBold(mono, monoBold);
+    const resolvedMonoStack = monoStack !== null ? changetype<FontStack>(monoStack) : bodyStack;
+    const resolvedMonoBoldStack = monoBoldStack !== null ? changetype<FontStack>(monoBoldStack) : resolvedMonoStack;
+    this.bodyStack = bodyStack;
+    this.headingStack = headingStack;
+    this.monoStack = resolvedMonoStack;
+    this.monoBoldStack = resolvedMonoBoldStack;
+    this.bodyFamily = bodyFamily !== null ? changetype<FontFamily>(bodyFamily) : FontFamily.regularBold(bodyStack, headingStack);
+    this.headingFamily = headingFamily !== null ? changetype<FontFamily>(headingFamily) : FontFamily.regularBold(headingStack, headingStack);
+    this.monoFamily = monoFamily !== null ? changetype<FontFamily>(monoFamily) : FontFamily.regularBold(resolvedMonoStack, resolvedMonoBoldStack);
   }
 }
 
@@ -83,7 +93,6 @@ export class ContextMenuItemTheme {
     readonly hoverBackground: u32,
     readonly textColor: u32,
     readonly cornerRadius: f32,
-    readonly fontId: u32,
     readonly fontFamily: FontFamily,
     readonly fontSize: f32,
     readonly height: f32,
@@ -115,7 +124,6 @@ export class ToolTipTheme {
     readonly panelShadowColor: u32,
     readonly panelCornerRadius: f32,
     readonly textColor: u32,
-    readonly fontId: u32,
     readonly fontFamily: FontFamily,
     readonly fontSize: f32,
     readonly maxWidth: f32,
@@ -203,20 +211,20 @@ function estimateThemeDark(theme: Theme): bool {
 }
 
 const DEFAULT_SPACING = new Spacing(4.0, 8.0, 16.0, 24.0, 32.0);
-const DEFAULT_BODY_STACK = new FontStack(1).fallback(3);
-const DEFAULT_HEADING_STACK = new FontStack(2).fallback(3);
-const DEFAULT_MONO_STACK = new FontStack(5).fallback(4).fallback(3);
-const DEFAULT_MONO_BOLD_STACK = new FontStack(6).fallback(4).fallback(3);
+const DEFAULT_BODY_STACK = FontStack._fromId(1)._fallbackId(3);
+const DEFAULT_HEADING_STACK = FontStack._fromId(2)._fallbackId(3);
+const DEFAULT_MONO_STACK = FontStack._fromId(7)._fallbackId(4)._fallbackId(3);
+const DEFAULT_MONO_BOLD_STACK = FontStack._fromId(8)._fallbackId(4)._fallbackId(3);
 
 const DEFAULT_FONTS = new Fonts(
-  1,
-  2,
+  DEFAULT_BODY_STACK,
+  DEFAULT_HEADING_STACK,
   16.0,
   24.0,
-  5,
-  6,
+  DEFAULT_MONO_STACK,
+  DEFAULT_MONO_BOLD_STACK,
   15.0,
-  new FontFamily(1, 2, 9, 10),
+  FontFamily._fromIds(1, 2, 5, 6),
   FontFamily.regularBoldStacks(DEFAULT_HEADING_STACK, DEFAULT_HEADING_STACK),
   FontFamily.regularBoldStacks(DEFAULT_MONO_STACK, DEFAULT_MONO_BOLD_STACK),
 );
@@ -289,7 +297,6 @@ export function generateTheme(isDark: bool, accentColor: u32 = DEFAULT_ACCENT_CO
         contextMenuItemHover,
         textPrimary,
         isDark ? 10.0 : 9.0,
-        DEFAULT_FONTS.body,
         DEFAULT_FONTS.bodyFamily,
         13.0,
         30.0,
@@ -305,7 +312,6 @@ export function generateTheme(isDark: bool, accentColor: u32 = DEFAULT_ACCENT_CO
       toolTipPanelShadowColor,
       isDark ? 12.0 : 10.0,
       textPrimary,
-      DEFAULT_FONTS.body,
       DEFAULT_FONTS.bodyFamily,
       13.0,
       280.0,
@@ -375,5 +381,13 @@ export function handleSystemDarkModeChanged(isDark: bool): Theme {
     return activeTheme.value;
   }
   systemAccentColor = normalizeAccentColor(ffi.fui_get_accent_color());
+  return applySystemTheme();
+}
+
+export function handleSystemAccentColorChanged(color: u32): Theme {
+  systemAccentColor = normalizeAccentColor(color);
+  if (themeSource != ThemeSource.System) {
+    return activeTheme.value;
+  }
   return applySystemTheme();
 }

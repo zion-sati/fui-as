@@ -70,6 +70,137 @@ This behavior is influenced by the bridge layer, but it is also an intentional S
 6. Avoid direct imports of internal FFI/runtime modules for app-level custom controls; prefer public `./Fui` and `./FuiPrimitives` surfaces.
 7. Do not cache raw handles across mount/unmount/reset cycles.
 
+## Node Input Events
+
+Wheel and pointer input are exposed through the public `./Fui` barrel:
+
+- `WheelEventArgs`
+- `WheelDeltaMode`
+- `Node.onWheel(handler)`
+- `Node.onWheelWith(owner, handler)`
+- `PointerEventArgs`
+- `PointerType`
+- `PointerEventType`
+- `Node.onPointerDownEvent(handler)` / `Node.onPointerDownEventWith(owner, handler)`
+- `Node.onPointerMoveEvent(handler)` / `Node.onPointerMoveEventWith(owner, handler)`
+- `Node.onPointerUpEvent(handler)` / `Node.onPointerUpEventWith(owner, handler)`
+- `Node.onPointerEnterEvent(handler)` / `Node.onPointerEnterEventWith(owner, handler)`
+- `Node.onPointerLeaveEvent(handler)` / `Node.onPointerLeaveEventWith(owner, handler)`
+- `Node.onPointerCancelEvent(handler)` / `Node.onPointerCancelEventWith(owner, handler)`
+- `GestureEventKind`
+- `Node.panGesture(handler)` / `Node.panGestureWith(owner, handler)`
+- `PanGestureEventArgs`
+- `Node.pinchGesture(handler)` / `Node.pinchGestureWith(owner, handler)`
+- `PinchGestureEventArgs`
+- `LongPressGesture`
+- `LongPressEventArgs`
+- `Node.longPressGesture(handler)` / `Node.longPressGestureWith(owner, handler)`
+- `Node.longPressRecognizer(gesture)`
+- `GestureEventPhase`
+- `GestureEventArgs`
+
+Wheel events route to the deepest enabled target first, then bubble through
+enabled ancestors. Coordinates are node-local for the current handler via
+`event.x` and `event.y`; scene coordinates are available as `event.sceneX` and
+`event.sceneY`.
+
+```ts
+node.onWheel((event: WheelEventArgs): void => {
+  if (shouldOwnWheel(event)) {
+    event.handled = true;
+  }
+});
+```
+
+Setting `event.handled = true` stops bubbling and prevents framework defaults
+such as ScrollView wheel scrolling or zoomed-page viewport panning. If the event
+is not handled, the existing framework defaults run: scrollable content moves
+first when it can, then zoomed page viewport pan runs as fallback.
+
+Pointer events use the same deepest-enabled-target-first bubbling model.
+`PointerEventArgs` carries local coordinates (`x`, `y`), scene coordinates
+(`sceneX`, `sceneY`), `pointerId`, `pointerType`, `button`, `buttons`,
+`modifiers`, `pressure`, `width`, and `height`. `PointerEventType.Cancel` is
+delivered for browser `pointercancel` and clears capture/pressed state.
+
+```ts
+node.onPointerDownEvent((event: PointerEventArgs): void => {
+  if (event.pointerType === PointerType.Pen) {
+    event.handled = true;
+  }
+});
+```
+
+Setting `event.handled = true` stops pointer bubbling and suppresses framework
+pointer defaults such as secondary-button context-menu fallback. Disabled nodes
+are skipped during hit testing, so events route to the nearest enabled ancestor.
+
+Gesture recognizers are explicit opt-in events for custom controls that want to
+own two-finger pan and/or pinch without blocking page zoom behavior they did not
+claim. Prefer the typed recognizer helpers:
+
+```ts
+node
+  .panGesture((event: PanGestureEventArgs): void => {
+    if (event.phase === GestureEventPhase.Update) {
+      panBy(event.deltaX, event.deltaY);
+      event.handled = true;
+    }
+  })
+  .pinchGesture((event: PinchGestureEventArgs): void => {
+    if (event.phase === GestureEventPhase.Update) {
+      zoomTo(event.scale);
+      event.handled = true;
+    }
+  })
+  .longPressGesture((event: LongPressEventArgs): void => {
+    showContextAction(event.x, event.y);
+    event.handled = true;
+  });
+```
+
+`PanGestureEventArgs` and `PinchGestureEventArgs` carry local coordinates
+(`x`, `y`), scene coordinates (`sceneX`, `sceneY`), centroid movement
+(`deltaX`, `deltaY`), absolute gesture `scale`, `pointerCount`, `kind`
+(`Pan` or `Pinch`), and `phase` (`Begin`, `Update`, `End`, `Cancel`). Calling
+`panGesture(...)` or `pinchGesture(...)` automatically opts the node into that
+recognizer. If a gesture starts on a candidate node but resolves to an
+unclaimed intent, framework page zoom/pan continues from the original gesture
+baseline.
+
+Gesture recognizers follow the same ownership contract as pointer and wheel
+events. The app receives the routed gesture first. If a handler sets
+`event.handled = true`, bubbling stops and framework defaults such as page zoom
+are suppressed. If no handler marks the gesture handled, framework defaults can
+continue while routed gesture events keep flowing to the app.
+
+`longPressGesture(...)` recognizes touch and pen pointer presses after the
+default `500ms` delay with a default `10px` movement tolerance. Use
+`longPressRecognizer(...)` with `LongPressGesture` when a control needs custom
+recognition timing:
+
+```ts
+node.longPressRecognizer(
+  LongPressGesture.create()
+    .minimumDuration(650)
+    .movementTolerance(14.0)
+    .onRecognized((event: LongPressEventArgs): void => {
+      showContextAction(event.x, event.y);
+      event.handled = true;
+    }),
+);
+```
+
+The bridge cancels the pending recognizer when the pointer is released early,
+cancelled, leaves the canvas, moves beyond tolerance, starts touch scrolling, or
+a second pointer starts a pan/pinch gesture.
+`LongPressEventArgs` carries local coordinates (`x`, `y`), scene coordinates
+(`sceneX`, `sceneY`), `pointerId`, `pointerType`, `modifiers`, `durationMs`,
+and `handled`.
+
+Use recognizer helpers for public app code. The lower-level intent ABI remains
+an internal bridge detail.
+
 ## Application/runtime setup
 
 - `Application`
@@ -81,6 +212,25 @@ This behavior is influenced by the bridge layer, but it is also an intentional S
 - `createApplication`
 - `createManagedApplication`
 - `showKeyboardFocusForKeyEvent`
+
+Browser harness configuration also accepts debug/runtime options from
+`@effindomv2/runtime`: `buildMode` (`"debug"` or `"release"`) and
+`devToolsDomMirror` (`"disabled"`, `"enabled"`, or `"on-requested"`). Generated
+templates emit only `buildMode`; debug defaults to on-requested and release
+defaults to disabled for the DevTools DOM Mirror. See
+[DevTools DOM Mirror](../browser-bridge/DEVTOOLS_DOM_MIRROR.md).
+
+Runtime config helpers exported by `@effindomv2/runtime`:
+
+- `BuildMode`
+- `DevToolsDomMirrorMode`
+- `createRuntimeConfig`
+- `applyRuntimeConfig`
+- `createRuntimeConfigScript`
+- `normalizeBuildMode`
+- `normalizeDevToolsDomMirrorMode`
+- `normalizeRuntimeConfig`
+- `resolveDevToolsDomMirrorConfig`
 
 ## Runtime bridge exports (`FuiExports`)
 
@@ -113,9 +263,14 @@ worker bootstrap can call back into the wasm module.
 - `__fui_on_file_worker_process_complete`
 - `__fui_on_file_worker_process_error`
 - `__fui_on_pointer_event`
+- `__fui_on_pointer_event_with_metadata`
 - `__fui_on_focus_changed`
 - `__fui_on_key_event`
 - `__fui_on_scroll`
+- `__fui_on_wheel_event`
+- `__fui_resolve_gesture_owner`
+- `__fui_get_gesture_intent`
+- `__fui_on_gesture_event`
 - `__fui_on_text_changed`
 - `__fui_on_text_replaced`
 - `__fui_on_selection_changed`
@@ -349,8 +504,44 @@ Limitations:
   - `textureId`
   - `pixels()`
   - `pixelPtr()`
+  - `canvas()`
+  - `render(node, x = 0, y = 0, scale = 1)`
+  - `renderTextLayout(layout, x = 0, y = 0, scale = 1)`
+  - `onTextReady(...)` / `onTextReadyWith(...)`
+  - `Bitmap.onTextReady(...)` / `Bitmap.onTextReadyWith(...)`
   - `commit()`
   - `dispose()`
+- `Image`
+  - `Image(textureId = 0, objectFit = ObjectFit.Fill)`
+  - `Image.load(url, objectFit = ObjectFit.Fill)`
+  - `Image.from(props, textureId = 0, objectFit = ObjectFit.Fill)`
+  - `Image.fromUrl(props, url, objectFit = ObjectFit.Fill)`
+  - `texture(id)`
+  - `source(url)`
+  - `clearSource()`
+  - `objectFit(...)`
+  - `sampling(...)`
+  - `altText(...)`
+  - `imageNine(left, top, right, bottom)` / `clearImageNine()`
+- `Svg`
+  - `Svg(svgId = 0, tintColor = 0)`
+  - `Svg.load(url, tintColor = 0)`
+  - `Svg.from(props, svgId = 0, tintColor = 0)`
+  - `Svg.fromUrl(props, url, tintColor = 0)`
+  - `svg(id)`
+  - `source(url)`
+  - `clearSource()`
+  - `tint(color)`
+  - `sampling(...)`
+  - `altText(...)`
+- `ImageSampling`
+  - `ImageSampling.linear()`
+  - `ImageSampling.nearest()`
+  - `ImageSampling.linearMipmapNearest()`
+  - `ImageSampling.linearMipmapLinear()`
+  - `ImageSampling.cubicMitchell()`
+  - `ImageSampling.cubicCatmullRom()`
+  - `ImageSampling.anisotropic(maxAniso = 8)`
 - `AssetLoadState`
 - `loadTexture`
 - `loadSvg`
@@ -363,14 +554,52 @@ Limitations:
 - `getSvgAssetHeight`
 - `getSvgAssetError`
 
-`Bitmap` is the custom-drawing surface: app code owns a live
-AssemblyScript `Uint8Array` buffer, writes premultiplied RGBA8 pixels directly,
-and calls `commit()` to upload/update the retained texture referenced by
-`textureId`.
+`Bitmap` is the retained custom-drawing surface: app code owns a live
+AssemblyScript `Uint8Array` buffer, can draw into an off-screen `DrawContext`,
+can render prepared `Text` / `RichText` / `TextLayout` content into the memory
+bitmap, and calls `commit()` to upload/update the retained texture referenced by
+`textureId`. `render(...)` accepts logical `x`, `y`, and `scale` values; pass
+the device pixel ratio when rendering into DPR-sized bitmaps.
 
 `Image.source(url)` and `Svg.source(url)` now use ref-counted URL asset ownership:
 the same URL reuses one cached asset ID, and changing source/clearing/disposal
 releases ownership for the previous URL-backed asset automatically.
+
+`ImageSampling` controls texture sampling for retained `Image`, retained SVG
+raster variants, and immediate `DrawContext.drawImage(...)`. `linear()` is the
+default. Use `nearest()` for pixel art, `cubicMitchell()` for smoother
+high-quality scaling, `cubicCatmullRom()` for a sharper cubic result that may
+ring on hard edges, and mipmap/anisotropic modes only when the source data and
+backend make those tradeoffs useful. Immediate `drawSvg(...)` replays vector SVG
+content, so texture sampling does not apply to that path.
+
+## Custom drawing APIs
+
+- `DrawContext`
+  - `flush()`
+  - `save()` / `restore()`
+  - `translate(x, y)`, `scale(sx, sy)`, `rotate(degrees)`
+  - `clipRect(x, y, w, h)`
+  - `clipRoundRect(x, y, w, h, radius)`
+  - `clipRoundedRect(x, y, w, h, topLeft, topRight, bottomRight, bottomLeft)`
+  - `drawRect(...)`, `drawCircle(...)`, `drawLine(...)`, `drawRoundRect(...)`
+  - `drawPath(path, paint)`
+  - `drawTextNode(node, x, y)`
+  - `drawTextLayout(layout, x, y)`
+  - `drawImage(textureId, x, y, w, h, sampling = ImageSampling.linear())`
+  - `drawSvg(svgId, x, y, w, h)`
+- `Paint`
+  - `Paint.fill(color)`
+  - `Paint.stroke(color, width)`
+  - `Paint.filledStroke(fill, stroke, width)`
+- `Path`
+  - `moveTo(...)`, `lineTo(...)`, `quadTo(...)`, `cubicTo(...)`, `close()`
+  - `addRect(...)`, `addCircle(...)`
+  - `dispose()`
+
+`DrawContext` is available in `CustomDrawable.draw(ctx)` and from
+`Bitmap.canvas()`. Commands are batched; call `flush()` before relying on pending
+draw commands, especially before `Bitmap.commit()` on an off-screen bitmap.
 
 ## Colors/utilities
 
@@ -464,6 +693,12 @@ smooth-scroll surfaces with browser smoke coverage.
 - `Orientation`
 - `PositionType`
 - `PointerEventType`
+- `PointerType`
+- `GestureEventPhase`
+- `PanGestureEventArgs`
+- `PinchGestureEventArgs`
+- `LongPressGesture`
+- `LongPressEventArgs`
 - `SemanticCheckedState`
 - `SemanticRole`
 - `TextAlign`
@@ -475,11 +710,17 @@ smooth-scroll surfaces with browser smoke coverage.
 ## Typography and navigation
 
 - `FontFace`
+  - `FontFace.load(url)`
+  - Built-in faces are exposed through the active theme as `FontStack`/`FontFamily` values.
 - `FontFamily`
-  - `FontFamily.withRegular(fontId)`
+  - `FontFamily.withRegular(stack)`
   - `FontFamily.withRegularFace(face)`
   - `FontFamily.withRegularStack(stack)`
+  - `FontFamily.regularBold(regularStack, boldStack)`
 - `FontStack`
+  - `new FontStack(face)`
+  - `FontStack.load(url)`
+  - `fallback(face)`, `fallbackFace(face)`, `fallbackStack(stack)`, `fallbackLoaded(url)`
 - `FontStyle`
 - `FontWeight`
 - `currentRoute`
@@ -508,6 +749,45 @@ smooth-scroll surfaces with browser smoke coverage.
 - `setAccentColor`
 - `isDarkMode`
 - `isUsingSystemTheme`
+
+Typography uses `FontStack` for one concrete face plus fallbacks and
+`FontFamily` for weight/style resolution. Raw numeric font ids are internal
+bridge details; public text APIs should use `fontFamily(...)`, `fontStack(...)`,
+`fontSize(...)`, `fontWeight(...)`, and `fontStyle(...)`.
+
+Immediate drawing uses `DrawContext` and batches commands until `flush()`.
+`DrawContext.drawTextNode(textOrRichText, x, y)` can reuse a retained `Text` or
+`RichText` node, while `TextLayout` provides the same readiness, measurement,
+and drawing model without making app code manage a retained text node directly:
+
+- `TextLayout.text(value)`
+- `TextLayout.rich(spans)`
+- `layout.onReady(callback)` / `layout.onReadyWith(owner, handler)`
+- `layout.isReady`
+- `layout.measure()`
+- `layout.measuredWidth` / `layout.measuredHeight`
+- `DrawContext.drawTextLayout(layout, x, y)`
+- `Bitmap.renderTextLayout(layout, x, y, scale)`
+
+For frequently changing short labels, `DynamicTextLayout` adds a fixed-charset
+and numeric update contract on top of the same draw API:
+
+- `DynamicTextLayout.fixedCharset(charset)`
+- `DynamicTextLayout.numeric()`
+- `layout.precision(digits)`
+- `layout.prefix(value)`
+- `layout.suffix(value)`
+- `layout.setText(value)`
+- `layout.setValue(number)`
+- `layout.overflow(DynamicTextOverflow.FallbackShape | DynamicTextOverflow.Reject)`
+- `layout.currentText`
+- `layout.measure()`
+
+`Fonts` exposes:
+
+- `bodyStack`, `headingStack`, `monoStack`, `monoBoldStack`
+- `bodyFamily`, `headingFamily`, `monoFamily`
+- `sizeBody`, `sizeHeading`, `sizeMono`
 
 `bindTheme(...)` is the custom-control convenience on top of `activeTheme`: it
 subscribes with an owner-bound handler, immediately applies the current theme,

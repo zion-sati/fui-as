@@ -11,16 +11,21 @@ Available on nodes/controls that inherit `Node`:
 - `onPointerUp((x, y) => ...)`
 - `onPointerEnter(() => ...)`
 - `onPointerLeave(() => ...)`
-- `onClick(() => ...)`
+- `onClick((count) => ...)`
 
 ### Ordering and trigger semantics
 
 For pointer-down events:
 
 1. `onPointerDown` callback runs first (if set).
-2. `onClick` runs next (if set).
+2. `onClick` runs next (if set), with `count` set to `1` for a single click,
+   `2` for the second click in a double-click sequence, and `3` for the third
+   click in a triple-click sequence. A fourth repeated click starts a fresh
+   sequence and reports `1`.
 
 `onClick` is currently **pointer-down based** (not pointer-up based) on base `Node`, except for nodes that opt into drag-data participation. Drag-enabled nodes defer click until pointer-up so the drag gesture can suppress click once the threshold is crossed.
+Controls such as `Button` may also defer action until pointer-up while preserving
+the `count` from pointer-down.
 
 ## Node-level focus and key callbacks
 

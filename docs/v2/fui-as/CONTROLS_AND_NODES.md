@@ -7,12 +7,13 @@ For the complete export list, see:
 - [API reference](./API_REFERENCE.md)
 - [SDK docs index](./SDK_INDEX.md)
 - [Per-type reference](./reference/README.md)
+- [Forms and autofill guide](./FORMS_AND_AUTOFILL.md)
 
 ## Controls
 
 | Control | Purpose | Key APIs |
 |---|---|---|
-| `Button` | Theme-aware action control | `onClick(...)`, `template(...)`, `colors(...)`, `bgColor(...)`, `hoverBgColor(...)`, `pressedBgColor(...)`, `textColor(...)`, `font(...)` |
+| `Button` | Theme-aware action control | `onClick(...)`, `template(...)`, `colors(...)`, `bgColor(...)`, `hoverBgColor(...)`, `pressedBgColor(...)`, `textColor(...)`, `fontFamily(...)`, `fontSize(...)` |
 | `Checkbox` | Boolean/tri-state check control | `check(...)`, `triState(...)`, `mixed(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
 | `ContextMenu` / `MenuItem` | Retained context menu surface | menu items + styling (`menuWidth(...)`, `itemHeight(...)`, `itemColor(...)`, `separatorColor(...)`) |
 | `Dialog` | Modal overlay with form-style actions | `show()`, `hide()`, `onAccept(...)`, `onCancel(...)`, dialog/card/backdrop styling, public accessors (`titleText`, `bodyText`, `acceptActionButton`, `cancelActionButton`) |
@@ -28,6 +29,16 @@ For the complete export list, see:
 | `TextInput` | Single-line editable text | `template(...)`, `colors(...)`, `text(...)`, `placeholder(...)`, `readOnly(...)`, `password(...)`, `maxChars(...)`, change/selection/focus callbacks |
 | `TextArea` | Multiline editable text | `template(...)`, `colors(...)`, multiline input with wrapping and per-axis scrollbar visibility |
 
+### Forms and host autofill
+
+For login/password-manager/browser-autofill flows:
+
+- wrap related fields in `Form`
+- give each participating field a stable `nodeId(...)`
+- set `hostAutofill(...)` explicitly
+
+See [Forms and autofill guide](./FORMS_AND_AUTOFILL.md).
+
 ## Nodes
 
 | Node | Purpose | Key APIs |
@@ -36,8 +47,11 @@ For the complete export list, see:
 | `Grid` | WPF-style retained grid layout | `rows(...)`, `columns(...)`, shared-size scope/group helpers |
 | `Text` / `TextProps` | Retained text rendering node | typography (`fontFamily(...)`, `fontWeight(...)`, `lineHeight(...)`), box-alignment (`textAlign(...)`, `verticalAlign(...)`) |
 | `RichText` / `RichTextSpan` | Attributed inline rich text on one retained text node | container defaults (`fontFamily(...)`, `fontWeight(...)`, `fontStyle(...)`, `fontSize(...)`, `textColor(...)`) plus helper spans (`span("...")`) with inline style (`color(...)`, `bgColor(...)`, `bold()`, `italic()`) |
-| `Image` | Retained raster image node | object-fit plus URL/asset-backed image use |
-| `Svg` | Retained SVG node | URL/asset-backed svg rendering |
+| `Bitmap` | Retained pixel buffer backed by a GPU texture | direct pixel access, off-screen canvas drawing, memory bitmap text rendering via retained HarfBuzz pipeline |
+| `TextLayout` | Immediate-mode formatted text resource | `TextLayout.text(...)`, `TextLayout.rich(...)`, `onReady(...)`, `DrawContext.drawTextLayout(...)` |
+| `DynamicTextLayout` | Immediate-mode short label resource | `DynamicTextLayout.fixedCharset(...)`, `setText(...)`, `DynamicTextOverflow`, `DrawContext.drawTextLayout(...)` |
+| `Image` | Retained raster image node | object-fit, `ImageSampling`, nine-patch, URL/asset-backed image use |
+| `Svg` | Retained SVG node | URL/asset-backed svg rendering, tinting, raster-variant `ImageSampling` |
 | `Portal` | Overlay host node | detached overlay composition surfaces |
 | `ScrollView` | Low-level retained viewport | shared scroll state/offset plumbing, `scrollTo(...)`, `scrollToAnimated(...)`, `scrollContentSize(...)`, `transitions(...)` |
 | `ScrollState` | Shared scroll metrics/state object | offsets + content/viewport metrics for scroll surfaces |
@@ -217,6 +231,22 @@ All controls and nodes inherit `Node` state APIs, including:
   - `Visibility.Normal` (default: rendered + interactive)
   - `Visibility.Hidden` (keeps layout slot; no render/hit/focus/semantics)
   - `Visibility.Collapsed` (removed from layout; no render/hit/focus/semantics)
+- wheel input through `onWheel(...)` and `onWheelWith(...)`; see
+  [Node input events](./API_REFERENCE.md#node-input-events)
+- pointer input through structured callbacks such as
+  `onPointerDownEvent(...)`, `onPointerMoveEvent(...)`,
+  `onPointerUpEvent(...)`, and `onPointerCancelEvent(...)`; pointer args expose
+  local/scene coordinates, pointer id/type, button state, modifiers, pressure,
+  and contact size
+- explicit two-finger gesture ownership through `panGesture(...)` and
+  `pinchGesture(...)`; nodes can opt into pan, pinch, or both while unclaimed
+  gestures continue to framework page zoom/pan. Set `event.handled = true` from
+  the recognizer callback to claim the gesture and suppress framework defaults.
+- long-press recognition through `longPressGesture(...)` and
+  `longPressGestureWith(...)`; use `longPressRecognizer(LongPressGesture...)`
+  when a control needs custom duration or movement tolerance. Long press uses
+  the same routed `handled` ownership model and cancels on early release,
+  movement, scroll, second touch, or pointer cancellation.
 - custom-control lifecycle expectation: node methods may run while unbuilt/invalid-handle during normal app runtime; this is an intentional architecture choice, not an incidental bridge artifact. See [Node handle lifecycle contract](./API_REFERENCE.md#node-handle-lifecycle-contract-custom-controls)
 
 ## Typed transitions
@@ -241,6 +271,9 @@ that property’s active transition slot.
 ## Smooth scroll ownership
 
 `ScrollView` and `ScrollBox` now expose explicit smooth-scroll APIs:
+
+- `smoothScrolling(flag = true)` controls default wheel-input smoothing; rapid
+  wheel events accumulate without debounce
 
 - `scrollTo(x, y)` for immediate programmatic jumps
 - `scrollToAnimated(x, y, timing)` for typed smooth-scroll motion

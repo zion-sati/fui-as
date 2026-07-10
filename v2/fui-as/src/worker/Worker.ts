@@ -1,8 +1,6 @@
 import {
   fui_worker_complete_string,
-  fui_worker_copy_input,
   fui_worker_fail,
-  fui_worker_input_length,
   fui_worker_is_cancelled,
   fui_worker_request_yield,
   fui_worker_request_yield_delay,
@@ -10,30 +8,11 @@ import {
 } from "./ffi";
 import { handleFetchComplete, handleFetchError } from "../core/Fetch";
 
-let inputRead = false;
-let inputCache = "";
 let terminalSent = false;
-let testInputOverride: string | null = null;
 const WORKER_CALLBACK_BUFFER = new Uint8Array(1024 * 1024);
 
 function encodeUtf8(text: string): Uint8Array {
   return Uint8Array.wrap(String.UTF8.encode(text, false));
-}
-
-function readInputMessage(): string {
-  if (testInputOverride !== null) {
-    return changetype<string>(testInputOverride);
-  }
-  const byteLength = fui_worker_input_length();
-  if (byteLength == 0) {
-    return "";
-  }
-  const bytes = new Uint8Array(byteLength);
-  const copied = fui_worker_copy_input(bytes.dataStart, <u32>bytes.length);
-  if (copied == 0) {
-    return "";
-  }
-  return String.UTF8.decodeUnsafe(bytes.dataStart, <usize>copied, false);
 }
 
 function sendText(text: string, callback: (ptr: usize, len: u32) => void): void {
@@ -42,13 +21,8 @@ function sendText(text: string, callback: (ptr: usize, len: u32) => void): void 
 }
 
 export class Worker {
-  static receiveMessage(): string {
-    if (inputRead) {
-      return inputCache;
-    }
-    inputCache = readInputMessage();
-    inputRead = true;
-    return inputCache;
+  static entry(inputPtr: usize, inputLen: u32, handler: (input: string) => void): void {
+    handler(inputPtr == 0 || inputLen == 0 ? "" : String.UTF8.decodeUnsafe(inputPtr, <usize>inputLen, false));
   }
 
   static reportProgress(progress: string): void {
@@ -157,13 +131,6 @@ export function __fui_on_fetch_error(requestId: u32, payloadPtr: usize, payloadL
   );
 }
 
-export function __resetWorkerRuntimeForTests(): void {
-  inputRead = false;
-  inputCache = "";
+export function resetWorkerRuntime(): void {
   terminalSent = false;
-  testInputOverride = null;
-}
-
-export function __setWorkerInputForTests(value: string): void {
-  testInputOverride = value;
 }

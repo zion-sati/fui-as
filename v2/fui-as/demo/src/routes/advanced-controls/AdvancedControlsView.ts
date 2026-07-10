@@ -1,7 +1,6 @@
 import {
   AlignItems,
   AnimationTiming,
-  BorderStyle,
   Column,
   Easings,
   FlexBox,
@@ -46,7 +45,6 @@ import {
   demoSharedFontUrl,
 } from "../../design-system";
 
-const FONT_REGULAR: u32 = 1;
 export const FIXED_LINE_HEIGHT_PX: f32 = 28.0;
 export const ANIMATION_SCROLL_ROW_HEIGHT_PX: f32 = 80.0;
 const ANIMATION_SCROLL_ROW_COUNT: i32 = 18;
@@ -72,12 +70,12 @@ function createFullWidthCheckbox(label: string, checked: bool = false): DemoChec
 
 function createStatusText(): Text {
   return new DemoText("", DemoTextRecipe.StatusValue)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
 }
 
 function createSupportingStatusText(): Text {
   return new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
 }
 
 function createVerticalPolicyGroup(): DemoRadioGroup {
@@ -133,6 +131,7 @@ export class AdvancedControlsView {
   readonly textArea: DemoTextArea = new DemoTextArea(
     "Line one\nLine two\nLine three\nLonger content so scrollbar policy is easy to spot.",
   )
+    .semanticLabel("Advanced controls demo text area")
     .placeholder("Type notes here or paste sample content. Use the controls below to reconfigure the TextArea live.")
     .fillWidth()
     .height(220.0, Unit.Pixel)
@@ -141,6 +140,8 @@ export class AdvancedControlsView {
     .nodeId("demo-advanced-controls:read-only-toggle") as DemoCheckbox;
   readonly wrappingToggle: DemoCheckbox = createFullWidthCheckbox("Wrapping", true)
     .nodeId("demo-advanced-controls:wrapping-toggle") as DemoCheckbox;
+  readonly acceptsTabToggle: DemoCheckbox = createFullWidthCheckbox("Accepts Tab", true)
+    .nodeId("demo-advanced-controls:accepts-tab-toggle") as DemoCheckbox;
   readonly alwaysVerticalToggle: DemoCheckbox = createFullWidthCheckbox("Always show vertical scrollbar")
     .nodeId("demo-advanced-controls:always-vertical-toggle") as DemoCheckbox;
   readonly neverVerticalToggle: DemoCheckbox = createFullWidthCheckbox("Hide vertical scrollbar")
@@ -176,25 +177,25 @@ export class AdvancedControlsView {
     "Use the quick toggles for common changes, or the radio groups when you want an exact scrollbar or line-height setting.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(3) as Text;
   readonly workerHintText: Text = new DemoText(
     "This sample connects the Worker API to a retained ProgressBar. Start runs a 5-second prime search with once-per-second yields; cancel waits for the next yield and then reports cooperative cancellation.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(4) as Text;
   readonly richTextContainerHintText: Text = new DemoText(
     "Compare container-level typography with a monospace override applied to one span.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(2) as Text;
   readonly richTextHelperHintText: Text = new DemoText(
     "This example combines helper-span decorations with a color emoji face.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(2) as Text;
   readonly richTextContainerText!: RichText;
   readonly richTextHelperText!: RichText;
@@ -229,7 +230,7 @@ export class AdvancedControlsView {
     "Use the preview buttons to drive typed bgColor/opacity transitions, then jump the retained ScrollBox with scrollToAnimated(...). The logical-tail button proves scrollContentSize(...) can extend the range beyond the mounted subtree.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(4) as Text;
   readonly animationScrollBox!: ScrollBox;
   readonly animationScrollContent!: FlexBox;
@@ -291,12 +292,12 @@ export class AdvancedControlsView {
       .maxLines(1)
       .fillWidth() as RichText;
     this.animationPreviewTitleText = new DemoText("Calm transition target", DemoTextRecipe.SectionTitle)
-      .font(FONT_REGULAR, 18.0) as Text;
+      .fontSize(18.0) as Text;
     this.animationPreviewBodyText = new DemoText(
       "Opacity and background transitions stay on the same retained node while the control layer keeps behavior ownership elsewhere.",
       DemoTextRecipe.Supporting,
     )
-      .font(FONT_REGULAR, 15.0)
+      .fontSize(15.0)
       .maxLines(3) as Text;
     this.animationPreviewCard = new FlexBox()
       .fillWidth()
@@ -320,14 +321,14 @@ export class AdvancedControlsView {
     for (let index = 0; index < ANIMATION_SCROLL_ROW_COUNT; index += 1) {
       const label = "Animation sample row " + (index + 1).toString();
       const title = new DemoText(label, DemoTextRecipe.Body)
-        .font(FONT_REGULAR, 16.0) as Text;
+        .fontSize(16.0) as Text;
       const detail = new DemoText(
         index == ANIMATION_SCROLL_ROW_COUNT - 1
           ? "The final target proves retained smooth scrolling can drive to the far end of the viewport."
           : "Retained content stays pooled and composable while the viewport animates independently.",
         DemoTextRecipe.Hint,
       )
-        .font(FONT_REGULAR, 14.0)
+        .fontSize(14.0)
         .maxLines(2) as Text;
       const rowCard = new FlexBox()
         .fillWidth()
@@ -357,6 +358,7 @@ export class AdvancedControlsView {
       .height(ANIMATION_SCROLL_VIEWPORT_HEIGHT_PX, Unit.Pixel)
       .child(animationScrollContent) as ScrollBox;
     this.wrappingToggle.check(true);
+    this.acceptsTabToggle.check(true);
     this.workerDetailText.text("Press Start prime worker to compute primes for 5 seconds in the background.");
     this.setAnimationPreviewState(false, activeTheme.value);
     this.applyTheme(activeTheme.value);
@@ -395,6 +397,8 @@ export class AdvancedControlsView {
       this.readOnlyToggle,
       verticalSpacer(8.0),
       this.wrappingToggle,
+      verticalSpacer(8.0),
+      this.acceptsTabToggle,
       verticalSpacer(8.0),
       this.alwaysVerticalToggle,
       verticalSpacer(8.0),
@@ -541,7 +545,7 @@ export class AdvancedControlsView {
   private syncAnimationTheme(theme: Theme): void {
     this.animationPreviewTitleText.textColor(demoPrimaryText(theme));
     this.animationPreviewBodyText.textColor(demoMutedText(theme));
-    this.animationPreviewCard.border(1.0, demoDividerColor(theme), BorderStyle.Solid);
+    this.animationPreviewCard.border(1.0, demoDividerColor(theme));
     applyDemoScrollBoxTheme(changetype<ScrollBox>(this.animationScrollBox), theme);
     for (let index = 0; index < this.animationRowCards.length; index += 1) {
       const rowCard = unchecked(this.animationRowCards[index]);
@@ -549,7 +553,7 @@ export class AdvancedControlsView {
       const rowDetail = unchecked(this.animationRowDetailTexts[index]);
       rowCard
         .bgColor((index & 1) == 0 ? demoCardBackground(theme) : demoCardBackgroundAlt(theme))
-        .border(1.0, demoDividerColor(theme), BorderStyle.Solid);
+        .border(1.0, demoDividerColor(theme));
       rowTitle.textColor(demoPrimaryText(theme));
       rowDetail.textColor(demoMutedText(theme));
     }
@@ -610,7 +614,7 @@ export class AdvancedControlsView {
       .width(0.0, Unit.Auto)
       .height(0.0, Unit.Auto)
       .padding(12.0, 10.0, 12.0, 10.0)
-      .border(1.0, demoDividerColor(activeTheme.value), BorderStyle.Solid)
+      .border(1.0, demoDividerColor(activeTheme.value))
       .bgColor(demoCardBackground(activeTheme.value)) as FlexBox;
 
     const demoBox2 = Column(
@@ -625,7 +629,7 @@ export class AdvancedControlsView {
       .width(0.0, Unit.Auto)
       .height(0.0, Unit.Auto)
       .padding(16.0, 14.0, 16.0, 14.0)
-      .border(2.0, demoPrimaryText(activeTheme.value), BorderStyle.Solid)
+      .border(2.0, demoPrimaryText(activeTheme.value))
       .bgColor(rgb(220, 38, 38)) as FlexBox;
 
     const sectionBody = Column(
@@ -634,7 +638,7 @@ export class AdvancedControlsView {
       new DemoText(
         "Auto-sized containers shrink to their content, ignoring flex growth. Perfect for cards, panels, and labels that need custom borders and padding without hardcoded dimensions.",
         DemoTextRecipe.Hint,
-      ).font(FONT_REGULAR, 14.0),
+      ).fontSize(14.0),
     ).fillWidth();
 
     return createRoutePageSection(

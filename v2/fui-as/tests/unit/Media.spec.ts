@@ -1,4 +1,4 @@
-import { AssetLoadState, Image, ObjectFit, Svg, Unit, getTextureAssetError, getTextureAssetState, loadSvg, loadTexture } from "../../src/Fui";
+import { AssetLoadState, Image, ImageSampling, ObjectFit, Svg, Unit, getTextureAssetError, getTextureAssetState, loadSvg, loadTexture } from "../../src/Fui";
 import { __fui_on_svg_failed, __fui_on_svg_loaded, __fui_on_texture_failed, __fui_on_texture_loaded } from "../../src/core/Assets";
 import {
   CALL_CREATE_NODE,
@@ -65,7 +65,9 @@ describe("Media nodes", () => {
     const handle = image.build();
     resetCalls();
 
-    image.imageNine(4.0, 6.0, 8.0, 10.0);
+    image
+      .sampling(ImageSampling.nearest())
+      .imageNine(4.0, 6.0, 8.0, 10.0);
 
     const imageNineIndex = findLastCall(CALL_SET_IMAGE_NINE);
     expect<i32>(imageNineIndex).toBeGreaterThan(-1);
@@ -75,6 +77,8 @@ describe("Media nodes", () => {
     expect<f64>(getCallArg(imageNineIndex, 3)).toBe(6.0);
     expect<f64>(getCallArg(imageNineIndex, 4)).toBe(8.0);
     expect<f64>(getCallArg(imageNineIndex, 5)).toBe(10.0);
+    expect<f64>(getCallArg(imageNineIndex, 6)).toBe(1.0);
+    expect<f64>(getCallArg(imageNineIndex, 7)).toBe(0.0);
 
     image.dispose();
   });

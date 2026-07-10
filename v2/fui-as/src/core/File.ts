@@ -23,6 +23,7 @@ const FUNCTION_SAVE_TEXT_WITH = "FileSaveRequest.saveTextWith";
 const FUNCTION_SAVE_BYTES_WITH = "FileSaveRequest.saveBytesWith";
 const FUNCTION_CREATE_WRITER_WITH = "FileSaveRequest.createWriterWith";
 const FUNCTION_FILE_WORKER_PROCESS_START = "FileWorkerProcessRequest.start";
+const FUNCTION_FILE_WORKER_PROCESS_WORKER = "FileWorkerProcessRequest.worker";
 const FUNCTION_WRITE_TEXT_CHUNK_WITH = "BrowserFileWriter.writeTextChunkWith";
 const FUNCTION_WRITE_BYTES_CHUNK_WITH = "BrowserFileWriter.writeBytesChunkWith";
 const FUNCTION_FINISH_WITH = "BrowserFileWriter.finishWith";
@@ -70,9 +71,9 @@ function describeFileFailure(status: u32, fallback: string): string {
   return fallback;
 }
 
-function dispatchFileError(binding: Callback1<string> | null, message: string): void {
+function dispatchFileError(binding: Callback1<FileErrorEventArgs> | null, message: string): void {
   if (binding !== null) {
-    binding.invoke(message);
+    binding.invoke(new FileErrorEventArgs(message));
     return;
   }
   warn("File", message);
@@ -163,43 +164,43 @@ class FileRequestDisposable implements Disposable {
 
 class PendingOpenRequest {
   constructor(
-    readonly completeBinding: Callback1<Array<BrowserFile>>,
-    readonly errorBinding: Callback1<string> | null,
+    readonly completeBinding: Callback1<FileOpenEventArgs>,
+    readonly errorBinding: Callback1<FileErrorEventArgs> | null,
   ) {}
 }
 
 class PendingReadRequest {
   constructor(
     readonly completeBinding: Callback1<FileReadChunk>,
-    readonly errorBinding: Callback1<string> | null,
+    readonly errorBinding: Callback1<FileErrorEventArgs> | null,
   ) {}
 }
 
 class PendingSaveRequest {
   constructor(
     readonly completeBinding: Callback1<FileSaveResult>,
-    readonly errorBinding: Callback1<string> | null,
+    readonly errorBinding: Callback1<FileErrorEventArgs> | null,
   ) {}
 }
 
 class PendingWriterCreateRequest {
   constructor(
     readonly completeBinding: Callback1<BrowserFileWriter>,
-    readonly errorBinding: Callback1<string> | null,
+    readonly errorBinding: Callback1<FileErrorEventArgs> | null,
   ) {}
 }
 
 class PendingWriterWriteRequest {
   constructor(
     readonly completeBinding: Callback1<FileWriteProgress>,
-    readonly errorBinding: Callback1<string> | null,
+    readonly errorBinding: Callback1<FileErrorEventArgs> | null,
   ) {}
 }
 
 class PendingWriterFinishRequest {
   constructor(
     readonly completeBinding: Callback1<FileSaveResult>,
-    readonly errorBinding: Callback1<string> | null,
+    readonly errorBinding: Callback1<FileErrorEventArgs> | null,
   ) {}
 }
 
@@ -225,6 +226,22 @@ export class FileCapabilities {
     this.canWriteChunks = (bits & FILE_CAPABILITY_CHUNKED_WRITE) != 0;
     this.canUseNativeSavePicker = (bits & FILE_CAPABILITY_NATIVE_SAVE_PICKER) != 0;
     this.canProcessInWorkerToPickedFile = (bits & FILE_CAPABILITY_PROCESS_WORKER_SAVE) != 0;
+  }
+}
+
+export class FileOpenEventArgs {
+  readonly files: Array<BrowserFile>;
+
+  constructor(files: Array<BrowserFile>) {
+    this.files = files;
+  }
+}
+
+export class FileErrorEventArgs {
+  readonly message: string;
+
+  constructor(message: string) {
+    this.message = message;
   }
 }
 
@@ -314,14 +331,14 @@ export class BrowserFile {
     offsetBytes: u64,
     maxBytes: u32,
     handler: Handler1<Owner, FileReadChunk>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(handler) == 0) {
       throwNullArgument(FUNCTION_READ_BYTES_CHUNK_WITH, "handler");
     }
     if (maxBytes == 0) {
       dispatchFileError(
-        errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+        errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
         "BrowserFile.readBytesChunkWith: maxBytes must be greater than zero.",
       );
       return new FileRequestDisposable(REQUEST_KIND_READ, 0);
@@ -329,7 +346,7 @@ export class BrowserFile {
     const fileIdBytes = encodeUtf8(this.id);
     const requestId = registerPendingReadRequest(new PendingReadRequest(
       bind1<Owner, FileReadChunk>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_read_chunk(
       requestId,
@@ -344,13 +361,15 @@ export class BrowserFile {
 
 export class FileWorkerProcessRequest implements Disposable {
   private readonly file: BrowserFile;
+  private workerWasmPathValue: string = "";
+  private workerEntryNameValue: string = "";
   private suggestedNameValue: string;
   private saveToPickedFileEnabled: bool = false;
   private chunkBytesValue: u32 = 64 * 1024;
   private chunkBinding: Callback1<FileReadChunk> | null = null;
   private progressBinding: Callback1<FileWorkerProcessProgress> | null = null;
   private completeBinding: Callback1<FileWorkerProcessResult> | null = null;
-  private errorBinding: Callback1<string> | null = null;
+  private errorBinding: Callback1<FileErrorEventArgs> | null = null;
   private requestId: u32 = 0;
   private started: bool = false;
   private finished: bool = false;
@@ -365,6 +384,18 @@ export class FileWorkerProcessRequest implements Disposable {
       throwNullArgument("FileWorkerProcessRequest.suggestedName", "value");
     }
     this.suggestedNameValue = value;
+    return this;
+  }
+
+  worker(wasmPath: string, entryName: string): this {
+    if (changetype<usize>(wasmPath) == 0) {
+      throwNullArgument(FUNCTION_FILE_WORKER_PROCESS_WORKER, "wasmPath");
+    }
+    if (changetype<usize>(entryName) == 0) {
+      throwNullArgument(FUNCTION_FILE_WORKER_PROCESS_WORKER, "entryName");
+    }
+    this.workerWasmPathValue = wasmPath;
+    this.workerEntryNameValue = entryName;
     return this;
   }
 
@@ -414,15 +445,15 @@ export class FileWorkerProcessRequest implements Disposable {
     return this.onComplete<Owner>(owner, handler);
   }
 
-  onError<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  onError<Owner>(owner: Owner, handler: Handler1<Owner, FileErrorEventArgs>): this {
     if (changetype<usize>(handler) == 0) {
       throwNullArgument("FileWorkerProcessRequest.onError", "handler");
     }
-    this.errorBinding = bind1<Owner, string>(owner, handler);
+    this.errorBinding = bind1<Owner, FileErrorEventArgs>(owner, handler);
     return this;
   }
 
-  onErrorWith<Owner>(owner: Owner, handler: Handler1<Owner, string>): this {
+  onErrorWith<Owner>(owner: Owner, handler: Handler1<Owner, FileErrorEventArgs>): this {
     return this.onError<Owner>(owner, handler);
   }
 
@@ -439,16 +470,26 @@ export class FileWorkerProcessRequest implements Disposable {
       dispatchFileError(this.errorBinding, "FileWorkerProcessRequest.start: chunkBytes must be greater than zero.");
       return this;
     }
+    if (this.workerWasmPathValue.length == 0 || this.workerEntryNameValue.length == 0) {
+      dispatchFileError(this.errorBinding, "FileWorkerProcessRequest.start: worker(wasmPath, entryName) is required.");
+      return this;
+    }
     if (!this.saveToPickedFileEnabled && this.chunkBinding === null) {
       dispatchFileError(this.errorBinding, "FileWorkerProcessRequest.start: either saveToPickedFile(...) or onChunk(...) is required.");
       return this;
     }
+    const workerWasmPathBytes = encodeUtf8(this.workerWasmPathValue);
+    const workerEntryNameBytes = encodeUtf8(this.workerEntryNameValue);
     const fileIdBytes = encodeUtf8(this.file.id);
     const suggestedNameBytes = encodeUtf8(this.suggestedNameValue);
     this.requestId = registerPendingWorkerProcessRequest(this);
     this.started = true;
     fui_file_process_worker_start(
       this.requestId,
+      workerWasmPathBytes.length > 0 ? workerWasmPathBytes.dataStart : 0,
+      <u32>workerWasmPathBytes.length,
+      workerEntryNameBytes.length > 0 ? workerEntryNameBytes.dataStart : 0,
+      <u32>workerEntryNameBytes.length,
       fileIdBytes.length > 0 ? fileIdBytes.dataStart : 0,
       <u32>fileIdBytes.length,
       suggestedNameBytes.length > 0 ? suggestedNameBytes.dataStart : 0,
@@ -550,7 +591,7 @@ export class BrowserFileWriter {
     owner: Owner,
     text: string,
     handler: Handler1<Owner, FileWriteProgress>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(text) == 0) {
       throwNullArgument(FUNCTION_WRITE_TEXT_CHUNK_WITH, "text");
@@ -562,7 +603,7 @@ export class BrowserFileWriter {
     const textBytes = encodeUtf8(text);
     const requestId = registerPendingWriterWriteRequest(new PendingWriterWriteRequest(
       bind1<Owner, FileWriteProgress>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_writer_write_text(
       requestId,
@@ -578,7 +619,7 @@ export class BrowserFileWriter {
     owner: Owner,
     bytes: Uint8Array,
     handler: Handler1<Owner, FileWriteProgress>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(bytes) == 0) {
       throwNullArgument(FUNCTION_WRITE_BYTES_CHUNK_WITH, "bytes");
@@ -589,7 +630,7 @@ export class BrowserFileWriter {
     const writerIdBytes = encodeUtf8(this.writerId);
     const requestId = registerPendingWriterWriteRequest(new PendingWriterWriteRequest(
       bind1<Owner, FileWriteProgress>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_writer_write_bytes(
       requestId,
@@ -604,7 +645,7 @@ export class BrowserFileWriter {
   finishWith<Owner>(
     owner: Owner,
     handler: Handler1<Owner, FileSaveResult>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(handler) == 0) {
       throwNullArgument(FUNCTION_FINISH_WITH, "handler");
@@ -612,7 +653,7 @@ export class BrowserFileWriter {
     const writerIdBytes = encodeUtf8(this.writerId);
     const requestId = registerPendingWriterFinishRequest(new PendingWriterFinishRequest(
       bind1<Owner, FileSaveResult>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_writer_finish(
       requestId,
@@ -642,16 +683,16 @@ export class FileOpenRequest {
 
   pickWith<Owner>(
     owner: Owner,
-    handler: Handler1<Owner, Array<BrowserFile>>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    handler: Handler1<Owner, FileOpenEventArgs>,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(handler) == 0) {
       throwNullArgument(FUNCTION_PICK_WITH, "handler");
     }
     const acceptBytes = encodeUtf8(this.acceptValue);
     const requestId = registerPendingOpenRequest(new PendingOpenRequest(
-      bind1<Owner, Array<BrowserFile>>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      bind1<Owner, FileOpenEventArgs>(owner, handler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_pick(
       requestId,
@@ -696,7 +737,7 @@ export class FileSaveRequest {
     owner: Owner,
     text: string,
     handler: Handler1<Owner, FileSaveResult>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(text) == 0) {
       throwNullArgument(FUNCTION_SAVE_TEXT_WITH, "text");
@@ -710,7 +751,7 @@ export class FileSaveRequest {
     const textBytes = encodeUtf8(text);
     const requestId = registerPendingSaveRequest(new PendingSaveRequest(
       bind1<Owner, FileSaveResult>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_save_text(
       requestId,
@@ -730,7 +771,7 @@ export class FileSaveRequest {
     owner: Owner,
     bytes: Uint8Array,
     handler: Handler1<Owner, FileSaveResult>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(bytes) == 0) {
       throwNullArgument(FUNCTION_SAVE_BYTES_WITH, "bytes");
@@ -743,7 +784,7 @@ export class FileSaveRequest {
     const extensionBytes = encodeUtf8(this.fileExtensionValue);
     const requestId = registerPendingSaveRequest(new PendingSaveRequest(
       bind1<Owner, FileSaveResult>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_save_bytes(
       requestId,
@@ -762,7 +803,7 @@ export class FileSaveRequest {
   createWriterWith<Owner>(
     owner: Owner,
     handler: Handler1<Owner, BrowserFileWriter>,
-    errorHandler: Handler1<Owner, string> | null = null,
+    errorHandler: Handler1<Owner, FileErrorEventArgs> | null = null,
   ): Disposable {
     if (changetype<usize>(handler) == 0) {
       throwNullArgument(FUNCTION_CREATE_WRITER_WITH, "handler");
@@ -772,7 +813,7 @@ export class FileSaveRequest {
     const extensionBytes = encodeUtf8(this.fileExtensionValue);
     const requestId = registerPendingWriterCreateRequest(new PendingWriterCreateRequest(
       bind1<Owner, BrowserFileWriter>(owner, handler),
-      errorHandler === null ? null : bind1<Owner, string>(owner, errorHandler),
+      errorHandler === null ? null : bind1<Owner, FileErrorEventArgs>(owner, errorHandler),
     ));
     fui_file_create_writer(
       requestId,
@@ -842,7 +883,7 @@ export function handleFilePickResult(requestId: u32, status: u32, files: Array<B
     return;
   }
   if (status == FILE_STATUS_SUCCESS) {
-    request.completeBinding.invoke(files);
+    request.completeBinding.invoke(new FileOpenEventArgs(files));
     return;
   }
   dispatchFileError(request.errorBinding, message === null ? describeFileFailure(status, "File picker failed.") : message);
@@ -998,7 +1039,7 @@ export function disposeAllFileRequests(): void {
   pendingWorkerProcessRequests.clear();
 }
 
-export function __resetFileForTests(): void {
+export function resetFileRuntime(): void {
   disposeAllFileRequests();
   browserFiles.clear();
   nextFileRequestId = 1;

@@ -1,6 +1,8 @@
 import { CursorStyle, KeyEventType, KeyModifier, PointerEventType, SemanticRole } from "../../src/core/ffi";
 import { EventRouter } from "../../src/core/EventRouter";
+import { Node, PointerEventArgs, PointerType } from "../../src/core/Node";
 import { NavLink } from "../../src/controls";
+import { NavigateEventArgs } from "../../src/controls/NavLink";
 import {
   CALL_SET_DROP_SHADOW,
   CALL_NAVIGATE_TO,
@@ -22,9 +24,9 @@ import {
 let activationCount: i32 = 0;
 let lastPath = "";
 
-function recordActivation(path: string): void {
+function recordActivation(event: NavigateEventArgs): void {
   activationCount += 1;
-  lastPath = path;
+  lastPath = event.path;
 }
 
 describe("NavLink", () => {
@@ -125,6 +127,23 @@ describe("NavLink", () => {
     expect<string>(lastPath).toBe("/settings");
     expect<i32>(findCall(CALL_NAVIGATE_TO)).toBeGreaterThan(-1);
     expect<bool>(lastNavigationTargetEquals("/settings")).toBe(true);
+  });
+
+  it("does not activate from a right-click pointer release", () => {
+    resetCalls();
+    const link = new NavLink("/settings", "Settings").onNavigate(recordActivation);
+
+    Node._dispatchPointerEventWithArgs(
+      link,
+      new PointerEventArgs(PointerEventType.Down, 0.0, 0.0, 0, 1, PointerType.Mouse, 2, 2, 0.0, 0.0, 0.0, 1),
+    );
+    Node._dispatchPointerEventWithArgs(
+      link,
+      new PointerEventArgs(PointerEventType.Up, 0.0, 0.0, 0, 1, PointerType.Mouse, 2, 0, 0.0, 0.0, 0.0, 1),
+    );
+
+    expect<i32>(activationCount).toBe(0);
+    expect<i32>(findCall(CALL_NAVIGATE_TO)).toBe(-1);
   });
 
   it("can request opening the target in a new tab", () => {

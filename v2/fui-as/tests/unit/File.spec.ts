@@ -1,13 +1,14 @@
 import { Application } from "../../src/core/Application";
 import {
-  __resetFileForTests,
   File,
+  FileErrorEventArgs,
   handleFileWorkerProcessChunk,
   handleFileWorkerProcessComplete,
   handleFileWorkerProcessError,
   handleFileWorkerProcessProgress,
   FileReadChunk,
   registerBrowserFile,
+  resetFileRuntime,
 } from "../../src/core/File";
 import {
   CALL_FILE_WORKER_PROCESS_CANCEL,
@@ -32,7 +33,7 @@ class FileWorkerProcessOwner {
 
 describe("File worker processing", () => {
   afterEach(() => {
-    __resetFileForTests();
+    resetFileRuntime();
     Application.unmount();
     resetCalls();
   });
@@ -42,6 +43,7 @@ describe("File worker processing", () => {
     const capabilities = File.capabilities();
 
     File.processFileInWorker(file)
+      .worker("./workers/file-worker.wasm", "fileProcessorWorker")
       .saveToPickedFile("todo-copy.txt")
       .chunkBytes(32768)
       .start();
@@ -58,6 +60,7 @@ describe("File worker processing", () => {
     const file = registerBrowserFile("picked-file-1", "todo.txt", "text/plain", 10);
 
     File.processFileInWorker(file)
+      .worker("./workers/file-worker.wasm", "fileProcessorWorker")
       .saveToPickedFile("todo-copy.txt")
       .onProgressWith<FileWorkerProcessOwner>(owner, (target, progress) => {
         target.progressCount += 1;
@@ -88,6 +91,7 @@ describe("File worker processing", () => {
     const file = registerBrowserFile("picked-file-1", "todo.txt", "text/plain", 10);
 
     File.processFileInWorker(file)
+      .worker("./workers/file-worker.wasm", "fileProcessorWorker")
       .chunkBytes(4)
       .onChunkWith<FileWorkerProcessOwner>(owner, (target, chunk) => {
         target.chunkCount += 1;
@@ -131,9 +135,10 @@ describe("File worker processing", () => {
     const file = registerBrowserFile("picked-file-1", "todo.txt", "text/plain", 10);
 
     File.processFileInWorker(file)
-      .onErrorWith<FileWorkerProcessOwner>(owner, (target, message) => {
+      .worker("./workers/file-worker.wasm", "fileProcessorWorker")
+      .onErrorWith<FileWorkerProcessOwner>(owner, (target, event: FileErrorEventArgs): void => {
         target.errorCount += 1;
-        target.lastMessage = message;
+        target.lastMessage = event.message;
       })
       .start();
 
@@ -146,10 +151,11 @@ describe("File worker processing", () => {
     const owner = new FileWorkerProcessOwner();
     const file = registerBrowserFile("picked-file-1", "todo.txt", "text/plain", 10);
     const request = File.processFileInWorker(file)
+      .worker("./workers/file-worker.wasm", "fileProcessorWorker")
       .saveToPickedFile("todo-copy.txt")
-      .onErrorWith<FileWorkerProcessOwner>(owner, (target, message) => {
+      .onErrorWith<FileWorkerProcessOwner>(owner, (target, event: FileErrorEventArgs): void => {
         target.errorCount += 1;
-        target.lastMessage = message;
+        target.lastMessage = event.message;
       })
       .start();
 

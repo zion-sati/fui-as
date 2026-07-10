@@ -12,7 +12,23 @@ import { EventRouter } from "../core/EventRouter";
 export function fui_dispatch_custom_draw(handle: u64, canvasPtr: usize): void {
   const node = EventRouter.getRegisteredNode(handle);
   if (node !== null && node instanceof CustomDrawable) {
+    const custom = node as CustomDrawable;
+    const bounds = custom.getBounds();
     const ctx = new DrawContext(canvasPtr);
-    (node as CustomDrawable).draw(ctx);
+    const width = unchecked(bounds[2]);
+    const height = unchecked(bounds[3]);
+    const tl = custom._cornerTopLeft();
+    const tr = custom._cornerTopRight();
+    const br = custom._cornerBottomRight();
+    const bl = custom._cornerBottomLeft();
+    ctx.save();
+    if (tl > 0.0 || tr > 0.0 || br > 0.0 || bl > 0.0) {
+      ctx.clipRoundedRect(0, 0, width, height, tl, tr, br, bl);
+    } else {
+      ctx.clipRect(0, 0, width, height);
+    }
+    custom.draw(ctx);
+    ctx.restore();
+    ctx.flush();
   }
 }

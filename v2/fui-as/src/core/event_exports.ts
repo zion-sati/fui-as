@@ -25,7 +25,7 @@ import {
   registerBrowserFile,
 } from "./File";
 import { handleRouteChanged } from "./Navigation";
-import { handleSystemDarkModeChanged } from "./Theme";
+import { handleSystemAccentColorChanged, handleSystemDarkModeChanged } from "./Theme";
 import { handleTimer } from "./Timers";
 import { handleWorkerComplete, handleWorkerError, handleWorkerProgress } from "./Worker";
 import { tickAnimations } from "./Animation";
@@ -39,7 +39,7 @@ import {
   warn,
 } from "./Logger";
 import { Signal } from "./Signal";
-import { DragDropEffects, ExternalDropItemInfo, ExternalDropItemKind } from "./Node";
+import { DragDropEffects, ExternalDropItemInfo, ExternalDropItemKind, GestureEventKind, GestureEventPhase, PointerType, WheelDeltaMode } from "./Node";
 
 const KEY_BUFFER = new Uint8Array(256);
 const TEXT_BUFFER = new Uint8Array(1024 * 1024);
@@ -60,17 +60,120 @@ export function __fui_text_buffer_size(): u32 {
   return <u32>TEXT_BUFFER.length;
 }
 
-export function __fui_on_pointer_event(eventType: u32, handle: u64, x: f32, y: f32, modifiers: u32 = 0): void {
+export function __fui_on_pointer_event_with_metadata(
+  eventType: u32,
+  handle: u64,
+  x: f32,
+  y: f32,
+  modifiers: u32,
+  pointerId: i32,
+  pointerType: u32,
+  button: i32,
+  buttons: u32,
+  pressure: f32,
+  width: f32,
+  height: f32,
+  clickCount: i32,
+): bool {
   log(
     "Event",
     "pointer type=" + describePointerEventType(<PointerEventType>eventType) +
       " handle=" + describeHandle(handle) +
       " x=" + x.toString() +
       " y=" + y.toString() +
-      " modifiers=" + modifiers.toString(),
+      " modifiers=" + modifiers.toString() +
+      " pointerId=" + pointerId.toString() +
+      " pointerType=" + pointerType.toString() +
+      " button=" + button.toString() +
+      " buttons=" + buttons.toString() +
+      " pressure=" + pressure.toString() +
+      " width=" + width.toString() +
+      " height=" + height.toString() +
+      " clickCount=" + clickCount.toString(),
   );
   ContextMenuManager.trackPointerEvent(<PointerEventType>eventType, handle);
-  EventRouter.dispatchPointerEvent(handle, <PointerEventType>eventType, x, y, modifiers);
+  return EventRouter.dispatchPointerEvent(
+    handle,
+    <PointerEventType>eventType,
+    x,
+    y,
+    modifiers,
+    pointerId,
+    <PointerType>pointerType,
+    button,
+    buttons,
+    pressure,
+    width,
+    height,
+    clickCount,
+  );
+}
+
+export function __fui_on_wheel_event(
+  handle: u64,
+  x: f32,
+  y: f32,
+  deltaX: f32,
+  deltaY: f32,
+  deltaMode: u32,
+  modifiers: u32,
+): bool {
+  log(
+    "Event",
+    "wheel handle=" + describeHandle(handle) +
+      " x=" + x.toString() +
+      " y=" + y.toString() +
+      " deltaX=" + deltaX.toString() +
+      " deltaY=" + deltaY.toString() +
+      " modifiers=" + modifiers.toString(),
+  );
+  return EventRouter.dispatchWheelEvent(handle, x, y, deltaX, deltaY, <WheelDeltaMode>deltaMode, modifiers);
+}
+
+export function __fui_resolve_gesture_owner(handle: u64): u64 {
+  return EventRouter.resolveGestureOwner(handle);
+}
+
+export function __fui_get_gesture_intent(handle: u64): u32 {
+  return <u32>EventRouter.getGestureIntent(handle);
+}
+
+export function __fui_resolve_long_press_owner(handle: u64): u64 {
+  return EventRouter.resolveLongPressOwner(handle);
+}
+
+export function __fui_get_long_press_minimum_duration_ms(handle: u64): i32 {
+  return EventRouter.getLongPressMinimumDurationMs(handle);
+}
+
+export function __fui_get_long_press_movement_tolerance(handle: u64): f32 {
+  return EventRouter.getLongPressMovementTolerance(handle);
+}
+
+export function __fui_on_gesture_event(
+  handle: u64,
+  phase: u32,
+  kind: u32,
+  x: f32,
+  y: f32,
+  deltaX: f32,
+  deltaY: f32,
+  scale: f32,
+  pointerCount: i32,
+): bool {
+  return EventRouter.dispatchGestureEvent(handle, <GestureEventPhase>phase, <GestureEventKind>kind, x, y, deltaX, deltaY, scale, pointerCount);
+}
+
+export function __fui_on_long_press_event(
+  handle: u64,
+  x: f32,
+  y: f32,
+  pointerId: i32,
+  pointerType: u32,
+  modifiers: u32,
+  durationMs: i32,
+): bool {
+  return EventRouter.dispatchLongPressEvent(handle, x, y, pointerId, <PointerType>pointerType, modifiers, durationMs);
 }
 
 export function __fui_on_viewport_changed(w: f32, h: f32): void {
@@ -402,6 +505,11 @@ export function __fui_on_system_dark_mode_changed(isDark: bool): void {
   handleSystemDarkModeChanged(isDark);
 }
 
+export function __fui_on_system_accent_color_changed(color: u32): void {
+  log("Event", "system accent color changed=" + color.toString());
+  handleSystemAccentColorChanged(color);
+}
+
 export function __fui_on_route_changed(routePtr: usize, routeLen: u32): void {
   const route = String.UTF8.decodeUnsafe(routePtr, <usize>routeLen, false);
   log("Event", "route changed=" + route);
@@ -449,6 +557,10 @@ export function __fui_on_key_event(eventType: u32, keyPtr: usize, keyLen: u32, m
 
 export function __fui_on_context_menu(handle: u64, x: f32, y: f32): void {
   ContextMenuManager.showForCurrentSelection(handle, x, y);
+}
+
+export function __fui_can_show_context_menu(handle: u64): bool {
+  return ContextMenuManager.canShowForHandle(handle);
 }
 
 export function __fui_hide_active_context_menu(): void {
@@ -607,4 +719,10 @@ export function __fui_on_external_drag_event(
       " effect=" + (<u32>effect).toString(),
   );
   return <u32>effect;
+}
+
+import { FontFace } from "./Typography";
+
+export function __fui_on_font_loaded(fontId: u32): void {
+  FontFace._dispatchFontLoaded(fontId);
 }

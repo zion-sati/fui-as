@@ -1,6 +1,7 @@
 import { Button } from "../../src/controls";
 import { CursorStyle, KeyEventType, KeyModifier, PointerEventType } from "../../src/core/ffi";
 import { EventRouter } from "../../src/core/EventRouter";
+import { ClickEventArgs, PointerType } from "../../src/core/Node";
 import { activeTheme, defaultDarkTheme, generateTheme } from "../../src/core/Theme";
 import { FontWeight } from "../../src/core/Typography";
 import { FlexBox } from "../../src/nodes";
@@ -24,17 +25,24 @@ import {
 } from "./FfiTestImports";
 
 let actionCount: i32 = 0;
+let lastActionClickCount: i32 = 0;
 
-export function incrementActionCount(): void {
+export function incrementActionCount(event: ClickEventArgs): void {
   actionCount += 1;
+  lastActionClickCount = 1;
 }
 
 export function resetActionCount(): void {
   actionCount = 0;
+  lastActionClickCount = 0;
 }
 
 export function readActionCount(): i32 {
   return actionCount;
+}
+
+export function readLastActionClickCount(): i32 {
+  return lastActionClickCount;
 }
 
 export function resetTheme(): void {
@@ -134,6 +142,7 @@ export {
   KeyEventType,
   KeyModifier,
   PointerEventType,
+  PointerType,
   EventRouter,
   activeTheme,
   defaultDarkTheme,

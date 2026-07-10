@@ -19,8 +19,10 @@ import {
   DropdownFieldVisualState,
   DropdownItem,
   DropdownColors,
+  DropdownSizing,
   FlexBox,
   LabeledControlColors,
+  LabeledControlSizing,
   Node,
   PressableIndicatorMetrics,
   Theme,
@@ -75,7 +77,7 @@ class AppDefaultCheckboxPresenter extends CheckboxIndicatorPresenter {
   apply(theme: Theme, state: CheckboxIndicatorVisualState, _colors: LabeledControlColors | null = null): void {
     this.root
       .cornerRadius(this.size * 0.5)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, theme.colors.accent)
       .bgColor(state.checkedState == 0 ? theme.colors.surface : theme.colors.accent);
   }
 }
@@ -87,7 +89,7 @@ class AppDefaultCheckboxTemplate extends CheckboxIndicatorTemplate {
     super();
   }
 
-  create(): CheckboxIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
     const presenter = new AppDefaultCheckboxPresenter(this.size);
     this.created.push(presenter);
     return presenter;
@@ -118,13 +120,14 @@ class AppDefaultDropdownFieldPresenter extends DropdownFieldPresenter {
   apply(theme: Theme, state: DropdownFieldVisualState, _colors: DropdownColors | null = null): void {
     this.root
       .cornerRadius(14.0)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, theme.colors.accent)
       .padding(12.0, 8.0, 12.0, 8.0)
       .bgColor(state.open ? theme.colors.background : theme.colors.surface);
     this.valueHost
       .fillWidth();
     this.valueNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(theme.fonts.sizeBody)
       .textColor(theme.colors.textPrimary);
     this.chevronHost
       .width(this.chevronWidth, Unit.Pixel)
@@ -141,7 +144,7 @@ class AppDefaultDropdownFieldTemplate extends DropdownFieldTemplate {
     super();
   }
 
-  create(): DropdownFieldPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownFieldPresenter {
     const presenter = new AppDefaultDropdownFieldPresenter(this.chevronWidth);
     this.created.push(presenter);
     return presenter;
@@ -163,7 +166,7 @@ class AppDefaultButtonPresenter extends ButtonPresenter {
   apply(theme: Theme, _state: ButtonVisualState, _colors: ButtonColors | null = null): void {
     this.host
       .cornerRadius(14.0)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, theme.colors.accent)
       .padding(12.0, 8.0, 12.0, 8.0)
       .bgColor(theme.colors.surface);
     this.contentRoot
@@ -172,7 +175,8 @@ class AppDefaultButtonPresenter extends ButtonPresenter {
       .alignItems(1)
       .justifyContent(1);
     this.labelNode
-      .font(theme.fonts.body, theme.fonts.sizeBody)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(theme.fonts.sizeBody)
       .textColor(theme.colors.accent);
   }
 }
@@ -202,7 +206,7 @@ class AppDefaultTextInputPresenter extends TextInputPresenter {
     this.lastState = state;
     this.host
       .cornerRadius(state.multiline ? 18.0 : 14.0)
-      .border(2.0, theme.colors.accent, BorderStyle.Solid)
+      .border(2.0, theme.colors.accent)
       .padding(this.inset, this.inset, this.inset, this.inset)
       .bgColor(theme.colors.surface);
     this.placeholderHost

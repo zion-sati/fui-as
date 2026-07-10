@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
 
 import * as demo from './demo-test-support';
 
@@ -79,7 +79,7 @@ test('advanced controls route keeps hot-swap notes semantics tied to rendered co
 });
 
 test('advanced controls route resolves custom fonts from /v2/fonts', async ({ page }) => {
-  const fontResponses: Array<{ pathname: string; status: number }> = [];
+  const fontResponses: { pathname: string; status: number }[] = [];
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname;
     if (!pathname.includes('/fonts/')) {
@@ -272,7 +272,7 @@ test('advanced controls route streams prime-search progress into the worker demo
       return -1;
     }
     const match = /Progress: (\d+)%/.exec(label);
-    return match === null ? -1 : Number.parseInt(match[1] ?? '-1', 10);
+    return match === null ? -1 : Number.parseInt(match[1], 10);
   }).toBeGreaterThan(0);
 
   await expect.poll(async () => {
@@ -297,7 +297,7 @@ test('advanced controls route can cooperatively cancel the prime worker demo', a
       return -1;
     }
     const match = /Progress: (\d+)%/.exec(label);
-    return match === null ? -1 : Number.parseInt(match[1] ?? '-1', 10);
+    return match === null ? -1 : Number.parseInt(match[1], 10);
   }).toBeGreaterThan(0);
 
   await demo.clickSemanticLabel(page, 'Cancel prime worker');
@@ -384,13 +384,13 @@ test('advanced controls route copies a dropped file through the worker-backed sa
           abort(): Promise<void>;
         }>;
       }>;
-    }).showSaveFilePicker = async (options) => {
-      const chunks: Array<Uint8Array> = [];
+    }).showSaveFilePicker = (options) => {
+      const chunks: Uint8Array[] = [];
       const fileName = options?.suggestedName ?? 'worker-copy.txt';
-      return {
+      return Promise.resolve({
         name: fileName,
-        async createWritable() {
-          return {
+        createWritable() {
+          return Promise.resolve({
             async write(data) {
               if (typeof data === 'string') {
                 chunks.push(textEncoder.encode(data));
@@ -410,7 +410,7 @@ test('advanced controls route copies a dropped file through the worker-backed sa
               }
               throw new Error('Unsupported write payload.');
             },
-            async close() {
+            close() {
               let total = 0;
               for (const chunk of chunks) {
                 total += chunk.length;
@@ -423,13 +423,15 @@ test('advanced controls route copies a dropped file through the worker-backed sa
               }
               (window as Window & { __demoCopiedFileText?: string; __demoCopiedFileName?: string }).__demoCopiedFileText = textDecoder.decode(merged);
               (window as Window & { __demoCopiedFileText?: string; __demoCopiedFileName?: string }).__demoCopiedFileName = fileName;
+              return Promise.resolve();
             },
-            async abort() {
+            abort() {
               (window as Window & { __demoCopiedFileAborted?: boolean }).__demoCopiedFileAborted = true;
+              return Promise.resolve();
             },
-          };
+          });
         },
-      };
+      });
     };
   });
 
@@ -498,15 +500,12 @@ test('advanced controls route copies a dropped file through the worker-backed sa
 
 test('advanced controls route resolves late cancellation when the worker completes before cancel takes effect', async ({ page }) => {
   await page.addInitScript(() => {
-    const originalFetch = window.fetch.bind(window);
     class FakeWorker {
-      private readonly listeners: Record<string, Array<(event: Event) => void>> = {
+      private readonly listeners: Partial<Record<string, ((event: Event) => void)[]>> = {
         message: [],
         error: [],
       };
       private terminated = false;
-
-      constructor(_url: string | URL) {}
 
       addEventListener(type: string, listener: (event: Event) => void): void {
         const bucket = this.listeners[type];
@@ -526,11 +525,15 @@ test('advanced controls route resolves late cancellation when the worker complet
         }
       }
 
-      postMessage(message: { type: string }): void {
+      postMessage(message: { type: string; wasmUrl?: string; entryName?: string }): void {
         if (this.terminated) {
           return;
         }
         if (message.type === 'start') {
+          (window as Window & { __advancedControlsWorkerStart?: { wasmUrl?: string; entryName?: string } }).__advancedControlsWorkerStart = {
+            wasmUrl: message.wasmUrl,
+            entryName: message.entryName,
+          };
           queueMicrotask(() => {
             if (this.terminated) {
               return;
@@ -568,28 +571,6 @@ test('advanced controls route resolves late cancellation when the worker complet
       }
     }
 
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const url = typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url;
-      if (url.includes('worker-manifest.json')) {
-        return new Response(JSON.stringify({
-          version: 1,
-          entries: {
-            largestPrimeCalculatorWorker: './fake-largest-prime-worker.wasm',
-          },
-        }), {
-          status: 200,
-          headers: {
-            'content-type': 'application/json',
-          },
-        });
-      }
-      return await originalFetch(input, init);
-    };
-
     Object.defineProperty(window, 'Worker', {
       configurable: true,
       writable: true,
@@ -602,6 +583,15 @@ test('advanced controls route resolves late cancellation when the worker complet
   await demo.scrollSemanticLabelIntoView(page, 'Start prime worker');
 
   await demo.clickSemanticLabel(page, 'Start prime worker');
+
+  await expect.poll(async () => {
+    return await page.evaluate(() => (window as Window & {
+      __advancedControlsWorkerStart?: { wasmUrl?: string; entryName?: string };
+    }).__advancedControlsWorkerStart ?? null);
+  }).toEqual({
+    wasmUrl: `${demo.baseUrl}/v2/fui-as/demo/workers/advanced_controls_workers.wasm`,
+    entryName: 'largestPrimeCalculatorWorker',
+  });
 
   await expect.poll(async () => {
     return await demo.readWorkerStatusLabel(page);
@@ -746,7 +736,7 @@ test('advanced controls route auto-scrolls the reorder viewport while dragging n
   await expect.poll(async () => {
     const label = await demo.readSemanticLabelByPrefix(page, 'Reorder viewport status: ');
     const match = label === null ? null : /offset (\d+)/.exec(label);
-    return match === null ? 0 : Number.parseInt(match[1] ?? '0', 10);
+    return match === null ? 0 : Number.parseInt(match[1], 10);
   }).toBeGreaterThan(0);
 
   await page.waitForTimeout(300);

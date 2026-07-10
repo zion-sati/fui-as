@@ -1,11 +1,13 @@
 import * as ui from "../bindings/ui";
-import { Callback0, Handler0 } from "../core/BoundCallback";
+import { Callback0, Callback1, Handler0, Handler1 } from "../core/BoundCallback";
+import { ClickEventArgs, Node, PointerClickEventArgs, PointerEventArgs } from "../core/Node";
 import { AlignItems, BorderStyle, FlexDirection, JustifyContent, SemanticRole, Unit } from "../core/ffi";
-import { bind0 } from "../core/bind";
+import { bind0, bind1 } from "../core/bind";
 import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
+import { afterNextCommitWith } from "../core/FrameScheduler";
 import { Theme, activeTheme } from "../core/Theme";
-import { FlexBox, Portal, TextCore } from "../nodes";
+import { Border, FlexBox, Portal, TextCore } from "../nodes";
 import { Button } from "./Button";
 import { Form } from "./Form";
 
@@ -16,19 +18,23 @@ const DIALOG_SHADOW_OFFSET_Y: f32 = 8.0;
 const DIALOG_SHADOW_BLUR: f32 = 10.0;
 const DIALOG_SHADOW_SPREAD: f32 = 0.0;
 
-function handleDialogBackdropClick(): void {
-  Dialog.cancelActiveDialog();
-}
-
-function handleDialogAcceptAction(): void {
+function handleDialogAcceptAction(_event: ClickEventArgs): void {
   Dialog.acceptActiveDialog();
 }
 
-function handleDialogCancelAction(): void {
+function handleDialogCancelAction(_event: ClickEventArgs): void {
   Dialog.cancelActiveDialog();
 }
 
-function absorbDialogCardPointer(_x: f32, _y: f32): void {}
+function absorbDialogCardPointer(_event: PointerEventArgs): void {}
+
+function handleDialogShownAfterCommit(dialog: Dialog): void {
+  dialog.fireShownAfterCommit();
+}
+
+export class DialogShownEventArgs {
+  static readonly Empty: DialogShownEventArgs = new DialogShownEventArgs();
+}
 
 export class Dialog extends Portal {
   private static activeInstance: Dialog | null = null;
@@ -39,6 +45,9 @@ export class Dialog extends Portal {
   private readonly bodyNode: TextCore = new TextCore("")
     .selectable(false)
     .semanticRole(SemanticRole.StaticText) as TextCore;
+  private readonly contentHost: FlexBox = new FlexBox()
+    .width(100.0, Unit.Percent)
+    .flexDirection(FlexDirection.Column) as FlexBox;
   private readonly cancelButton: Button = new Button("Cancel")
     .onClick(handleDialogCancelAction)
     .width(108.0, Unit.Pixel) as Button;
@@ -64,6 +73,8 @@ export class Dialog extends Portal {
     .child(this.titleNode)
     .child(new FlexBox().width(100.0, Unit.Percent).height(12.0, Unit.Pixel))
     .child(this.bodyNode)
+    .child(new FlexBox().width(100.0, Unit.Percent).height(16.0, Unit.Pixel))
+    .child(this.contentHost)
     .child(new FlexBox().width(100.0, Unit.Percent).height(24.0, Unit.Pixel))
     .child(this.form)
     .onPointerDown(absorbDialogCardPointer)
@@ -74,12 +85,14 @@ export class Dialog extends Portal {
     .justifyContent(JustifyContent.Center)
     .alignItems(AlignItems.Center)
     .child(this.card)
-    .onClick(handleDialogBackdropClick) as FlexBox;
+    .onPointerClickWith(this, (dialog, event): void => dialog.handleBackdropClick(event)) as FlexBox;
   private isDialogVisible: bool = false;
   private acceptCallback: (() => void) | null = null;
   private acceptBinding: Callback0 | null = null;
   private cancelCallback: (() => void) | null = null;
   private cancelBinding: Callback0 | null = null;
+  private shownCallback: ((event: DialogShownEventArgs) => void) | null = null;
+  private shownBinding: Callback1<DialogShownEventArgs> | null = null;
   private semanticScopeToken: u32 = 0;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private backdropColorValue: u32 = activeTheme.value.colors.dialogBackdrop;
@@ -163,6 +176,23 @@ export class Dialog extends Portal {
     return this;
   }
 
+  onShown(cb: (event: DialogShownEventArgs) => void): this {
+    this.shownCallback = cb;
+    this.shownBinding = null;
+    return this;
+  }
+
+  bindShown<Owner>(owner: Owner, handler: Handler1<Owner, DialogShownEventArgs>): this {
+    this.shownCallback = null;
+    this.shownBinding = bind1<Owner, DialogShownEventArgs>(owner, handler);
+    return this;
+  }
+
+  onShownWith<Owner>(owner: Owner, handler: Handler1<Owner, DialogShownEventArgs>): this {
+    this.bindShown(owner, handler);
+    return this;
+  }
+
   get titleText(): TextCore {
     return this.titleNode;
   }
@@ -210,11 +240,20 @@ export class Dialog extends Portal {
     return this;
   }
 
-  cardBorder(width: f32, color: u32, style: BorderStyle = BorderStyle.Solid): this {
+  cardBorder(width: f32, color: u32): this {
     this.cardBorderOverridden = true;
     this.cardBorderWidthValue = width;
     this.cardBorderColorValue = color;
-    this.cardBorderStyleValue = style;
+    this.cardBorderStyleValue = BorderStyle.Solid;
+    this.applyTheme();
+    return this;
+  }
+
+  cardBorderConfig(border: Border): this {
+    this.cardBorderOverridden = true;
+    this.cardBorderWidthValue = border.width;
+    this.cardBorderColorValue = border.color;
+    this.cardBorderStyleValue = border.style;
     this.applyTheme();
     return this;
   }
@@ -235,6 +274,15 @@ export class Dialog extends Portal {
     return this;
   }
 
+  bodyContent(node: Node | null): this {
+    const children = new Array<Node>();
+    if (node !== null) {
+      children.push(node);
+    }
+    this.contentHost.children(children);
+    return this;
+  }
+
   show(): void {
     this.applyTheme();
     if (this.overlay.parentNode === null) {
@@ -244,9 +292,9 @@ export class Dialog extends Portal {
       this.semanticScopeToken = ui.pushSemanticScope(this.overlay.builtHandle);
     }
     this.form.activate();
-    this.acceptButton.focusNow();
     this.isDialogVisible = true;
     Dialog.activeInstance = this;
+    afterNextCommitWith<Dialog>(this, handleDialogShownAfterCommit);
   }
 
   hide(): void {
@@ -307,6 +355,20 @@ export class Dialog extends Portal {
     }
   }
 
+  fireShownAfterCommit(): void {
+    if (!this.isDialogVisible || this.overlay.parentNode === null) {
+      return;
+    }
+    const callback = this.shownCallback;
+    if (callback !== null) {
+      callback(DialogShownEventArgs.Empty);
+    }
+    const binding = this.shownBinding;
+    if (binding !== null) {
+      binding.invoke(DialogShownEventArgs.Empty);
+    }
+  }
+
   private handleThemeChanged(theme: Theme): void {
     if (!this.backdropColorOverridden) {
       this.backdropColorValue = theme.colors.dialogBackdrop;
@@ -334,7 +396,7 @@ export class Dialog extends Portal {
     this.overlay.backgroundBlur(this.dialogBackgroundBlurSigmaValue);
     this.card.bgColor(this.cardBackgroundColorValue);
     this.card.cornerRadius(this.cardCornerRadiusValue);
-    this.card.border(this.cardBorderWidthValue, this.cardBorderColorValue, this.cardBorderStyleValue);
+    this.card.borderConfig(new Border(this.cardBorderWidthValue, this.cardBorderColorValue, this.cardBorderStyleValue));
     this.card.dropShadow(
       this.shadowColorValue,
       this.shadowOffsetXValue,
@@ -343,10 +405,22 @@ export class Dialog extends Portal {
       this.shadowSpreadValue,
     );
     this.card.padding(24.0, 24.0, 24.0, 24.0);
-    this.titleNode.font(theme.fonts.heading, theme.fonts.sizeHeading);
+    this.titleNode.fontFamily(theme.fonts.headingFamily).fontSize(theme.fonts.sizeHeading);
     this.titleNode.textColor(theme.colors.textPrimary);
-    this.bodyNode.font(theme.fonts.body, theme.fonts.sizeBody);
+    this.bodyNode.fontFamily(theme.fonts.bodyFamily).fontSize(theme.fonts.sizeBody);
     this.bodyNode.textColor(theme.colors.textMuted);
+  }
+
+  private handleBackdropClick(event: PointerClickEventArgs): void {
+    const bounds = this.card.getBounds();
+    const left = bounds[0];
+    const top = bounds[1];
+    const right = left + bounds[2];
+    const bottom = top + bounds[3];
+    if (event.sceneX >= left && event.sceneX <= right && event.sceneY >= top && event.sceneY <= bottom) {
+      return;
+    }
+    this.cancel();
   }
 
   private track(disposable: Disposable): void {

@@ -15,8 +15,10 @@ import {
   DropdownFieldVisualState,
   DropdownItem,
   DropdownColors,
+  DropdownSizing,
   FlexBox,
   LabeledControlColors,
+  LabeledControlSizing,
   PointerEventType,
   PressableIndicatorMetrics,
   RadioButton,
@@ -76,7 +78,7 @@ class Recorder extends DropdownFieldPresenter {
 
 class RecorderTemplate extends DropdownFieldTemplate {
   created: Array<Recorder> = new Array<Recorder>();
-  create(): DropdownFieldPresenter {
+  create(_sizing: DropdownSizing | null = null): DropdownFieldPresenter {
     const p = new Recorder();
     this.created.push(p);
     return p;
@@ -132,7 +134,7 @@ class CheckboxRecorder extends CheckboxIndicatorPresenter {
 class CheckboxRecorderTemplate extends CheckboxIndicatorTemplate {
   created: Array<CheckboxRecorder> = new Array<CheckboxRecorder>();
 
-  create(): CheckboxIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): CheckboxIndicatorPresenter {
     const presenter = new CheckboxRecorder();
     this.created.push(presenter);
     return presenter;
@@ -159,7 +161,7 @@ class RadioRecorder extends RadioIndicatorPresenter {
 class RadioRecorderTemplate extends RadioIndicatorTemplate {
   created: Array<RadioRecorder> = new Array<RadioRecorder>();
 
-  create(): RadioIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
     const presenter = new RadioRecorder();
     this.created.push(presenter);
     return presenter;
@@ -186,7 +188,7 @@ class SwitchRecorder extends SwitchIndicatorPresenter {
 class SwitchRecorderTemplate extends SwitchIndicatorTemplate {
   created: Array<SwitchRecorder> = new Array<SwitchRecorder>();
 
-  create(): SwitchIndicatorPresenter {
+  create(_sizing: LabeledControlSizing | null = null): SwitchIndicatorPresenter {
     const presenter = new SwitchRecorder();
     this.created.push(presenter);
     return presenter;

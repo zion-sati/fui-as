@@ -1,8 +1,15 @@
-import { Bitmap, Image, ObjectFit, Paint, Unit, rgba } from "../../src/Fui";
+import { Application, Bitmap, FlexBox, Image, ObjectFit, Paint, TextLayout, Unit, rgba } from "../../src/Fui";
+import { resetCommitState } from "../../src/core/FrameScheduler";
+import { BitmapTextReadyEventArgs } from "../../src/core/Bitmap";
+import { FontFace, FontFamily, FontStack } from "../../src/core/Typography";
+import { RichText, span } from "../../src/nodes";
 import {
   CALL_BITMAP_COMMIT,
   CALL_BITMAP_RELEASE,
   CALL_CREATE_NODE,
+  CALL_LOG,
+  CALL_PREPARE_NODE,
+  CALL_RENDER_NODE_TO_RGBA,
   CALL_SET_HEIGHT,
   CALL_SET_IMAGE,
   CALL_SET_WIDTH,
@@ -11,7 +18,10 @@ import {
   getCallSequence,
   lastBitmapBytesEquals,
   lastBitmapBytesLength,
+  lastLogCategoryEquals,
+  lastLogMessageEquals,
   resetCalls,
+  setLogsEnabled,
 } from "./FfiTestImports";
 
 function findLastCall(op: i32): i32 {
@@ -23,6 +33,16 @@ function findLastCall(op: i32): i32 {
     }
   }
   return index;
+}
+
+class BitmapPrepareOwner {
+  readyCalls: i32 = 0;
+}
+
+function countPreparedText(owner: BitmapPrepareOwner, event: BitmapTextReadyEventArgs): void {
+  if (event.node !== null) {
+    owner.readyCalls += 1;
+  }
 }
 
 describe("Bitmap", () => {
@@ -154,5 +174,108 @@ describe("Bitmap", () => {
       }
     }
     expect<i32>(releaseCount).toBe(1);
+  });
+
+  it("renders prepared TextLayout resources and logs before readiness", () => {
+    resetCalls();
+    resetCommitState();
+    setLogsEnabled(true);
+
+    const bitmap = new Bitmap(32, 16);
+    const layout = TextLayout.text("Chip")
+      .fontFamily(FontFamily.withRegularStack(FontStack._fromId(1)))
+      .fontSize(12);
+
+    bitmap.renderTextLayout(layout);
+    expect<i32>(findCall(CALL_LOG)).toBeGreaterThan(-1);
+    expect<bool>(lastLogCategoryEquals("Error/TextLayout")).toBe(true);
+    expect<bool>(lastLogMessageEquals("Bitmap.renderTextLayout() called before the TextLayout was ready; register onReady/onReadyWith and render after the callback.")).toBe(true);
+
+    layout.onReady((): void => {});
+    Application.mount(new FlexBox());
+    bitmap.renderTextLayout(layout);
+
+    expect<bool>(layout.isReady).toBe(true);
+    expect<f32>(layout.measure().width).toBeGreaterThan(0.0);
+    const defaultRenderIndex = findCall(CALL_RENDER_NODE_TO_RGBA);
+    expect<i32>(defaultRenderIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(defaultRenderIndex, 4)).toBe(1.0);
+
+    resetCalls();
+    bitmap.renderTextLayout(layout, 0.0, 0.0, 2.0);
+    const scaledRenderIndex = findCall(CALL_RENDER_NODE_TO_RGBA);
+    expect<i32>(scaledRenderIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(scaledRenderIndex, 4)).toBe(2.0);
+
+    resetCalls();
+    bitmap.renderTextLayout(layout, 6.0, 7.0, 3.0);
+    const placedRenderIndex = findCall(CALL_RENDER_NODE_TO_RGBA);
+    expect<i32>(placedRenderIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(placedRenderIndex, 4)).toBe(3.0);
+    expect<f64>(getCallArg(placedRenderIndex, 5)).toBe(6.0);
+    expect<f64>(getCallArg(placedRenderIndex, 6)).toBe(7.0);
+    bitmap.dispose();
+  });
+
+  it("waits for required fonts before preparing text", () => {
+    resetCalls();
+    resetCommitState();
+
+    const rich = new RichText([
+      span("Draw "),
+      span("here").fontFamily(FontFamily.withRegularStack(FontStack._fromId(9401))),
+    ])
+      .fontFamily(FontFamily.withRegularStack(FontStack._fromId(1)))
+      .fontSize(24.0);
+    rich.build();
+    resetCalls();
+    const owner = new BitmapPrepareOwner();
+
+    Bitmap.onTextReadyWith<BitmapPrepareOwner>(owner, rich, countPreparedText);
+
+    expect<i32>(owner.readyCalls).toBe(0);
+    expect<i32>(findCall(CALL_PREPARE_NODE)).toBe(-1);
+
+    FontFace._dispatchFontLoaded(9401);
+
+    expect<i32>(owner.readyCalls).toBe(0);
+    expect<i32>(findCall(CALL_PREPARE_NODE)).toBe(-1);
+
+    Application.mount(new FlexBox());
+
+    const prepareIndex = findCall(CALL_PREPARE_NODE);
+    expect<i32>(owner.readyCalls).toBe(1);
+    expect<i32>(prepareIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(prepareIndex, 0)).toBe(<f64>rich.builtHandle);
+  });
+
+  it("instance text readiness helper returns the bitmap and routes owner callbacks", () => {
+    resetCalls();
+    resetCommitState();
+
+    const rich = new RichText([
+      span("Value ").fontFamily(FontFamily.withRegularStack(FontStack._fromId(1))),
+    ])
+      .fontFamily(FontFamily.withRegularStack(FontStack._fromId(1)))
+      .fontSize(18.0);
+    rich.build();
+    resetCalls();
+    const owner = new BitmapPrepareOwner();
+    const bitmap = new Bitmap(1, 1);
+
+    const returned = bitmap.onTextReadyWith<BitmapPrepareOwner>(owner, rich, countPreparedText);
+
+    // @ts-ignore: comparing references
+    expect<bool>(changetype<usize>(returned) == changetype<usize>(bitmap)).toBe(true);
+    expect<i32>(owner.readyCalls).toBe(0);
+
+    Application.mount(new FlexBox());
+
+    expect<i32>(owner.readyCalls).toBe(1);
+    const prepareIndex = findCall(CALL_PREPARE_NODE);
+    expect<i32>(prepareIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(prepareIndex, 0)).toBe(<f64>rich.builtHandle);
+
+    bitmap.dispose();
   });
 });

@@ -10,16 +10,17 @@ import {
   JustifyContent,
   SemanticRole,
 } from "../core/ffi";
-import { Callback0, Callback1, Handler0, Handler1 } from "../core/BoundCallback";
+import { Callback1, Handler1 } from "../core/BoundCallback";
 import { HandlerAction } from "../core/Action";
-import { bind0, bind1 } from "../core/bind";
+import { bind1 } from "../core/bind";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { FocusAdornerManager } from "../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../core/FocusVisibility";
 import { Signal } from "../core/Signal";
 import { Theme, activeTheme } from "../core/Theme";
 import { FontFamily, FontStyle, FontWeight } from "../core/Typography";
-import { FlexBox, TextCore } from "../nodes";
+import { Border, FlexBox, TextCore } from "../nodes";
+import { ClickEventArgs, HoverChangedEventArgs, PointerEventArgs } from "../core/Node";
 import { ButtonColors } from "./ButtonColors";
 import { getControlTemplates } from "./ControlTemplateSet";
 import {
@@ -50,9 +51,6 @@ class ButtonPresenterHostState {
     readonly borderWidthValue: f32,
     readonly borderColorValue: u32,
     readonly borderStyleValue: BorderStyle,
-    readonly borderDashOnValue: f32,
-    readonly borderDashOffValue: f32,
-    readonly borderDashedValue: bool,
     readonly shadowOverridden: bool,
     readonly shadowColorValue: u32,
     readonly shadowOffsetXValue: f32,
@@ -74,10 +72,14 @@ export class Button extends FlexBox {
   private readonly hovered: Signal<bool> = new Signal<bool>(false);
   private readonly pressed: Signal<bool> = new Signal<bool>(false);
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
-  private action: (() => void) | null = null;
-  private actionBinding: Callback0 | null = null;
-  private hoverChanged: ((hovered: bool) => void) | null = null;
-  private hoverChangedBinding: Callback1<bool> | null = null;
+  private action: ((event: ClickEventArgs) => void) | null = null;
+  private actionBinding: Callback1<ClickEventArgs> | null = null;
+  private doubleAction: ((event: ClickEventArgs) => void) | null = null;
+  private doubleActionBinding: Callback1<ClickEventArgs> | null = null;
+  private tripleAction: ((event: ClickEventArgs) => void) | null = null;
+  private tripleActionBinding: Callback1<ClickEventArgs> | null = null;
+  private hoverChanged: ((event: HoverChangedEventArgs) => void) | null = null;
+  private hoverChangedBinding: Callback1<HoverChangedEventArgs> | null = null;
   private disposed: bool = false;
   private focusedState: bool = false;
   private opacityBeforeDisabled: f32 = 1.0;
@@ -101,9 +103,6 @@ export class Button extends FlexBox {
   private borderWidthValue: f32 = 1.0;
   private borderColorValue: u32 = activeTheme.value.colors.border;
   private borderStyleValue: BorderStyle = BorderStyle.Solid;
-  private borderDashOnValue: f32 = 0.0;
-  private borderDashOffValue: f32 = 0.0;
-  private borderDashedValue: bool = false;
   private paddingLeftValue: f32 = activeTheme.value.spacing.md;
   private paddingTopValue: f32 = activeTheme.value.spacing.sm;
   private paddingRightValue: f32 = activeTheme.value.spacing.md;
@@ -112,8 +111,6 @@ export class Button extends FlexBox {
   private fontWeightValue: FontWeight = FontWeight.Regular;
   private fontStyleValue: FontStyle = FontStyle.Normal;
   private fontSizeValue: f32 = activeTheme.value.fonts.sizeBody;
-  private fontIdValue: u32 = 0;
-  private hasFontIdOverride: bool = false;
   private textColorValue: u32 = activeTheme.value.colors.textOnAccent;
   private shadowColorValue: u32 = 0x00000000;
   private shadowOffsetXValue: f32 = 0.0;
@@ -157,36 +154,70 @@ export class Button extends FlexBox {
     this.applyBackground();
   }
 
-  onClick(cb: () => void): this {
+  onClick(cb: (event: ClickEventArgs) => void): this {
     this.action = cb;
     this.actionBinding = null;
     return this;
   }
 
-  bindClick<Owner>(owner: Owner, handler: Handler0<Owner>): this {
+  bindClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
     this.action = null;
-    this.actionBinding = bind0<Owner>(owner, handler);
+    this.actionBinding = bind1<Owner, ClickEventArgs>(owner, handler);
     return this;
   }
 
-  onClickWith<Owner>(owner: Owner, handler: Handler0<Owner>): this {
+  onClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
     this.bindClick(owner, handler);
     return this;
   }
 
-  onHoverChanged(cb: (hovered: bool) => void): this {
+  onDoubleClick(cb: (event: ClickEventArgs) => void): this {
+    this.doubleAction = cb;
+    this.doubleActionBinding = null;
+    return this;
+  }
+
+  bindDoubleClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    this.doubleAction = null;
+    this.doubleActionBinding = bind1<Owner, ClickEventArgs>(owner, handler);
+    return this;
+  }
+
+  onDoubleClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    this.bindDoubleClick(owner, handler);
+    return this;
+  }
+
+  onTripleClick(cb: (event: ClickEventArgs) => void): this {
+    this.tripleAction = cb;
+    this.tripleActionBinding = null;
+    return this;
+  }
+
+  bindTripleClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    this.tripleAction = null;
+    this.tripleActionBinding = bind1<Owner, ClickEventArgs>(owner, handler);
+    return this;
+  }
+
+  onTripleClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    this.bindTripleClick(owner, handler);
+    return this;
+  }
+
+  onHoverChanged(cb: (event: HoverChangedEventArgs) => void): this {
     this.hoverChanged = cb;
     this.hoverChangedBinding = null;
     return this;
   }
 
-  bindHoverChanged<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  bindHoverChanged<Owner>(owner: Owner, handler: Handler1<Owner, HoverChangedEventArgs>): this {
     this.hoverChanged = null;
-    this.hoverChangedBinding = bind1<Owner, bool>(owner, handler);
+    this.hoverChangedBinding = bind1<Owner, HoverChangedEventArgs>(owner, handler);
     return this;
   }
 
-  onHoverChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, bool>): this {
+  onHoverChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, HoverChangedEventArgs>): this {
     this.bindHoverChanged(owner, handler);
     return this;
   }
@@ -254,22 +285,21 @@ export class Button extends FlexBox {
     return this;
   }
 
-  border(width: f32, color: u32, style: BorderStyle = BorderStyle.Solid): this {
+  border(width: f32, color: u32): this {
     this.borderOverridden = true;
     this.borderWidthValue = width;
     this.borderColorValue = color;
-    this.borderStyleValue = style;
-    this.borderDashedValue = false;
+    this.borderStyleValue = BorderStyle.Solid;
     this.applyCurrentBorder();
     return this;
   }
 
-  borderDashed(on: f32, off: f32): this {
+  borderConfig(border: Border): this {
     this.borderOverridden = true;
-    this.borderDashOnValue = on;
-    this.borderDashOffValue = off;
-    this.borderDashedValue = true;
-    super.borderDashed(on, off);
+    this.borderWidthValue = border.width;
+    this.borderColorValue = border.color;
+    this.borderStyleValue = border.style;
+    this.applyCurrentBorder();
     return this;
   }
 
@@ -295,18 +325,8 @@ export class Button extends FlexBox {
     return this;
   }
 
-  font(fontId: u32, size: f32): this {
-    this.fontOverridden = true;
-    this.hasFontIdOverride = true;
-    this.fontIdValue = fontId;
-    this.fontSizeValue = size;
-    this.labelNode.font(fontId, size);
-    return this;
-  }
-
   fontFamily(family: FontFamily): this {
     this.fontOverridden = true;
-    this.hasFontIdOverride = false;
     this.fontFamilyValue = family;
     this.labelNode.fontFamily(family);
     return this;
@@ -314,7 +334,6 @@ export class Button extends FlexBox {
 
   fontWeight(weight: FontWeight): this {
     this.fontOverridden = true;
-    this.hasFontIdOverride = false;
     this.fontWeightValue = weight;
     this.labelNode.fontWeight(weight);
     return this;
@@ -322,7 +341,6 @@ export class Button extends FlexBox {
 
   fontStyle(style: FontStyle): this {
     this.fontOverridden = true;
-    this.hasFontIdOverride = false;
     this.fontStyleValue = style;
     this.labelNode.fontStyle(style);
     return this;
@@ -331,10 +349,6 @@ export class Button extends FlexBox {
   fontSize(size: f32): this {
     this.fontOverridden = true;
     this.fontSizeValue = size;
-    if (this.hasFontIdOverride) {
-      this.labelNode.font(this.fontIdValue, size);
-      return this;
-    }
     this.labelNode.fontSize(size);
     return this;
   }
@@ -346,7 +360,7 @@ export class Button extends FlexBox {
     return this;
   }
 
-  _setAction(cb: () => void): void {
+  _setAction(cb: (event: ClickEventArgs) => void): void {
     this.action = cb;
     this.actionBinding = null;
   }
@@ -355,7 +369,7 @@ export class Button extends FlexBox {
     this.pressed.value = true;
   }
 
-  endPress(fireAction: bool = true): void {
+  endPress(clickCount: i32 = 1, fireAction: bool = true): void {
     const wasPressed = this.pressed.value;
     this.pressed.value = false;
     if (!wasPressed || !fireAction) {
@@ -363,11 +377,31 @@ export class Button extends FlexBox {
     }
     const callback = this.action;
     if (callback !== null) {
-      callback();
+      callback(ClickEventArgs.Empty);
     }
     const binding = this.actionBinding;
     if (binding !== null) {
-      binding.invoke();
+      binding.invoke(ClickEventArgs.Empty);
+    }
+    if (clickCount == 2) {
+      const doubleCallback = this.doubleAction;
+      if (doubleCallback !== null) {
+        doubleCallback(ClickEventArgs.Empty);
+      }
+      const doubleBinding = this.doubleActionBinding;
+      if (doubleBinding !== null) {
+        doubleBinding.invoke(ClickEventArgs.Empty);
+      }
+    }
+    if (clickCount == 3) {
+      const tripleCallback = this.tripleAction;
+      if (tripleCallback !== null) {
+        tripleCallback(ClickEventArgs.Empty);
+      }
+      const tripleBinding = this.tripleActionBinding;
+      if (tripleBinding !== null) {
+        tripleBinding.invoke(ClickEventArgs.Empty);
+      }
     }
   }
 
@@ -397,6 +431,13 @@ export class Button extends FlexBox {
   }
 
   _handlePointerEvent(eventType: PointerEventType, x: f32, y: f32, modifiers: u32): void {
+    const pending = Button.pendingPointerEventArgs;
+    const event = pending !== null &&
+      changetype<PointerEventArgs>(pending).eventType == eventType &&
+      changetype<PointerEventArgs>(pending).sceneX == x &&
+      changetype<PointerEventArgs>(pending).sceneY == y
+      ? changetype<PointerEventArgs>(pending)
+      : null;
     if (!this.isEnabled) {
       return;
     }
@@ -418,7 +459,7 @@ export class Button extends FlexBox {
       return;
     }
     if (eventType == PointerEventType.Up && this.pressed.value) {
-      this.endPress(true);
+      this.endPress(event === null || event.clickCount <= 0 ? 1 : event.clickCount, true);
     }
   }
 
@@ -456,7 +497,7 @@ export class Button extends FlexBox {
     }
     if (eventType == KeyEventType.Up && this.keyboardArmedKey !== null && changetype<string>(this.keyboardArmedKey) == key) {
       this.keyboardArmedKey = null;
-      this.endPress(true);
+      this.endPress(1, true);
       return true;
     }
     return callbackHandled;
@@ -496,13 +537,14 @@ export class Button extends FlexBox {
     if (!this.hovered.set(next)) {
       return;
     }
+    const event = new HoverChangedEventArgs(next);
     const callback = this.hoverChanged;
     if (callback !== null) {
-      callback(next);
+      callback(event);
     }
     const binding = this.hoverChangedBinding;
     if (binding !== null) {
-      binding.invoke(next);
+      binding.invoke(event);
     }
   }
 
@@ -545,7 +587,6 @@ export class Button extends FlexBox {
         ? colors.borderColor
         : theme.colors.border;
       this.borderStyleValue = BorderStyle.Solid;
-      this.borderDashedValue = false;
     }
     if (!this.shadowOverridden) {
       this.shadowColorValue = 0x00000000;
@@ -563,7 +604,6 @@ export class Button extends FlexBox {
       this.paddingBottomValue = paddingY;
     }
     if (!this.fontOverridden) {
-      this.hasFontIdOverride = false;
       this.fontFamilyValue = theme.fonts.bodyFamily;
       this.fontWeightValue = FontWeight.Regular;
       this.fontStyleValue = FontStyle.Normal;
@@ -590,9 +630,6 @@ export class Button extends FlexBox {
       this.borderWidthValue,
       this.borderColorValue,
       this.borderStyleValue,
-      this.borderDashOnValue,
-      this.borderDashOffValue,
-      this.borderDashedValue,
       this.shadowOverridden,
       this.shadowColorValue,
       this.shadowOffsetXValue,
@@ -617,9 +654,6 @@ export class Button extends FlexBox {
     this.borderWidthValue = presenterHostState.borderWidthValue;
     this.borderColorValue = presenterHostState.borderColorValue;
     this.borderStyleValue = presenterHostState.borderStyleValue;
-    this.borderDashOnValue = presenterHostState.borderDashOnValue;
-    this.borderDashOffValue = presenterHostState.borderDashOffValue;
-    this.borderDashedValue = presenterHostState.borderDashedValue;
     this.shadowOverridden = presenterHostState.shadowOverridden;
     this.shadowColorValue = presenterHostState.shadowColorValue;
     this.shadowOffsetXValue = presenterHostState.shadowOffsetXValue;
@@ -723,10 +757,7 @@ export class Button extends FlexBox {
   }
 
   private applyCurrentBorder(): void {
-    super.border(this.borderWidthValue, this.borderColorValue, this.borderStyleValue);
-    if (this.borderDashedValue) {
-      super.borderDashed(this.borderDashOnValue, this.borderDashOffValue);
-    }
+    super.borderConfig(new Border(this.borderWidthValue, this.borderColorValue, this.borderStyleValue));
   }
 
   private applyCurrentPadding(): void {
@@ -749,10 +780,6 @@ export class Button extends FlexBox {
   }
 
   private applyCurrentLabelTypography(): void {
-    if (this.hasFontIdOverride) {
-      this.labelNode.font(this.fontIdValue, this.fontSizeValue);
-      return;
-    }
     this.labelNode
       .fontFamily(this.fontFamilyValue)
       .fontWeight(this.fontWeightValue)

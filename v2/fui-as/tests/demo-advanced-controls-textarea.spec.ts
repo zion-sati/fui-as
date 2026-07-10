@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
 
 import * as demo from './demo-test-support';
 
@@ -148,9 +148,9 @@ test('advanced controls textarea wrapped keyboard block deletion removes the int
     'utf8',
   );
   const selectionStart =
-    sourceText.lastIndexOf("        if (ch == '\\r' && index + 1U < utf8.size() && utf8[index + 1U] == '\\n') {");
+    sourceText.lastIndexOf("    if (!node.nonwrap_fragment_cache_valid ||\n        line_index + 1U >= node.nonwrap_fragment_line_offsets.size()) {");
   expect(selectionStart).toBeGreaterThan(5000);
-  const selectionEnd = sourceText.indexOf('        segment_start = ', selectionStart);
+  const selectionEnd = sourceText.indexOf('    const float clamped_x = std::max(aligned_x, 0.0f);', selectionStart);
   expect(selectionEnd).toBeGreaterThan(selectionStart);
   const expectedText = `${sourceText.slice(0, selectionStart)}${sourceText.slice(selectionEnd)}`;
 
@@ -218,6 +218,77 @@ test('advanced controls textarea wrapped keyboard block deletion removes the int
   await expect.poll(async () => {
     return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
   }).toBe(expectedText);
+
+});
+
+test('advanced controls textarea accepts tabs without focus chrome or wrapped-line corruption', async ({ page }) => {
+  const lineTwoStart = 'Line one\n'.length;
+  const initialText = 'Line one\nLine two\nLine three\nLonger content so scrollbar policy is easy to spot.';
+  const expectedText = 'Line one\n\tLine two\nLine three\nLonger content so scrollbar policy is easy to spot.';
+
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(initialText);
+
+  await demo.setHiddenTextInputSelection(page, lineTwoStart);
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Backspace');
+
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(expectedText);
+
+  await expect.poll(async () => {
+    const editor = await demo.readHiddenTextEditorState(page);
+    return editor === null ? null : {
+      absoluteStart: editor.absoluteStart,
+      absoluteEnd: editor.absoluteEnd,
+    };
+  }).toEqual({
+    absoluteStart: lineTwoStart + 1,
+    absoluteEnd: lineTwoStart + 1,
+  });
+
+  await demo.setHiddenTextInputSelection(page, 0);
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(expectedText);
+
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(initialText);
+
+  await demo.setHiddenTextInputSelection(page, 0);
+  await page.keyboard.press('Tab');
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(`\t${initialText}`);
+
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Z' : 'Control+Z');
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(initialText);
 });
 
 test('debug advanced controls wrapped mouse drag keeps hidden editor selection in sync', async ({ page }) => {
@@ -481,8 +552,8 @@ test('advanced controls textarea clicking the hint does not ghost the first non-
       secondLineText: summary.secondLineText,
       fourthLineLength: summary.fourthLineLength,
       sortedLineLengths: [
-        summary.firstLineLength ?? -1,
-        summary.thirdLineLength ?? -1,
+        summary.firstLineLength,
+        summary.thirdLineLength,
       ].sort((left, right) => left - right),
     };
   }).toEqual({
@@ -503,8 +574,8 @@ test('advanced controls textarea clicking the hint does not ghost the first non-
       secondLineText: summary.secondLineText,
       fourthLineLength: summary.fourthLineLength,
       sortedLineLengths: [
-        summary.firstLineLength ?? -1,
-        summary.thirdLineLength ?? -1,
+        summary.firstLineLength,
+        summary.thirdLineLength,
       ].sort((left, right) => left - right),
     };
   }).toEqual({

@@ -11,10 +11,10 @@ const detectedPlatformFamily = <PlatformFamily>fui_get_platform_family();
 
 class KeyboardPolicy {
   constructor(
-    readonly primaryShortcutModifier: u32,
-    readonly wordNavigationModifier: u32,
-    readonly lineBoundaryModifier: u32,
-    readonly documentBoundaryModifier: u32,
+    readonly primaryShortcutModifier: KeyModifier,
+    readonly wordNavigationModifier: KeyModifier,
+    readonly lineBoundaryModifier: KeyModifier,
+    readonly documentBoundaryModifier: KeyModifier,
     readonly redoUsesPrimaryY: bool,
     readonly redoUsesShiftedPrimaryZ: bool,
   ) {}
@@ -73,7 +73,7 @@ function formatShortcutKeyToken(key: string, platformFamily: PlatformFamily): st
   return key;
 }
 
-function appendShortcutModifierTokens(tokens: Array<string>, modifiers: u32, platformFamily: PlatformFamily): void {
+function appendShortcutModifierTokens(tokens: Array<string>, modifiers: KeyModifier, platformFamily: PlatformFamily): void {
   if (platformFamily == PlatformFamily.Apple) {
     if ((modifiers & KeyModifier.Ctrl) != 0) {
       tokens.push("⌃");
@@ -112,46 +112,46 @@ export function isCoarsePointer(): bool {
   return fui_is_coarse_pointer();
 }
 
-export function resolvePrimaryShortcutModifier(platformFamily: PlatformFamily): u32 {
+export function resolvePrimaryShortcutModifier(platformFamily: PlatformFamily): KeyModifier {
   return resolveKeyboardPolicy(platformFamily).primaryShortcutModifier;
 }
 
 export function hasPrimaryShortcutModifier(
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): bool {
   return (modifiers & resolvePrimaryShortcutModifier(platformFamily)) != 0;
 }
 
-export function resolveWordNavigationModifier(platformFamily: PlatformFamily = detectedPlatformFamily): u32 {
+export function resolveWordNavigationModifier(platformFamily: PlatformFamily = detectedPlatformFamily): KeyModifier {
   return resolveKeyboardPolicy(platformFamily).wordNavigationModifier;
 }
 
 export function hasWordNavigationModifier(
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): bool {
   return (modifiers & resolveWordNavigationModifier(platformFamily)) != 0;
 }
 
-export function resolveLineBoundaryModifier(platformFamily: PlatformFamily = detectedPlatformFamily): u32 {
+export function resolveLineBoundaryModifier(platformFamily: PlatformFamily = detectedPlatformFamily): KeyModifier {
   return resolveKeyboardPolicy(platformFamily).lineBoundaryModifier;
 }
 
 export function hasLineBoundaryModifier(
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): bool {
   const modifier = resolveLineBoundaryModifier(platformFamily);
   return modifier != 0 && (modifiers & modifier) != 0;
 }
 
-export function resolveDocumentBoundaryModifier(platformFamily: PlatformFamily = detectedPlatformFamily): u32 {
+export function resolveDocumentBoundaryModifier(platformFamily: PlatformFamily = detectedPlatformFamily): KeyModifier {
   return resolveKeyboardPolicy(platformFamily).documentBoundaryModifier;
 }
 
 export function hasDocumentBoundaryModifier(
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): bool {
   return (modifiers & resolveDocumentBoundaryModifier(platformFamily)) != 0;
@@ -159,7 +159,7 @@ export function hasDocumentBoundaryModifier(
 
 export function isUndoShortcut(
   key: string,
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): bool {
   return (modifiers & KeyModifier.Shift) == 0 &&
@@ -169,7 +169,7 @@ export function isUndoShortcut(
 
 export function isRedoShortcut(
   key: string,
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): bool {
   const policy = resolveKeyboardPolicy(platformFamily);
@@ -187,7 +187,7 @@ export function isRedoShortcut(
 
 export function formatShortcutLabel(
   key: string,
-  modifiers: u32,
+  modifiers: KeyModifier,
   platformFamily: PlatformFamily = detectedPlatformFamily,
 ): string {
   const tokens = new Array<string>();

@@ -17,11 +17,18 @@ function hasNonShiftModifier(modifiers: u32): bool {
   return (modifiers & (KeyModifier.Ctrl | KeyModifier.Alt | KeyModifier.Meta)) != 0;
 }
 
+function isCaretNavigationKey(key: string): bool {
+  return key == "ArrowLeft" || key == "ArrowRight" || key == "ArrowUp" || key == "ArrowDown" || key == "Home" || key == "End" || key == "PageUp" || key == "PageDown";
+}
+
 export function showKeyboardFocusForKeyEvent(eventType: KeyEventType, key: string, modifiers: u32 = 0): void {
   if (eventType != KeyEventType.Down || isModifierKey(key)) {
     return;
   }
   if (hasNonShiftModifier(modifiers)) {
+    return;
+  }
+  if (isCaretNavigationKey(key)) {
     return;
   }
   if (key == "Escape") {

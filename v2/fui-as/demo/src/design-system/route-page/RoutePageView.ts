@@ -3,7 +3,7 @@ import { DemoButton, DemoButtonTone, DemoNavLink } from "../controls";
 import { DemoScrollBox, applyDemoScrollBoxTheme } from "../scrollbar";
 import { DemoSurface, DemoSurfaceRecipe } from "../surfaces";
 import { DemoText, DemoTextRecipe } from "../text";
-import { DEMO_ROOT_PADDING, FONT_REGULAR, PAGE_SHELL_FRAME_PADDING, ROUTE_PAGE_ROOT_PADDING, SCROLLBAR_TRACK_WIDTH } from "../tokens";
+import { DEMO_ROOT_PADDING, PAGE_SHELL_FRAME_PADDING, ROUTE_PAGE_ROOT_PADDING, SCROLLBAR_TRACK_WIDTH } from "../tokens";
 import { RoutePageModel } from "./RoutePageModel";
 import { RoutePageSection } from "./RoutePageSection";
 
@@ -83,28 +83,28 @@ export class RoutePageView {
     sections: Array<RoutePageSection>,
   ) {
     this.titleText = new DemoText(model.title, DemoTextRecipe.PageTitle)
-      .font(FONT_REGULAR, 34.0)
+      .fontSize(34.0)
       .semanticRole(SemanticRole.Heading) as Text;
 
     this.descriptionText = new DemoText(model.description, DemoTextRecipe.Supporting)
-      .font(FONT_REGULAR, 17.0)
+      .fontSize(17.0)
       .maxLines(3) as Text;
 
     this.routeStatusText = new DemoText("", DemoTextRecipe.StatusValue)
-      .font(FONT_REGULAR, 16.0) as Text;
+      .fontSize(16.0) as Text;
 
     this.counterStatusText = new DemoText("", DemoTextRecipe.StatusSupporting)
-      .font(FONT_REGULAR, 16.0) as Text;
+      .fontSize(16.0) as Text;
 
     this.accentBadgeText = new DemoText(model.badge, DemoTextRecipe.InverseLabel)
-      .font(FONT_REGULAR, 14.0) as Text;
+      .fontSize(14.0) as Text;
     this.accentBadge = new FlexBox()
       .padding(14.0, 8.0, 14.0, 8.0)
       .cornerRadius(999.0)
       .child(this.accentBadgeText) as FlexBox;
 
     this.notesHeadingText = new DemoText("Hot-swap notes", DemoTextRecipe.SectionTitle)
-      .font(FONT_REGULAR, 18.0) as Text;
+      .fontSize(18.0) as Text;
 
     this.actionButton = new DemoButton(model.buttonLabel, DemoButtonTone.Primary)
       .width(180.0, Unit.Pixel) as DemoButton;
@@ -118,7 +118,7 @@ export class RoutePageView {
         highlightColumn.child(verticalSpacer(10.0));
       }
       const highlightText = new DemoText(model.highlights[i], DemoTextRecipe.Supporting)
-        .font(FONT_REGULAR, 16.0) as Text;
+        .fontSize(16.0) as Text;
       this.highlightTexts.push(highlightText);
       highlightColumn.child(highlightText);
     }

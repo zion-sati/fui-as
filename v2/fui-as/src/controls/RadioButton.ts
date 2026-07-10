@@ -1,5 +1,8 @@
+import { Callback1, Handler1 } from "../core/BoundCallback";
 import { KeyEventType, SemanticCheckedState, SemanticRole } from "../core/ffi";
+import { RadioButtonChangedEventArgs } from "../core/Node";
 import { activeTheme } from "../core/Theme";
+import { bind1 } from "../core/bind";
 import { LabeledControlSizing } from "./ControlSizing";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
 import { getControlTemplates } from "./ControlTemplateSet";
@@ -13,13 +16,13 @@ import {
 
 function createIndicatorPresenter(template: RadioIndicatorTemplate | null, sizing: LabeledControlSizing | null = null): RadioIndicatorPresenter {
   if (template !== null) {
-    return template.create();
+    return template.create(sizing);
   }
   const templateSet = getControlTemplates();
   const appTemplate = templateSet !== null ? templateSet.radioIndicator : null;
   return appTemplate === null
     ? createDefaultRadioIndicatorPresenter(sizing)
-    : appTemplate.create();
+    : appTemplate.create(sizing);
 }
 
 export class RadioButton extends PressableLabeledControl {
@@ -28,7 +31,8 @@ export class RadioButton extends PressableLabeledControl {
   private sizingValue: LabeledControlSizing | null = null;
   private readonly valueText: string;
   private checkedValue: bool = false;
-  private changedCallback: ((checked: bool) => void) | null = null;
+  private changedCallback: ((event: RadioButtonChangedEventArgs) => void) | null = null;
+  private changedBinding: Callback1<RadioButtonChangedEventArgs> | null = null;
   private ownerGroup: RadioGroup | null = null;
 
   constructor(value: string, label: string = value) {
@@ -54,7 +58,7 @@ export class RadioButton extends PressableLabeledControl {
   }
 
   check(flag: bool): this {
-    this.updateChecked(flag, false);
+    this.updateChecked(flag, true, false);
     return this;
   }
 
@@ -63,11 +67,9 @@ export class RadioButton extends PressableLabeledControl {
     this.setLabelFontSizeOverride(
       sizing !== null && sizing.hasLabelFontSize ? sizing.labelFontSizePx : 0.0,
     );
-    if (this.usesDefaultIndicatorPresenter()) {
-      this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
-      this.replaceIndicatorRoot(this.indicatorPresenter.root);
-      this.syncVisualState();
-    }
+    this.indicatorPresenter = createIndicatorPresenter(this.templateOverride, this.sizingValue);
+    this.replaceIndicatorRoot(this.indicatorPresenter.root);
+    this.syncVisualState();
     return this;
   }
 
@@ -79,8 +81,20 @@ export class RadioButton extends PressableLabeledControl {
     return this;
   }
 
-  onChanged(callback: ((checked: bool) => void) | null): this {
+  onChanged(callback: ((event: RadioButtonChangedEventArgs) => void) | null): this {
     this.changedCallback = callback;
+    this.changedBinding = null;
+    return this;
+  }
+
+  bindChanged<Owner>(owner: Owner, handler: Handler1<Owner, RadioButtonChangedEventArgs>): this {
+    this.changedCallback = null;
+    this.changedBinding = bind1<Owner, RadioButtonChangedEventArgs>(owner, handler);
+    return this;
+  }
+
+  onChangedWith<Owner>(owner: Owner, handler: Handler1<Owner, RadioButtonChangedEventArgs>): this {
+    this.bindChanged(owner, handler);
     return this;
   }
 
@@ -135,7 +149,7 @@ export class RadioButton extends PressableLabeledControl {
     );
   }
 
-  updateChecked(flag: bool, emit: bool): void {
+  updateChecked(flag: bool, emit: bool, announce: bool = emit): void {
     if (this.checkedValue == flag) {
       return;
     }
@@ -143,10 +157,17 @@ export class RadioButton extends PressableLabeledControl {
     this.semanticChecked(flag ? SemanticCheckedState.True : SemanticCheckedState.False);
     this.syncVisualState();
     if (emit) {
-      this.requestSemanticAnnouncement();
+      if (announce) {
+        this.requestSemanticAnnouncement();
+      }
+      const event = new RadioButtonChangedEventArgs(flag);
       const callback = this.changedCallback;
       if (callback !== null) {
-        callback(flag);
+        callback(event);
+      }
+      const binding = this.changedBinding;
+      if (binding !== null) {
+        binding.invoke(event);
       }
     }
   }

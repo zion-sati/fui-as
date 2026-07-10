@@ -3,6 +3,8 @@ import { ContextMenuManager } from "./ContextMenuManager";
 import { disposeAllFetchRequests } from "./Fetch";
 import { disposeAllFileRequests } from "./File";
 import { FocusAdornerManager } from "./FocusAdornerManager";
+import { MobileTextSelectionToolbarManager } from "./MobileTextSelectionToolbarManager";
+import { SelectionHandleAdornerManager } from "./SelectionHandleAdornerManager";
 import { ToolTipManager } from "./ToolTipManager";
 import * as ui from "../bindings/ui";
 import { flushCommit, fireLoadedCallbacks, markNeedsCommit, resetCommitState } from "./FrameScheduler";
@@ -29,12 +31,20 @@ function createEmptyPage(): Node {
   return new FlexBox().width(100.0, Unit.Percent).height(100.0, Unit.Percent);
 }
 
+function disposeAppScopedAsyncWork(): void {
+  disposeAllFetchRequests();
+  disposeAllFileRequests();
+  disposeAllWorkers();
+}
+
 class ApplicationShell extends FlexBox {
   constructor(root: Node) {
     super();
     this.width(100.0, Unit.Percent)
       .height(100.0, Unit.Percent)
       .child(root)
+      .child(SelectionHandleAdornerManager.createDefaultHost())
+      .child(MobileTextSelectionToolbarManager.createDefaultHost())
       .child(FocusAdornerManager.createDefaultHost())
       .child(ContextMenuManager.createDefaultMenu())
       .child(ToolTipManager.createDefaultHost());
@@ -198,10 +208,10 @@ export class Application<TPage> {
     }
 
     cancelAllTimers();
-    disposeAllFetchRequests();
-    disposeAllFileRequests();
-    disposeAllWorkers();
+    disposeAppScopedAsyncWork();
     FocusAdornerManager.clear();
+    SelectionHandleAdornerManager.clear();
+    MobileTextSelectionToolbarManager.clear();
     ToolTipManager.clear();
     resetCommitState();
     ui.reset();
@@ -225,10 +235,10 @@ export class Application<TPage> {
     mountedShell = null;
     mountedRoot = null;
     cancelAllTimers();
-    disposeAllFetchRequests();
-    disposeAllFileRequests();
-    disposeAllWorkers();
+    disposeAppScopedAsyncWork();
     FocusAdornerManager.clear();
+    SelectionHandleAdornerManager.clear();
+    MobileTextSelectionToolbarManager.clear();
     ToolTipManager.clear();
     resetCommitState();
   }
@@ -331,8 +341,7 @@ export function __disposeApp(): void {
     return;
   }
   app.dispose();
-  disposeAllFetchRequests();
-  disposeAllWorkers();
+  disposeAppScopedAsyncWork();
 }
 
 export function __flushRenders(): void {

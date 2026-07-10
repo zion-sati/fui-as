@@ -30,8 +30,7 @@ function createServer(rootDir: string): http.Server {
     }
 
     let filePath: string | null = null;
-    for (let i = 0; i < candidatePaths.length; i += 1) {
-      const candidatePath = candidatePaths[i] ?? requestedPath;
+    for (const candidatePath of candidatePaths) {
       const resolvedPath = path.resolve(resolvedRoot, `.${candidatePath}`);
       if (!resolvedPath.startsWith(resolvedRoot)) {
         res.writeHead(403, { 'Content-Type': 'text/plain' });

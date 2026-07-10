@@ -1,12 +1,12 @@
 # Image
 
 ```ts
-import { Image, ObjectFit } from "./Fui";
+import { Image, ImageSampling, ObjectFit } from "./Fui";
 ```
 
 - **Constructor:** `new Image(textureId = 0, objectFit = ObjectFit.Fill)`
 - **Source:** `texture(id)`, `source(url)`, `clearSource()`
-- **Fit/accessibility:** `objectFit(...)`, `altText(...)`
+- **Fit/quality/accessibility:** `objectFit(...)`, `sampling(...)`, `altText(...)`
 - **Nine-patch:** `imageNine(left, top, right, bottom)`, `clearImageNine()`
 - **Asset status helpers:** `assetUrl()`, `assetWidth()`, `assetHeight()`, `assetError()`
 
@@ -30,6 +30,28 @@ is `Auto`, the auto axis derives from the texture aspect ratio.
 - `ObjectFit.None` draws at intrinsic size without fit scaling.
 - `ObjectFit.ScaleDown` behaves like `None` unless the texture would overflow the box, then it scales down like `Contain`.
 
+## `ImageSampling`
+
+`Image.sampling(...)` controls how the texture is sampled when it is drawn at a
+different size from its source pixels. The default is `ImageSampling.linear()`.
+
+```ts
+Image.load("/photo.png")
+  .objectFit(ObjectFit.Cover)
+  .sampling(ImageSampling.cubicMitchell());
+
+new Image(pixelArtTextureId)
+  .sampling(ImageSampling.nearest());
+```
+
+- `ImageSampling.linear()` is the default UI-friendly interpolation.
+- `ImageSampling.nearest()` preserves hard source texels for pixel art.
+- `ImageSampling.linearMipmapNearest()` and `ImageSampling.linearMipmapLinear()` request mipmapped sampling.
+- `ImageSampling.cubicMitchell()` is the smoother high-quality cubic option.
+- `ImageSampling.cubicCatmullRom()` is sharper and can ring on hard edges.
+- `ImageSampling.anisotropic(maxAniso)` requests anisotropic sampling, clamped by the runtime to a conservative supported range.
+
+Nine-patch images currently keep the existing linear nine-slice path.
 
 ## See also
 

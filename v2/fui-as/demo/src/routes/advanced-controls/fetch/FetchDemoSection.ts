@@ -1,6 +1,8 @@
 import {
+  ClickEventArgs,
   Column,
   Fetch,
+  FetchErrorEventArgs,
   FetchRequest,
   FetchResponse,
   FlexBox,
@@ -21,7 +23,6 @@ import {
   demoPrimaryText,
 } from "../../../design-system";
 
-const FONT_REGULAR: u32 = 1;
 const JSON_PLACEHOLDER_BASE_URL = "https://jsonplaceholder.typicode.com";
 const JSON_PLACEHOLDER_GET_URL = JSON_PLACEHOLDER_BASE_URL + "/posts/1";
 const JSON_PLACEHOLDER_POST_URL = JSON_PLACEHOLDER_BASE_URL + "/posts";
@@ -32,11 +33,11 @@ function verticalSpacer(height: f32): FlexBox {
   return new FlexBox().fillWidth().height(height, Unit.Pixel);
 }
 
-function startFetchGet(owner: FetchDemoSection): void {
+function startFetchGet(owner: FetchDemoSection, _event: ClickEventArgs): void {
   owner.startGetSample();
 }
 
-function startFetchPost(owner: FetchDemoSection): void {
+function startFetchPost(owner: FetchDemoSection, _event: ClickEventArgs): void {
   owner.startPostSample();
 }
 
@@ -44,30 +45,30 @@ function handleFetchComplete(owner: FetchDemoSection, response: FetchResponse): 
   owner.handleRequestComplete(response);
 }
 
-function handleFetchError(owner: FetchDemoSection, message: string): void {
-  owner.handleRequestError(message);
+function handleFetchError(owner: FetchDemoSection, event: FetchErrorEventArgs): void {
+  owner.handleRequestError(event.message);
 }
 
 export class FetchDemoSection {
   readonly getButton: DemoButton = new DemoButton("GET /posts/1")
-    .width(156.0, Unit.Pixel)
-    .onClickWith<FetchDemoSection>(this, startFetchGet) as DemoButton;
+    .onClickWith<FetchDemoSection>(this, startFetchGet)
+    .width(156.0, Unit.Pixel) as DemoButton;
   readonly postButton: DemoButton = new DemoButton("POST /posts", DemoButtonTone.Primary)
-    .width(156.0, Unit.Pixel)
-    .onClickWith<FetchDemoSection>(this, startFetchPost) as DemoButton;
+    .onClickWith<FetchDemoSection>(this, startFetchPost)
+    .width(156.0, Unit.Pixel) as DemoButton;
   readonly statusText: Text = new DemoText("", DemoTextRecipe.StatusValue)
-    .font(FONT_REGULAR, 15.0) as Text;
+    .fontSize(15.0) as Text;
   readonly requestText: Text = new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(3) as Text;
   readonly resultText: Text = new DemoText("", DemoTextRecipe.StatusSupporting)
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(5) as Text;
   readonly hintText: Text = new DemoText(
     "This demo uses the shipped Fetch API against the live JSONPlaceholder service. The request is real and online; the current Fetch surface reports completion metadata (ok, status, statusText, resolved url) rather than response bodies.",
     DemoTextRecipe.Hint,
   )
-    .font(FONT_REGULAR, 15.0)
+    .fontSize(15.0)
     .maxLines(6) as Text;
 
   private readonly sectionBody!: FlexBox;

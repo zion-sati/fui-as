@@ -1,1 +1,1 @@
-export * from './src/routed-app-conventions';
+export * from '../../browser-bridge/src/routed-app-conventions.js';
