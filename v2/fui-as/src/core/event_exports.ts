@@ -150,6 +150,10 @@ export function __fui_get_long_press_movement_tolerance(handle: u64): f32 {
   return EventRouter.getLongPressMovementTolerance(handle);
 }
 
+export function __fui_long_press_continues_pointer_events(handle: u64): bool {
+  return EventRouter.longPressContinuesPointerEvents(handle);
+}
+
 export function __fui_on_gesture_event(
   handle: u64,
   phase: u32,

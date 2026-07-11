@@ -48,6 +48,8 @@ export class DragGesture {
   private thresholdValue: f32 = DEFAULT_DRAG_THRESHOLD;
   private pointerDownValue: bool = false;
   private dragStartedValue: bool = false;
+  private awaitingLongPressValue: bool = false;
+  private pointerCapturedValue: bool = false;
   private startX: f32 = 0.0;
   private startY: f32 = 0.0;
   private lastPointerX: f32 = 0.0;
@@ -67,12 +69,13 @@ export class DragGesture {
     return this;
   }
 
-  handlePointerDown(x: f32, y: f32, modifiers: KeyModifier = 0): void {
+  handlePointerDown(x: f32, y: f32, modifiers: KeyModifier = 0, waitForLongPress: bool = false): void {
     if (this.pointerDownValue) {
       this.cancel();
     }
     this.pointerDownValue = true;
     this.dragStartedValue = false;
+    this.awaitingLongPressValue = waitForLongPress;
     this.startX = x;
     this.startY = y;
     this.lastPointerX = x;
@@ -80,8 +83,10 @@ export class DragGesture {
     this.lastDispatchedX = x;
     this.lastDispatchedY = y;
     this.lastModifiers = modifiers;
-    this.host._captureDragPointer();
-    if (this.thresholdValue <= 0.0) {
+    if (!waitForLongPress) {
+      this.capturePointer();
+    }
+    if (!waitForLongPress && this.thresholdValue <= 0.0) {
       this.beginDrag(x, y, modifiers);
     }
   }
@@ -93,6 +98,9 @@ export class DragGesture {
     this.lastPointerX = x;
     this.lastPointerY = y;
     this.lastModifiers = modifiers;
+    if (this.awaitingLongPressValue) {
+      return;
+    }
     if (!this.dragStartedValue) {
       if (!this.hasExceededThreshold(x - this.startX, y - this.startY)) {
         return;
@@ -100,6 +108,24 @@ export class DragGesture {
       this.beginDrag(x, y, modifiers);
     }
     this.emitDelta(x, y, modifiers);
+  }
+
+  handleLongPress(x: f32, y: f32, modifiers: KeyModifier = 0): bool {
+    if (!this.pointerDownValue) {
+      this.pointerDownValue = true;
+      this.dragStartedValue = false;
+      this.startX = x;
+      this.startY = y;
+      this.lastDispatchedX = x;
+      this.lastDispatchedY = y;
+    }
+    this.awaitingLongPressValue = false;
+    this.lastPointerX = x;
+    this.lastPointerY = y;
+    this.lastModifiers = modifiers;
+    this.capturePointer();
+    this.beginDrag(x, y, modifiers);
+    return true;
   }
 
   handlePointerUp(x: f32, y: f32, modifiers: KeyModifier = 0): void {
@@ -123,7 +149,8 @@ export class DragGesture {
     }
     this.pointerDownValue = false;
     this.dragStartedValue = false;
-    this.host._releaseDragPointer();
+    this.awaitingLongPressValue = false;
+    this.releasePointer();
   }
 
   cancel(): void {
@@ -143,7 +170,8 @@ export class DragGesture {
     }
     this.pointerDownValue = false;
     this.dragStartedValue = false;
-    this.host._releaseDragPointer();
+    this.awaitingLongPressValue = false;
+    this.releasePointer();
   }
 
   private beginDrag(x: f32, y: f32, modifiers: u32): void {
@@ -181,5 +209,17 @@ export class DragGesture {
       return true;
     }
     return ((totalDeltaX * totalDeltaX) + (totalDeltaY * totalDeltaY)) >= (this.thresholdValue * this.thresholdValue);
+  }
+
+  private capturePointer(): void {
+    if (this.pointerCapturedValue) return;
+    this.pointerCapturedValue = true;
+    this.host._captureDragPointer();
+  }
+
+  private releasePointer(): void {
+    if (!this.pointerCapturedValue) return;
+    this.pointerCapturedValue = false;
+    this.host._releaseDragPointer();
   }
 }

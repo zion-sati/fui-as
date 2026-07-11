@@ -628,6 +628,64 @@ test('advanced controls route reorders the retained drag list through the phase-
   }).toContain('moved Add drag reorder demo to slot 2');
 });
 
+test('advanced controls route picks up and drops a reorder row by touch long press', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Native CDP touch injection is Chromium-only.');
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, get: () => 5 });
+  });
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Reorder demo viewport');
+  await page.waitForTimeout(400);
+
+  const sourceBounds = await demo.findSemanticBounds(page, 'Drag grip for Document Core rename');
+  const viewportBounds = await demo.findSemanticBounds(page, 'Reorder demo viewport');
+  const canvasBox = await page.locator('#fui-canvas').boundingBox();
+  if (sourceBounds === null || viewportBounds === null || canvasBox === null) {
+    throw new Error('Expected touch reorder bounds.');
+  }
+  const start = {
+    x: canvasBox.x + sourceBounds.x + sourceBounds.width * 0.5,
+    y: canvasBox.y + sourceBounds.y + sourceBounds.height * 0.5,
+  };
+  const end = {
+    x: canvasBox.x + viewportBounds.x + viewportBounds.width * 0.5,
+    y: canvasBox.y + viewportBounds.y + viewportBounds.height * 0.75,
+  };
+  const client = await page.context().newCDPSession(page);
+  await client.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ ...start, id: 71, radiusX: 8, radiusY: 8, force: 1 }],
+  });
+  await page.waitForTimeout(900);
+  await expect.poll(async () => {
+    return await demo.readSemanticLabelByPrefix(page, 'Reorder drag status: ');
+  }).toContain('dragging Document Core rename');
+  for (let step = 1; step <= 8; step += 1) {
+    const progress = step / 8;
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{
+        x: start.x + (end.x - start.x) * progress,
+        y: start.y + (end.y - start.y) * progress,
+        id: 71,
+        radiusX: 8,
+        radiusY: 8,
+        force: 1,
+      }],
+    });
+    await page.waitForTimeout(35);
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+  await expect.poll(async () => {
+    return await demo.readSemanticLabelByPrefix(page, 'Reorder drag status: ');
+  }).toContain('moved Document Core rename');
+  await expect.poll(async () => {
+    return await demo.readSemanticLabelByPrefix(page, 'Reorder order: ');
+  }).not.toContain('Reorder order: Document Core rename | Audit font shard cache');
+});
+
 test('advanced controls route shows drag-preview and cursor feedback while a reorder drag is active', async ({ page }) => {
   await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
   await demo.waitForDemoReady(page);

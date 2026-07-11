@@ -8,6 +8,7 @@ import {
   FlexBox,
   PointerClickEventArgs,
   PointerEventType,
+  PointerType,
 } from "../../src/Fui";
 import { EventRouter } from "../../src/core/EventRouter";
 
@@ -206,6 +207,7 @@ describe("DragDrop", () => {
       .onDragCompletedWith<DragDropHarness>(owner, handleDragCompleted);
     const target = new FlexBox()
       .allowDrop(true)
+      .onDragEnterWith<DragDropHarness>(owner, handleTargetEnter)
       .onDragOverWith<DragDropHarness>(owner, handleTargetOver)
       .onDropWith<DragDropHarness>(owner, handleDrop);
 
@@ -225,5 +227,37 @@ describe("DragDrop", () => {
     expect<i32>(owner.dropCount).toBe(0);
     expect<i32>(owner.completedCount).toBe(1);
     expect<DragDropEffects>(owner.lastCompletedEffect).toBe(DragDropEffects.None);
+  });
+
+  it("starts touch drag on long press and drops on release", () => {
+    EventRouter.reset();
+    const owner = new DragDropHarness();
+    const root = new FlexBox();
+    const source = new FlexBox()
+      .bindDragData<DragDropHarness>(owner, provideDragData)
+      .dragAllowedEffects(DragDropEffects.Move);
+    const target = new FlexBox()
+      .allowDrop(true)
+      .onDragOverWith<DragDropHarness>(owner, handleTargetOver)
+      .onDropWith<DragDropHarness>(owner, handleDrop);
+    root.child(source).child(target);
+
+    const sourceHandle = makeHandle(32, 1);
+    const targetHandle = makeHandle(33, 1);
+    EventRouter.register(makeHandle(31, 1), root);
+    EventRouter.register(sourceHandle, source);
+    EventRouter.register(targetHandle, target);
+
+    expect<u64>(EventRouter.resolveLongPressOwner(sourceHandle)).toBe(sourceHandle);
+    EventRouter.dispatchPointerEvent(sourceHandle, PointerEventType.Down, 10.0, 10.0, 0, 7, PointerType.Touch);
+    EventRouter.dispatchPointerEvent(sourceHandle, PointerEventType.Move, 20.0, 20.0, 0, 7, PointerType.Touch);
+    expect<i32>(owner.dragDataCalls).toBe(0);
+
+    expect<bool>(EventRouter.dispatchLongPressEvent(sourceHandle, 20.0, 20.0, 7, PointerType.Touch, 0, 500)).toBe(true);
+    EventRouter.dispatchPointerEvent(targetHandle, PointerEventType.Move, 30.0, 30.0, 0, 7, PointerType.Touch);
+    EventRouter.dispatchPointerEvent(targetHandle, PointerEventType.Up, 30.0, 30.0, 0, 7, PointerType.Touch);
+
+    expect<i32>(owner.dragDataCalls).toBe(1);
+    expect<i32>(owner.dropCount).toBe(1);
   });
 });

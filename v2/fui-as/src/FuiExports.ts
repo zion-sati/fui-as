@@ -29,6 +29,7 @@ export {
   __fui_get_gesture_intent,
   __fui_get_long_press_minimum_duration_ms,
   __fui_get_long_press_movement_tolerance,
+  __fui_long_press_continues_pointer_events,
   __fui_on_gesture_event,
   __fui_on_long_press_event,
   __fui_on_key_event,

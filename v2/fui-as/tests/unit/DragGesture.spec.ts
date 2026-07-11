@@ -81,6 +81,22 @@ describe("DragGesture", () => {
     expect<bool>(node.gesture.isDragging).toBe(false);
   });
 
+  it("waits for long press before starting a coarse-pointer drag", () => {
+    const node = new DragTestNode(4.0);
+
+    node.gesture.handlePointerDown(10.0, 10.0, 0, true);
+    node.gesture.handlePointerMove(30.0, 30.0, 0);
+    expect<i32>(node.startCount).toBe(0);
+
+    expect<bool>(node.gesture.handleLongPress(30.0, 30.0, 1)).toBe(true);
+    expect<i32>(node.startCount).toBe(1);
+    expect<bool>(node.gesture.isDragging).toBe(true);
+
+    node.gesture.handlePointerUp(40.0, 35.0, 1);
+    expect<i32>(node.completedCount).toBe(1);
+    expect<bool>(node.lastCompleted.cancelled).toBe(false);
+  });
+
   it("emits a cancelled completion when the owner disables itself mid-drag", () => {
     const node = new DragTestNode(0.0);
 

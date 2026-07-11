@@ -290,6 +290,11 @@ export class EventRouter {
     return <u64>HandleValue.Invalid;
   }
 
+  static longPressContinuesPointerEvents(handle: u64): bool {
+    const node = this.resolveNode(handle);
+    return node !== null && changetype<Node>(node).longPressContinuesPointerEventsForRouting;
+  }
+
   private static hasImageContextMenuTargetDescendant(node: Node): bool {
     for (let index = 0; index < node.childCount; ++index) {
       const child = node.getChildAt(index);

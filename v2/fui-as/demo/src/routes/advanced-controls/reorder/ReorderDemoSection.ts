@@ -284,7 +284,7 @@ export class ReorderDemoSection {
     .fillSize()
     .child(this.previewGhost) as Portal;
   readonly hintText: Text = new DemoText(
-    "Drag a grip to reorder the list. Hold near the viewport edge (or just beyond it) to auto-scroll the inner ScrollBox while the outer route page stays scrollable.",
+    "Drag a grip with a mouse, or touch and hold before moving. Release to drop. Hold near the viewport edge (or just beyond it) to auto-scroll the inner ScrollBox while the outer route page stays scrollable.",
     DemoTextRecipe.Hint,
   )
     .fontSize(15.0)

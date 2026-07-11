@@ -23,9 +23,17 @@ DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
 LOADING_OVERLAY_STYLES_FILE="${PACKAGE_DIR}/browser/loading-overlay-styles.html"
 LOADING_OVERLAY_BODY_FILE="${PACKAGE_DIR}/browser/loading-overlay-body.html"
 RUNTIME_PACKAGE_DIR="${PACKAGE_DIR}/node_modules/@effindomv2/runtime"
+FILE_PROCESSING_WORKER_SOURCE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/file-processing-worker.ts"
+WORKER_BOOTSTRAP_SOURCE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/worker-bootstrap.ts"
 
 if [ ! -d "${RUNTIME_PACKAGE_DIR}" ]; then
   RUNTIME_PACKAGE_DIR="${REPO_ROOT}/node_modules/@effindomv2/runtime"
+fi
+if [ ! -f "${FILE_PROCESSING_WORKER_SOURCE}" ]; then
+  FILE_PROCESSING_WORKER_SOURCE="${RUNTIME_PACKAGE_DIR}/src/managed-harness/file-processing-worker.ts"
+fi
+if [ ! -f "${WORKER_BOOTSTRAP_SOURCE}" ]; then
+  WORKER_BOOTSTRAP_SOURCE="${RUNTIME_PACKAGE_DIR}/src/managed-harness/worker-bootstrap.ts"
 fi
 
 rm -rf "${OUT_DIR}"
@@ -331,7 +339,7 @@ npx esbuild "${PACKAGE_DIR}/demo/harness.ts" \
   --outfile="${DEMO_OUT_DIR}/harness.js" \
   --sourcemap
 
-npx esbuild "${RUNTIME_PACKAGE_DIR}/src/managed-harness/file-processing-worker.ts" \
+npx esbuild "${FILE_PROCESSING_WORKER_SOURCE}" \
   --bundle \
   --format=iife \
   --platform=browser \
@@ -346,7 +354,7 @@ cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${OUT_DIR}/file-processing-worker.js.m
 cp "${FILE_PROCESSING_WORKER_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js"
 cp "${FILE_PROCESSING_WORKER_MAP_BUILD}" "${DEMO_OUT_DIR}/file-processing-worker.js.map"
 
-npx esbuild "${RUNTIME_PACKAGE_DIR}/src/managed-harness/worker-bootstrap.ts" \
+npx esbuild "${WORKER_BOOTSTRAP_SOURCE}" \
   --bundle \
   --format=iife \
   --platform=browser \

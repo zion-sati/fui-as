@@ -843,7 +843,11 @@ export abstract class Node implements DragGestureHost, Disposable {
   }
 
   get hasLongPressGestureForRouting(): bool {
-    return this.longPressGestureCallback !== null || this.longPressGestureBinding !== null;
+    return this.longPressGestureCallback !== null || this.longPressGestureBinding !== null || this._hasDragSource();
+  }
+
+  get longPressContinuesPointerEventsForRouting(): bool {
+    return this._hasDragSource();
   }
 
   get longPressMinimumDurationMsForRouting(): i32 {
@@ -2253,7 +2257,8 @@ export abstract class Node implements DragGestureHost, Disposable {
       const dragGesture = this._hasDragSource() ? this.dragGestureValue : null;
       const isPrimaryButton = isPrimaryActivationPointer(event);
       if (dragGesture !== null && isPrimaryButton) {
-        dragGesture.handlePointerDown(nodeX, nodeY, _modifiers);
+        const waitForLongPress = event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
+        dragGesture.handlePointerDown(nodeX, nodeY, _modifiers, waitForLongPress);
         this.dragClickPending = this.pointerClickCallback !== null || this.pointerClickBinding !== null;
         this.dragClickPendingCount = event.clickCount;
         this.clickPending = false;
@@ -2478,6 +2483,12 @@ export abstract class Node implements DragGestureHost, Disposable {
     const binding = this.longPressGestureBinding;
     if (binding !== null) {
       binding.invoke(event);
+    }
+    if (!event.handled && (event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen)) {
+      const dragGesture = this._hasDragSource() ? this.dragGestureValue : null;
+      if (dragGesture !== null) {
+        event.handled = dragGesture.handleLongPress(event.x, event.y, event.modifiers);
+      }
     }
     return event.handled;
   }
