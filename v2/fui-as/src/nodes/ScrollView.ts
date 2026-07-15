@@ -63,7 +63,6 @@ export class ScrollView extends Node {
   private hasFlexBasis: bool = false;
   private enableScrollX: bool = true;
   private enableScrollY: bool = true;
-  private showScrollbarsValue: bool = true;
   private frictionValue: f32 = 0.0;
   private scrollOffsetX: f32 = 0.0;
   private scrollOffsetY: f32 = 0.0;
@@ -268,15 +267,6 @@ export class ScrollView extends Node {
     return this;
   }
 
-  showScrollbars(flag: bool): this {
-    this.showScrollbarsValue = flag;
-    if (this.hasBuiltHandle()) {
-      ui.setShowScrollbars(this.handle, flag);
-      this.notifyRetainedMutation();
-    }
-    return this;
-  }
-
   friction(value: f32): this {
     this.frictionValue = value;
     this.hasFriction = true;
@@ -404,7 +394,6 @@ export class ScrollView extends Node {
     this.applyNodeMetadata();
     this.finishBuild();
     ui.setScrollEnabled(this.handle, this.enableScrollX, this.enableScrollY);
-    ui.setShowScrollbars(this.handle, this.showScrollbarsValue);
     ui.setSmoothScrolling(this.handle, this.smoothScrollingValue);
     if (this.hasFriction) {
       ui.setScrollFriction(this.handle, this.frictionValue);

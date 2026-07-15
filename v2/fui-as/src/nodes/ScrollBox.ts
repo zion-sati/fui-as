@@ -48,7 +48,6 @@ export class ScrollBox extends FlexBox {
 
     const viewportValue = (viewportOverride === null ? new ScrollView() : viewportOverride)
       .bindScrollState(scrollState)
-      .showScrollbars(false)
       .fillSize();
     const verticalGutterValue = new FlexBox()
       .width(DEFAULT_SCROLLBAR_GUTTER, Unit.Pixel)

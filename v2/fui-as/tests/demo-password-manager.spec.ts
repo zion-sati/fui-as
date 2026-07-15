@@ -148,8 +148,6 @@ test('dashboard password-manager metadata is projected onto the active hidden ed
   await demo.waitForDemoReady(page);
 
   await scrollUntilSemanticLabelVisible(page, 'Type here');
-  await scrollUntilSemanticLabelVisible(page, 'Password input');
-
   await focusSemanticTextbox(page, 'Type here');
 
   await expect.poll(async () => {
@@ -163,6 +161,7 @@ test('dashboard password-manager metadata is projected onto the active hidden ed
     focused: true,
   });
 
+  await scrollUntilSemanticLabelVisible(page, 'Password input');
   await focusSemanticTextbox(page, 'Password input');
 
   await expect.poll(async () => {

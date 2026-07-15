@@ -364,10 +364,6 @@ export function setScrollEnabled(handle: u64, enabledX: bool, enabledY: bool): v
   ffi.ui_set_scroll_enabled(handle, enabledX, enabledY);
 }
 
-export function setShowScrollbars(handle: u64, showScrollbars: bool): void {
-  ffi.ui_set_show_scrollbars(handle, showScrollbars);
-}
-
 export function setScrollFriction(handle: u64, friction: f32): void {
   ffi.ui_set_scroll_friction(handle, friction);
 }

@@ -64,7 +64,6 @@ const CallOp = Object.freeze({
   SetInteractive: 28,
   SetPreserveSelectionOnPointerDown: 118,
   SetScrollEnabled: 62,
-  SetShowScrollbars: 63,
   SetScrollFriction: 64,
   SetSmoothScrolling: 119,
   SetFocusable: 29,
@@ -539,9 +538,6 @@ export default {
         ui_set_scroll_proxy_target() {},
         ui_set_scroll_enabled(handle, enabledX, enabledY) {
           record(CallOp.SetScrollEnabled, toNumber(handle), enabledX ? 1 : 0, enabledY ? 1 : 0);
-        },
-        ui_set_show_scrollbars(handle, showScrollbars) {
-          record(CallOp.SetShowScrollbars, toNumber(handle), showScrollbars ? 1 : 0);
         },
         ui_set_scroll_friction(handle, friction) {
           record(CallOp.SetScrollFriction, toNumber(handle), friction);

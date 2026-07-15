@@ -291,6 +291,80 @@ test('advanced controls textarea accepts tabs without focus chrome or wrapped-li
   }).toBe(initialText);
 });
 
+test('advanced controls tabs preserve cross-layer editing and horizontal windowing', async ({ page }) => {
+  const authoredText = 'ab\tcd efgh ijkl\n0123\t4567 89ab cdef';
+  const withoutFirstTab = authoredText.replace('\t', '');
+
+  await page.goto(demo.baseUrl + '/v2/fui-as/demo/advanced-controls/');
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText('ab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.insertText('cd efgh ijkl');
+  await page.keyboard.press('Enter');
+  await page.keyboard.insertText('0123');
+  await page.keyboard.press('Tab');
+  await page.keyboard.insertText('4567 89ab cdef');
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(authoredText);
+
+  await page.waitForTimeout(1000);
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.02, 0.05);
+  await expect.poll(async () => {
+    const editor = await demo.readHiddenTextEditorState(page);
+    return editor === null ? null : {
+      collapsed: editor.absoluteStart === editor.absoluteEnd,
+      beforeDocumentEnd: editor.absoluteEnd < authoredText.length,
+    };
+  }).toEqual({ collapsed: true, beforeDocumentEnd: true });
+
+  await demo.setHiddenTextInputSelection(page, 2, 3);
+  await page.keyboard.press('Backspace');
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(withoutFirstTab);
+  await page.keyboard.press('ControlOrMeta+Z');
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe(authoredText);
+
+  await demo.setHiddenTextInputSelection(page, 0);
+  await page.keyboard.press('Tab');
+  await expect.poll(async () => {
+    return await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
+  }).toBe('\t' + authoredText);
+  await page.keyboard.press('ControlOrMeta+Z');
+
+  await demo.scrollSemanticLabelIntoView(page, 'Wrapping');
+  await demo.clickSemanticLabel(page, 'Wrapping');
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+  const longLine = 'ab\t' + 'x'.repeat(5000);
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText('ab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.insertText('x'.repeat(5000));
+  await page.keyboard.press('End');
+  await expect.poll(async () => {
+    const editor = await demo.readHiddenTextEditorState(page);
+    return editor === null ? null : {
+      windowed: editor.value.length < longLine.length,
+      docStartMoved: editor.docStart > 0,
+      caretAtEnd: editor.absoluteEnd === longLine.length,
+    };
+  }).toEqual({
+    windowed: true,
+    docStartMoved: true,
+    caretAtEnd: true,
+  });
+});
+
 test('debug advanced controls wrapped mouse drag keeps hidden editor selection in sync', async ({ page }) => {
   const sourceText = demo.fs.readFileSync(
     demo.path.join(demo.__dirname, '..', '..', 'ui', 'src', 'UiRuntimeText.cpp'),
@@ -422,30 +496,41 @@ test('advanced controls textarea Select All plus Backspace clears a windowed Uni
   ].join('\n');
   const text = Array.from({ length: 80 }, () => unicodeParagraph).join('\n\n');
 
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: demo.baseUrl });
   await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
   await demo.waitForDemoReady(page);
   await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
 
   await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
   await demo.waitForHiddenTextInputFocus(page);
-  await page.keyboard.press('ControlOrMeta+A');
-  await page.keyboard.insertText(text);
+  await page.evaluate(async (value) => {
+    await navigator.clipboard.writeText(value);
+  }, text);
+  await page.keyboard.press('ControlOrMeta+V');
+  await page.keyboard.press('Meta+A');
 
-  await expect.poll(async () => {
-    const editor = await demo.readHiddenTextEditorState(page);
-    const bridgeText = await demo.readBridgeTextForSemanticLabel(page, 'Advanced controls demo text area');
-    return editor === null ? null : {
-      windowed: editor.value.length < text.length,
-      bounded: editor.value.length <= 4096,
-      bridgeLength: bridgeText?.length ?? -1,
+  await expect.poll(async () => await page.evaluate((payloadLength) => {
+    const editor = document.querySelector<HTMLElement>('[data-effindom-hidden-editor="true"]:focus');
+    const activeWindow = window.__bridgeActiveEditorWindow;
+    if (editor === null || activeWindow?.handle === null || activeWindow?.handle === undefined) {
+      return null;
+    }
+    const selection = window.__bridgeSelectionsByHandle?.[activeWindow.handle];
+    const textValue = window.__bridgeTextByHandle?.[activeWindow.handle] ?? '';
+    return {
+      windowed: activeWindow.text.length < textValue.length,
+      documentLongEnough: textValue.length >= payloadLength,
+      selectionStart: selection?.start ?? -1,
+      selectionMatchesDocument:
+        selection?.end === new TextEncoder().encode(textValue).length,
     };
-  }).toEqual({
+  }, text.length)).toEqual({
     windowed: true,
-    bounded: true,
-    bridgeLength: text.length,
+    documentLongEnough: true,
+    selectionStart: 0,
+    selectionMatchesDocument: true,
   });
 
-  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.press('Backspace');
 
   await expect.poll(async () => {
@@ -655,11 +740,14 @@ test('demo touch textbox does not focus hidden editor until pointerup tap', asyn
   const duringDown = await demo.readHiddenTextEditorState(page);
   expect(duringDown).not.toBeNull();
   expect(duringDown?.focused).toBe(false);
+  expect(await page.evaluate(() => window.__bridgeLogs?.focusEvents.some((event) => event.isFocused) ?? false)).toBe(false);
 
   await demo.dispatchTouchCanvasEvents(page, [
     { type: 'pointerup', x, y },
   ], 611);
   await demo.waitForHiddenTextInputFocus(page);
+
+  expect(await page.evaluate(() => window.__bridgeLogs?.focusEvents.some((event) => event.isFocused) ?? false)).toBe(true);
 
   await expect.poll(async () => await demo.readHiddenTextEditorState(page)).toMatchObject({
     focused: true,
@@ -753,6 +841,47 @@ test('advanced controls textarea arrow navigation scrolls the caret into view wh
     absoluteEnd: targetIndex,
     scrolled: true,
   });
+});
+
+test('advanced controls textarea typing keeps an already-visible caret at its current viewport position', async ({ page }) => {
+  const lines = Array.from(
+    { length: 30 },
+    (_, index) => `Stable wrapped line ${String(index + 1)} carries enough repeated content to wrap across the editor viewport.`,
+  );
+
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText(lines.join('\n'));
+  const editorBounds = await demo.findSemanticBounds(page, 'Advanced controls demo text area');
+  if (editorBounds === null) {
+    throw new Error('Expected TextArea semantic bounds.');
+  }
+  await page.mouse.move(editorBounds.x + (editorBounds.width * 0.5), editorBounds.y + (editorBounds.height * 0.5));
+  await page.mouse.wheel(0, -220);
+  await page.waitForTimeout(600);
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.35, 0.5);
+  await demo.waitForHiddenTextInputFocus(page);
+
+  const before = await page.evaluate(() => {
+    const events = window.__bridgeLogs?.scrollEvents ?? [];
+    const event = [...events].reverse().find((candidate) => candidate.contentHeight > candidate.viewportHeight);
+    if (window.__bridgeLogs !== undefined) {
+      window.__bridgeLogs.scrollEvents.length = 0;
+    }
+    return event?.offsetY ?? null;
+  });
+  expect(before).not.toBeNull();
+
+  await page.keyboard.insertText('x');
+
+  await expect.poll(async () => page.evaluate(() => {
+    const events = window.__bridgeLogs?.scrollEvents ?? [];
+    return events.filter((event) => event.contentHeight > event.viewportHeight).map((event) => event.offsetY);
+  })).toEqual([]);
 });
 
 test('advanced controls textarea blank clicks below the last line place the caret at the document end', async ({ page }) => {
@@ -880,5 +1009,46 @@ test('advanced controls textarea padding clicks keep the real text active and co
     value: `${text}!`,
     absoluteStart: text.length + 1,
     absoluteEnd: text.length + 1,
+  });
+});
+
+test('advanced controls semantic textarea never paints native scrollbar chrome', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await demo.waitForDemoReady(page);
+  await demo.scrollSemanticLabelIntoView(page, 'Advanced controls demo text area');
+  await demo.clickSemanticLabelAtFraction(page, 'Advanced controls demo text area', 0.25, 0.14);
+  await demo.waitForHiddenTextInputFocus(page);
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText(
+    Array.from({ length: 40 }, (_, index) => `Overflow verification line ${String(index + 1)}`).join('\n'),
+  );
+
+  await expect.poll(async () => {
+    return await page.evaluate(() => {
+      const semanticLayer = document.querySelector('#semantic-layer');
+      const textarea = semanticLayer?.shadowRoot?.querySelector<HTMLTextAreaElement>(
+        'textarea[data-effindom-semantic-node="true"][aria-label="Advanced controls demo text area"]',
+      );
+      if (textarea === null || textarea === undefined) {
+        return null;
+      }
+      const style = getComputedStyle(textarea);
+      const scrollbarStyle = getComputedStyle(textarea, '::-webkit-scrollbar');
+      return {
+        overflowing: textarea.scrollHeight > textarea.clientHeight,
+        overflowX: style.overflowX,
+        overflowY: style.overflowY,
+        scrollbarWidth: style.scrollbarWidth,
+        webkitDisplay: scrollbarStyle.display,
+        webkitWidth: scrollbarStyle.width,
+      };
+    });
+  }).toEqual({
+    overflowing: true,
+    overflowX: 'hidden',
+    overflowY: 'hidden',
+    scrollbarWidth: 'none',
+    webkitDisplay: 'none',
+    webkitWidth: '0px',
   });
 });

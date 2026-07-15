@@ -7,7 +7,7 @@ import { ScrollState, ScrollView } from "./Fui";
 - **Constructor:** `new ScrollView()`
 - **State:** `bindScrollState(state)`, `scrollState` getter
 - **Sizing/layout:** `width`, `height`, `fillWidth`, `fillHeight`, `fillWidthPercent`, `fillHeightPercent`, `fillSize`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`, `flexBasis`
-- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `showScrollbars`, `smoothScrolling`, `friction`, `scrollOffset`
+- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `smoothScrolling`, `friction`, `scrollOffset`
 
 `smoothScrolling()` is enabled by default. Wheel deltas accumulate into one
 smooth target without waiting for a burst to finish. Pass `false` to restore

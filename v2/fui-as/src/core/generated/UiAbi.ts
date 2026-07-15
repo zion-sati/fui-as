@@ -235,9 +235,6 @@ export declare function ui_set_scroll_proxy_target(handle: u64, scroll_handle: u
 @external("effindom_v2_ui", "ui_set_scroll_enabled")
 export declare function ui_set_scroll_enabled(handle: u64, enabled_x: bool, enabled_y: bool): void;
 
-@external("effindom_v2_ui", "ui_set_show_scrollbars")
-export declare function ui_set_show_scrollbars(handle: u64, show_scrollbars: bool): void;
-
 @external("effindom_v2_ui", "ui_set_scroll_friction")
 export declare function ui_set_scroll_friction(handle: u64, friction: f32): void;
 
