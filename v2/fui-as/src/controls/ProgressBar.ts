@@ -2,6 +2,7 @@ import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
+import { FlexDirection, JustifyContent, Orientation } from "../core/ffi";
 import { FlexBox } from "../nodes";
 
 function clamp(value: f32, min: f32, max: f32): f32 {
@@ -23,6 +24,7 @@ export class ProgressBar extends FlexBox {
   private currentValue: f32 = 0.0;
   private lengthValue: f32 = 220.0;
   private thicknessValue: f32 = 14.0;
+  private orientationValue: Orientation = Orientation.Horizontal;
   private trackColorValue: u32 = 0;
   private fillColorValue: u32 = 0;
   private trackColorOverridden: bool = false;
@@ -33,6 +35,7 @@ export class ProgressBar extends FlexBox {
     super();
     this.fillNode = new FlexBox();
     this.child(this.fillNode);
+    this.semanticOrientation(Orientation.Horizontal);
     this.track(activeTheme.addAction(new HandlerAction<ProgressBar, Theme>(this, (bar: ProgressBar, _theme: Theme): void => {
       bar.handleThemeChanged();
     })));
@@ -89,6 +92,15 @@ export class ProgressBar extends FlexBox {
     return this;
   }
 
+  orientation(value: Orientation): this {
+    this.orientationValue = value == Orientation.Vertical
+      ? Orientation.Vertical
+      : Orientation.Horizontal;
+    this.semanticOrientation(this.orientationValue);
+    this.syncGeometry();
+    return this;
+  }
+
   trackColor(color: u32): this {
     this.trackColorOverridden = true;
     this.trackColorValue = color;
@@ -128,10 +140,21 @@ export class ProgressBar extends FlexBox {
     const range = this.maxValue - this.minValue;
     const fraction = range > 0.0 ? clamp((this.currentValue - this.minValue) / range, 0.0, 1.0) : 0.0;
     const fillLength = this.lengthValue * fraction;
-    this.width(this.lengthValue);
-    this.height(this.thicknessValue);
-    this.fillNode.width(fillLength);
-    this.fillNode.height(this.thicknessValue);
+    if (this.orientationValue == Orientation.Vertical) {
+      this.flexDirection(FlexDirection.Column);
+      this.justifyContent(JustifyContent.End);
+      this.width(this.thicknessValue);
+      this.height(this.lengthValue);
+      this.fillNode.width(this.thicknessValue);
+      this.fillNode.height(fillLength);
+    } else {
+      this.flexDirection(FlexDirection.Row);
+      this.justifyContent(JustifyContent.Start);
+      this.width(this.lengthValue);
+      this.height(this.thicknessValue);
+      this.fillNode.width(fillLength);
+      this.fillNode.height(this.thicknessValue);
+    }
     this.semanticValueRange(this.currentValue, this.minValue, this.maxValue);
     this.syncSemanticLabel();
   }

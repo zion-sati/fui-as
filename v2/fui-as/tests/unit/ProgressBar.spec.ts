@@ -1,6 +1,7 @@
 import { ProgressBar } from "../../src/controls";
 import { Node } from "../../src/core/Node";
 import { activeTheme, defaultDarkTheme, generateTheme } from "../../src/core/Theme";
+import { Orientation } from "../../src/core/ffi";
 import {
   CALL_SET_BOX_STYLE,
   CALL_SET_HEIGHT,
@@ -77,6 +78,32 @@ describe("ProgressBar", () => {
     expect<f64>(getCallArg(semanticIndex, 2)).toBe(200.0);
     expect<f64>(getCallArg(semanticIndex, 3)).toBe(0.0);
     expect<f64>(getCallArg(semanticIndex, 4)).toBe(200.0);
+
+    bar.dispose();
+  });
+
+  it("maps length and thickness to the selected orientation", () => {
+    resetCalls();
+
+    const bar = new ProgressBar(25.0)
+      .length(300.0)
+      .thickness(18.0)
+      .orientation(Orientation.Vertical);
+    const handle = bar.build();
+    const fillHandle = requireChild<Node>(bar, 0).builtHandle;
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(300.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(75.0);
+
+    resetCalls();
+    bar.orientation(Orientation.Horizontal);
+
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(300.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(75.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(18.0);
 
     bar.dispose();
   });

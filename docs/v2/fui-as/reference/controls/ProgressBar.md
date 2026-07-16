@@ -1,17 +1,28 @@
 # ProgressBar
 
 ```ts
-import { ProgressBar } from "./Fui";
+import { Orientation, ProgressBar } from "./Fui";
 ```
 
 - **Constructor:** `new ProgressBar(value = 0.0)`
 - **Range:** `min(value)`, `max(value)`, `value(value)`
-- **Geometry:** `length(value)`, `thickness(value)`
+- **Geometry:** `length(value)`, `thickness(value)`, `orientation(Orientation.Horizontal|Vertical)`
 - **Styling:** `trackColor(color)`, `fillColor(color)`
 - **Read current value:** `valueNow` getter
 
-`ProgressBar` is determinate and horizontal-only in the current slice. It exposes
-semantic value-range state, but it is not interactive like `Slider`.
+`ProgressBar` is determinate and defaults to horizontal. `length(...)` controls
+the orientation axis and `thickness(...)` controls the cross axis. Horizontal
+bars fill left-to-right; vertical bars fill bottom-to-top.
+
+```ts
+new ProgressBar(40.0)
+  .orientation(Orientation.Vertical)
+  .length(180.0)
+  .thickness(14.0);
+```
+
+The control exposes semantic value-range and orientation state, but it is not
+interactive like `Slider`.
 
 ## See also
 

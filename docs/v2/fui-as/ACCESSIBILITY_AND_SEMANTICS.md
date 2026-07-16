@@ -21,6 +21,7 @@ This page is the SDK-user contract for semantic roles/labels and out-of-the-box 
 | `Switch` | `Switch` | Constructor/label text | `semanticChecked` (`False/True`) |
 | `RadioButton` | `Radio` | Constructor/label text | `semanticChecked` (`False/True`) |
 | `RadioGroup` | `RadioGroup` | none by default | child radios carry checked state |
+| `ProgressBar` | inherited container semantics | generated value/range label unless overridden | `semanticValueRange`, `semanticOrientation` |
 | `Slider` | `Slider` | Generated label includes orientation + value + range | `semanticValueRange`, `semanticOrientation` |
 | `Dropdown` | `ComboBox` | selected option label (or `"Dropdown"` if none) | `semanticExpanded`; options list/item semantics |
 | `TextInput` | `Textbox` (editor node) | placeholder text when present; else `"Text input"`; password mode uses `"Password input"` | selection/focus/edit state through text engine |

@@ -20,7 +20,7 @@ For the complete export list, see:
 | `Dropdown` / `DropdownItem` | Non-editable selection popup control | `items(...)`, `selectIndex(...)`, `onChanged(...)`, `colors(...)`, popup sizing/styling (`maxVisibleItems(...)`, `popupWidth(...)`), `fieldTemplate(...)`, `chevronTemplate(...)`, `optionRowTemplate(...)` |
 | `Form` | Enter/Escape default/cancel handling host | default/cancel action ownership for contained controls |
 | `NavLink` | Route/link control with browser-harness integration | constructor `NavLink(href, label?, newTab?)`, `hrefTo(...)`, `onNavigate(...)` |
-| `ProgressBar` | Determinate horizontal progress visualization | `value(...)`, `min(...)`, `max(...)`, `length(...)`, `thickness(...)`, `trackColor(...)`, `fillColor(...)` |
+| `ProgressBar` | Determinate horizontal or vertical progress visualization | `value(...)`, `min(...)`, `max(...)`, `length(...)`, `thickness(...)`, `orientation(...)`, `trackColor(...)`, `fillColor(...)` |
 | `RadioButton` / `RadioGroup` | Single-choice grouped options | `addOption(...)`, `addOptions(...)`, `selectIndex(...)`, `selectedValue` (getter), `onChanged(...)`, radio `template(...)`, `colors(...)` |
 | `SelectionArea` | Cross-node text selection host | `selectedText`, selection hooks, Shift+Arrow extension for existing selections |
 | `AntiSelectionArea` | Selection barrier island | prevents parent `SelectionArea` from collecting subtree text |
