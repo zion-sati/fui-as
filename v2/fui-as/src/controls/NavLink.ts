@@ -15,7 +15,7 @@ import { navigateTo } from "../core/Navigation";
 import { PointerEventArgs, PointerType } from "../core/Node";
 import { hasPrimaryShortcutModifier } from "../core/Platform";
 import { Theme, activeTheme } from "../core/Theme";
-import { FlexBox } from "../nodes";
+import { FlexBox, Text } from "../nodes";
 
 export class NavigateEventArgs {
   readonly path: string;
@@ -40,16 +40,28 @@ export class NavLink extends FlexBox {
   private previewVisible: bool = false;
   private previewPinnedForContextMenu: bool = false;
   private disposed: bool = false;
+  private textColorValue: u32;
+  readonly labelNode: Text;
 
   constructor(href: string, label: string = href, openInNewTab: bool = false) {
     super();
+    const theme = activeTheme.value;
     this.hrefValue = href;
     this.openInNewTabValue = openInNewTab;
+    this.textColorValue = theme.colors.accent;
+    this.labelNode = new Text(label)
+      .fontFamily(theme.fonts.bodyFamily)
+      .fontSize(15.0)
+      .textColor(theme.colors.accent)
+      .selectable(false)
+      .cursor(CursorStyle.Pointer) as Text;
     this.semanticRole(SemanticRole.Link);
     this.semanticLabel(label);
     this.cursor(CursorStyle.Pointer);
     this.focusable(true);
+    this.child(this.labelNode);
     this.track(activeTheme.addAction(new HandlerAction<NavLink, Theme>(this, (link: NavLink, _theme: Theme): void => {
+      link.syncVisualState();
       link.syncFocusChrome();
     })));
     this.track(keyboardFocusVisible.addAction(new HandlerAction<NavLink, bool>(this, (link: NavLink, _visible: bool): void => {
@@ -75,6 +87,18 @@ export class NavLink extends FlexBox {
     return this;
   }
 
+  text(value: string): this {
+    this.semanticLabel(value);
+    this.labelNode.text(value);
+    return this;
+  }
+
+  textColor(color: u32): this {
+    this.textColorValue = color;
+    this.syncVisualState();
+    return this;
+  }
+
   dispose(): void {
     this.hidePreview();
     if (!this.disposed) {
@@ -92,6 +116,7 @@ export class NavLink extends FlexBox {
     super._handlePointerEvent(eventType, x, y, modifiers);
     if (eventType == PointerEventType.Enter) {
       this.hovered = true;
+      this.syncVisualState();
       this.showPreview();
       return;
     }
@@ -99,6 +124,7 @@ export class NavLink extends FlexBox {
       this.hovered = false;
       this.pointerPressed = false;
       this.pointerPressedOpenInNewTab = false;
+      this.syncVisualState();
       if (!this.previewPinnedForContextMenu && !this.focused) {
         this.hidePreview();
       }
@@ -226,6 +252,10 @@ export class NavLink extends FlexBox {
       return;
     }
     FocusAdornerManager.hideOwner(this);
+  }
+
+  private syncVisualState(): void {
+    this.labelNode.textColor(this.hovered ? activeTheme.value.colors.accentHovered : this.textColorValue);
   }
 
   private track(disposable: Disposable): void {

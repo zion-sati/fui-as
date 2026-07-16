@@ -3,6 +3,7 @@ import { EventRouter } from "../../src/core/EventRouter";
 import { Node, PointerEventArgs, PointerType } from "../../src/core/Node";
 import { NavLink } from "../../src/controls";
 import { NavigateEventArgs } from "../../src/controls/NavLink";
+import { activeTheme } from "../../src/core/Theme";
 import {
   CALL_SET_DROP_SHADOW,
   CALL_NAVIGATE_TO,
@@ -12,6 +13,7 @@ import {
   CALL_SET_SEMANTIC_LABEL,
   CALL_SET_SEMANTIC_ROLE,
   CALL_SHOW_URL_PREVIEW,
+  CALL_SET_TEXT_COLOR,
   findCall,
   getCallArg,
   lastNavigationTargetEquals,
@@ -60,16 +62,25 @@ describe("NavLink", () => {
     resetCalls();
 
     const link = new NavLink("/settings", "Settings");
+    link.textColor(0x123456ff);
+    link.build();
+    resetCalls();
     link._handlePointerEvent(PointerEventType.Enter, 0.0, 0.0);
 
     expect<i32>(findCall(CALL_SHOW_URL_PREVIEW)).toBeGreaterThan(-1);
     expect<i32>(lastUrlPreviewLength()).toBe(9);
     expect<bool>(lastUrlPreviewEquals("/settings")).toBe(true);
+    const hoverColorIndex = findCall(CALL_SET_TEXT_COLOR);
+    expect<i32>(hoverColorIndex).toBeGreaterThan(-1);
+    expect<u32>(<u32>getCallArg(hoverColorIndex, 1)).toBe(activeTheme.value.colors.accentHovered);
 
     resetCalls();
     link._handlePointerEvent(PointerEventType.Leave, 0.0, 0.0);
     expect<i32>(findCall(CALL_HIDE_URL_PREVIEW)).toBeGreaterThan(-1);
     expect<i32>(lastUrlPreviewLength()).toBe(0);
+    const restoredColorIndex = findCall(CALL_SET_TEXT_COLOR);
+    expect<i32>(restoredColorIndex).toBeGreaterThan(-1);
+    expect<u32>(<u32>getCallArg(restoredColorIndex, 1)).toBe(0x123456ff);
   });
 
   it("shows the shared URL preview while leaving focus chrome to the shared overlay", () => {

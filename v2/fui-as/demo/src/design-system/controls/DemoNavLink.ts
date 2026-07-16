@@ -1,4 +1,4 @@
-import { Disposable, NavLink, Text, Theme, activeTheme, bindTheme, disposeAll } from "../../../../src/Fui";
+import { Disposable, NavLink, Theme, activeTheme, bindTheme, disposeAll } from "../../../../src/Fui";
 import {
   NAV_LINK_RADIUS,
   NAV_LINK_PADDING_X,
@@ -8,19 +8,15 @@ import { DemoNavLinkRecipe, applyDemoNavLinkRecipe } from "./recipes";
 
 export class DemoNavLink extends NavLink {
   private readonly themeBindings: Array<Disposable> = new Array<Disposable>();
-  private readonly labelNode: Text;
   private demoThemeDisposed: bool = false;
   private activeValue: bool = false;
 
   constructor(href: string, label: string = href, openInNewTab: bool = false) {
     super(href, label, openInNewTab);
-    this.labelNode = new Text(label)
-      .fontSize(15.0)
-      .selectable(false) as Text;
+    this.labelNode.fontSize(15.0);
     this
       .cornerRadius(NAV_LINK_RADIUS)
-      .padding(NAV_LINK_PADDING_X, NAV_LINK_PADDING_Y, NAV_LINK_PADDING_X, NAV_LINK_PADDING_Y)
-      .child(this.labelNode);
+      .padding(NAV_LINK_PADDING_X, NAV_LINK_PADDING_Y, NAV_LINK_PADDING_X, NAV_LINK_PADDING_Y);
     this.trackDemoTheme(bindTheme(this, (link, theme): void => {
       link.applyDemoTheme(theme);
     }));
@@ -33,9 +29,7 @@ export class DemoNavLink extends NavLink {
   }
 
   label(label: string): this {
-    this.semanticLabel(label);
-    this.labelNode.text(label);
-    return this;
+    return this.text(label);
   }
 
   dispose(): void {
@@ -46,7 +40,6 @@ export class DemoNavLink extends NavLink {
   private applyDemoTheme(theme: Theme): void {
     applyDemoNavLinkRecipe(
       this,
-      this.labelNode,
       theme,
       this.activeValue ? DemoNavLinkRecipe.Active : DemoNavLinkRecipe.Inactive,
     );
