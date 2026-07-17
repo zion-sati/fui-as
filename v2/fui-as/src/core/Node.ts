@@ -77,7 +77,7 @@ export enum PointerButtons {
 }
 
 function isPrimaryActivationPointer(event: PointerEventArgs): bool {
-  return event.button == 0 || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
+  return event.button == PointerButton.Primary || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
 }
 
 export enum GestureIntent {

@@ -12,7 +12,7 @@ import { Disposable, disposeAll } from "../core/Disposable";
 import { FocusAdornerManager } from "../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../core/FocusVisibility";
 import { navigateTo } from "../core/Navigation";
-import { PointerEventArgs, PointerType } from "../core/Node";
+import { PointerButton, PointerEventArgs, PointerType } from "../core/Node";
 import { hasPrimaryShortcutModifier } from "../core/Platform";
 import { Theme, activeTheme } from "../core/Theme";
 import { FlexBox, Text } from "../nodes";
@@ -110,9 +110,12 @@ export class NavLink extends FlexBox {
 
   _handlePointerEvent(eventType: PointerEventType, x: f32, y: f32, modifiers: u32 = 0): void {
     const pending = NavLink.pendingPointerEventArgs;
-    const isPrimaryActivation = pending !== null
-      ? this.isPrimaryActivationPointer(changetype<PointerEventArgs>(pending))
+    const isActivation = pending !== null
+      ? this.isActivationPointer(changetype<PointerEventArgs>(pending))
       : true;
+    const isMiddleClick = pending !== null
+      ? this.isMiddleMouseButton(changetype<PointerEventArgs>(pending))
+      : false;
     super._handlePointerEvent(eventType, x, y, modifiers);
     if (eventType == PointerEventType.Enter) {
       this.hovered = true;
@@ -131,18 +134,18 @@ export class NavLink extends FlexBox {
       return;
     }
     if (eventType == PointerEventType.Down) {
-      if (!isPrimaryActivation) {
+      if (!isActivation) {
         this.pointerPressed = false;
         this.pointerPressedOpenInNewTab = false;
         return;
       }
       this.pointerPressed = true;
-      this.pointerPressedOpenInNewTab = this.shouldOpenInNewTab(modifiers);
+      this.pointerPressedOpenInNewTab = isMiddleClick || this.shouldOpenInNewTab(modifiers);
       return;
     }
-    if (eventType == PointerEventType.Up && this.pointerPressed && isPrimaryActivation) {
+    if (eventType == PointerEventType.Up && this.pointerPressed && isActivation) {
       this.pointerPressed = false;
-      this.activate(this.pointerPressedOpenInNewTab || this.shouldOpenInNewTab(modifiers));
+      this.activate(isMiddleClick || this.pointerPressedOpenInNewTab || this.shouldOpenInNewTab(modifiers));
       this.pointerPressedOpenInNewTab = false;
     }
   }
@@ -197,8 +200,12 @@ export class NavLink extends FlexBox {
     return this.openInNewTabValue || hasPrimaryShortcutModifier(<KeyModifier>modifiers);
   }
 
-  private isPrimaryActivationPointer(event: PointerEventArgs): bool {
-    return event.button == 0 || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
+  private isMiddleMouseButton(event: PointerEventArgs): bool {
+    return event.pointerType == PointerType.Mouse && event.button == PointerButton.Auxiliary;
+  }
+
+  private isActivationPointer(event: PointerEventArgs): bool {
+    return event.button == PointerButton.Primary || this.isMiddleMouseButton(event) || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
   }
 
   pinPreviewForContextMenu(): void {

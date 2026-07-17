@@ -1,6 +1,6 @@
 import { CursorStyle, KeyEventType, KeyModifier, PointerEventType, SemanticRole } from "../../src/core/ffi";
 import { EventRouter } from "../../src/core/EventRouter";
-import { Node, PointerEventArgs, PointerType } from "../../src/core/Node";
+import { Node, PointerButton, PointerButtons, PointerEventArgs, PointerType } from "../../src/core/Node";
 import { NavLink } from "../../src/controls";
 import { NavigateEventArgs } from "../../src/controls/NavLink";
 import { activeTheme } from "../../src/core/Theme";
@@ -146,15 +146,35 @@ describe("NavLink", () => {
 
     Node._dispatchPointerEventWithArgs(
       link,
-      new PointerEventArgs(PointerEventType.Down, 0.0, 0.0, 0, 1, PointerType.Mouse, 2, 2, 0.0, 0.0, 0.0, 1),
+      new PointerEventArgs(PointerEventType.Down, 0.0, 0.0, 0, 1, PointerType.Mouse, PointerButton.Secondary, PointerButtons.Secondary, 0.0, 0.0, 0.0, 1),
     );
     Node._dispatchPointerEventWithArgs(
       link,
-      new PointerEventArgs(PointerEventType.Up, 0.0, 0.0, 0, 1, PointerType.Mouse, 2, 0, 0.0, 0.0, 0.0, 1),
+      new PointerEventArgs(PointerEventType.Up, 0.0, 0.0, 0, 1, PointerType.Mouse, PointerButton.Secondary, PointerButtons.None, 0.0, 0.0, 0.0, 1),
     );
 
     expect<i32>(activationCount).toBe(0);
     expect<i32>(findCall(CALL_NAVIGATE_TO)).toBe(-1);
+  });
+
+  it("opens the target in a new tab from a middle-click pointer release", () => {
+    resetCalls();
+    const link = new NavLink("/settings", "Settings").onNavigate(recordActivation);
+
+    Node._dispatchPointerEventWithArgs(
+      link,
+      new PointerEventArgs(PointerEventType.Down, 0.0, 0.0, 0, 1, PointerType.Mouse, PointerButton.Auxiliary, PointerButtons.Auxiliary, 0.0, 0.0, 0.0, 1),
+    );
+    Node._dispatchPointerEventWithArgs(
+      link,
+      new PointerEventArgs(PointerEventType.Up, 0.0, 0.0, 0, 1, PointerType.Mouse, PointerButton.Auxiliary, PointerButtons.None, 0.0, 0.0, 0.0, 1),
+    );
+
+    const navigateIndex = findCall(CALL_NAVIGATE_TO);
+    expect<i32>(activationCount).toBe(1);
+    expect<i32>(navigateIndex).toBeGreaterThan(-1);
+    expect<bool>(lastNavigationTargetEquals("/settings")).toBe(true);
+    expect<f64>(getCallArg(navigateIndex, 1)).toBe(1.0);
   });
 
   it("can request opening the target in a new tab", () => {

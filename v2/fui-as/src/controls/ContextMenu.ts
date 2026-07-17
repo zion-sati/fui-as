@@ -16,7 +16,7 @@ import {
 import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { navigateTo } from "../core/Navigation";
-import { Node, PointerEventArgs, VisibilityChangedEventArgs } from "../core/Node";
+import { Node, PointerButton, PointerEventArgs, PointerType, VisibilityChangedEventArgs } from "../core/Node";
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
 import { FontFamily, FontStyle, FontWeight } from "../core/Typography";
@@ -29,7 +29,7 @@ const MENU_EDGE_PADDING: f32 = 8.0;
 const DEFAULT_PANEL_BACKGROUND_BLUR_SIGMA: f32 = 10.0;
 
 function isPrimaryActivationPointer(event: PointerEventArgs): bool {
-  return event.button == 0 || event.pointerType == 2 || event.pointerType == 3;
+  return event.button == PointerButton.Primary || event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
 }
 
 enum MenuItemKind {
