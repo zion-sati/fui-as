@@ -6,7 +6,7 @@ FUI-AS is the flagship SDK for the [EffinDom](https://github.com/zion-sati/Effin
 
 If you've ever used SwiftUI and then gone back to React, you already know the feeling this is trying to fix.
 
-**[→ Live demo](https://fui-as-demo.effindom.dev/)** *(works on mobile too — pinch-to-zoom and long press not yet supported)*
+**[→ Live demo](https://fui-as-demo.effindom.dev/)** *(works on mobile too — pinch-to-zoom and long press NOW supported)*
 
 https://github.com/user-attachments/assets/cf2fef0e-34b0-4d1d-8f98-2ee45262ede6
 
