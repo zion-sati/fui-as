@@ -792,9 +792,9 @@ function buildPage(): Node {
   onLoaded((_event): void => {
     scheduleTimer(0, 25, tick);
     const label = new RichText([
-      span("Draw ").italic(),
+      span("Draw ").color(rgba(235, 238, 245, 210)).italic(),
       span("here").fontSize(30.0).color(rgb(58, 197, 108)).fontFamily(activeTheme.value.fonts.monoFamily).bold().underline(),
-      span(" on this canvas!").bold(),
+      span(" on this canvas!").color(rgba(235, 238, 245, 210)).bold(),
     ])
       .fontFamily(activeTheme.value.fonts.bodyFamily)
       .fontSize(24)

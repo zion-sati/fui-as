@@ -180,9 +180,6 @@ export class RoutePageView {
   }
 
   applyTheme(theme: Theme): void {
-    this.root.bgColor(theme.colors.background);
-    this.contentScrollBox
-      .bgColor(theme.colors.background);
     applyDemoScrollBoxTheme(this.contentScrollBox, theme);
     this.accentBadge.bgColor(theme.colors.accent);
     this.syncNavItems();

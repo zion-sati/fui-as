@@ -1,4 +1,6 @@
 import { FlexBox } from "../nodes/FlexBox";
+import { HandlerAction } from "./Action";
+import { Disposable } from "./Disposable";
 import { ContextMenuManager } from "./ContextMenuManager";
 import { disposeAllFetchRequests } from "./Fetch";
 import { disposeAllFileRequests } from "./File";
@@ -38,6 +40,8 @@ function disposeAppScopedAsyncWork(): void {
 }
 
 class ApplicationShell extends FlexBox {
+  private themeSubscription: Disposable | null = null;
+
   constructor(root: Node) {
     super();
     this.width(100.0, Unit.Percent)
@@ -48,6 +52,23 @@ class ApplicationShell extends FlexBox {
       .child(FocusAdornerManager.createDefaultHost())
       .child(ContextMenuManager.createDefaultMenu())
       .child(ToolTipManager.createDefaultHost());
+    this.themeSubscription = activeTheme.addAction(new HandlerAction<ApplicationShell, Theme>(this, (shell: ApplicationShell, theme: Theme): void => {
+      shell.applyTheme(theme);
+    }));
+    this.applyTheme(activeTheme.value);
+  }
+
+  dispose(): void {
+    const subscription = this.themeSubscription;
+    if (subscription !== null) {
+      this.themeSubscription = null;
+      subscription.dispose();
+    }
+    super.dispose();
+  }
+
+  private applyTheme(theme: Theme): void {
+    this.bgColor(theme.colors.background);
   }
 }
 

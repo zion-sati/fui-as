@@ -1,6 +1,14 @@
 import { Application } from "../../src/core/Application";
 import { HandleValue } from "../../src/core/ffi";
+import { activeTheme, generateTheme, useCustomTheme } from "../../src/core/Theme";
 import { FlexBox, Text } from "../../src/nodes";
+import {
+  CALL_SET_BOX_STYLE,
+  getCallArg,
+  getCallCount,
+  getCallSequence,
+  resetCalls,
+} from "./FfiTestImports";
 
 const captureOrder = new Array<string>();
 const restoreOrder = new Array<string>();
@@ -58,5 +66,35 @@ describe("Application", () => {
     expect<string>(captureOrder.join("|")).toBe("root|child|leaf");
     expect<string>(restoreOrder.join("|")).toBe("leaf|child|root");
     Application.unmount();
+  });
+
+  it("themes the application shell without overriding an explicit root background", () => {
+    const previousTheme = activeTheme.value;
+    const explicitRootColor: u32 = 0x123456ff;
+    const root = new FlexBox().bgColor(explicitRootColor) as FlexBox;
+
+    Application.mount(root);
+    resetCalls();
+
+    const changedTheme = generateTheme(false, 0x2468acff);
+    useCustomTheme(changedTheme);
+
+    const callCount = getCallCount();
+    const sequence = getCallSequence();
+    let foundThemedShell = false;
+    for (let index = 0; index < callCount; ++index) {
+      if (unchecked(sequence[index]) != CALL_SET_BOX_STYLE) {
+        continue;
+      }
+      if (<u32>getCallArg(index, 1) != changedTheme.colors.background) {
+        continue;
+      }
+      expect<u64>(<u64>getCallArg(index, 0)).not.toBe(root.builtHandle);
+      foundThemedShell = true;
+    }
+    expect<bool>(foundThemedShell).toBe(true);
+
+    Application.unmount();
+    useCustomTheme(previousTheme);
   });
 });
