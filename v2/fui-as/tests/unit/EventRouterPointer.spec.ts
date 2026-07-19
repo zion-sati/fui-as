@@ -7,6 +7,10 @@ import { CALL_SELECT_WORD_AT, findCall, getCallArg, resetCalls, setNodeBounds } 
 
 let clickCount: i32 = 0;
 let lastClickCount: i32 = 0;
+let doubleClickCount: i32 = 0;
+let tripleClickCount: i32 = 0;
+let pointerClickOrder: i32 = 0;
+let specializedSawHandled: bool = false;
 let legacyDownCount: i32 = 0;
 let legacyMoveCount: i32 = 0;
 let ownerCount: i32 = 0;
@@ -81,6 +85,24 @@ function makeHandle(index: u32, generation: u32): u64 {
 function handleClick(event: PointerClickEventArgs): void {
   clickCount += 1;
   lastClickCount = event.clickCount;
+}
+
+function handleOrderedClick(event: PointerClickEventArgs): void {
+  clickCount += 1;
+  pointerClickOrder = pointerClickOrder * 10 + 1;
+  event.handled = true;
+}
+
+function handleDoubleClick(event: PointerClickEventArgs): void {
+  doubleClickCount += 1;
+  pointerClickOrder = pointerClickOrder * 10 + 2;
+  specializedSawHandled = event.handled;
+}
+
+function handleTripleClick(event: PointerClickEventArgs): void {
+  tripleClickCount += 1;
+  pointerClickOrder = pointerClickOrder * 10 + 3;
+  specializedSawHandled = event.handled;
 }
 
 function handleLegacyDown(_event: PointerEventArgs): void {
@@ -185,6 +207,10 @@ function handleParentLongPressEvent(event: LongPressEventArgs): void {
 function resetPointerState(): void {
   clickCount = 0;
   lastClickCount = 0;
+  doubleClickCount = 0;
+  tripleClickCount = 0;
+  pointerClickOrder = 0;
+  specializedSawHandled = false;
   legacyDownCount = 0;
   legacyMoveCount = 0;
   ownerCount = 0;
@@ -265,6 +291,74 @@ describe("EventRouterPointer", () => {
 
     expect<i32>(clickCount).toBe(1);
     expect<i32>(lastClickCount).toBe(2);
+  });
+
+  it("fires the ordinary pointer click callback for every click count", () => {
+    EventRouter.reset();
+    resetPointerState();
+
+    const node = new FlexBox().onPointerClick(handleClick);
+    const handle = makeHandle(71, 1);
+    EventRouter.register(handle, node);
+
+    for (let count: i32 = 1; count <= 4; count += 1) {
+      EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, count);
+      EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0, 0.0, 0.0, 0.0, count);
+    }
+
+    expect<i32>(clickCount).toBe(4);
+    expect<i32>(lastClickCount).toBe(4);
+  });
+
+  it("fires exact pointer multi-click callbacks after ordinary click on the same node", () => {
+    EventRouter.reset();
+    resetPointerState();
+
+    const node = new FlexBox()
+      .onPointerClick(handleOrderedClick)
+      .onPointerDoubleClick(handleDoubleClick)
+      .onPointerTripleClick(handleTripleClick);
+    const handle = makeHandle(72, 1);
+    EventRouter.register(handle, node);
+
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, 2);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0, 0.0, 0.0, 0.0, 2);
+
+    expect<i32>(clickCount).toBe(1);
+    expect<i32>(doubleClickCount).toBe(1);
+    expect<i32>(tripleClickCount).toBe(0);
+    expect<i32>(pointerClickOrder).toBe(12);
+    expect<bool>(specializedSawHandled).toBe(true);
+
+    pointerClickOrder = 0;
+    specializedSawHandled = false;
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, 3);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0, 0.0, 0.0, 0.0, 3);
+
+    expect<i32>(clickCount).toBe(2);
+    expect<i32>(doubleClickCount).toBe(1);
+    expect<i32>(tripleClickCount).toBe(1);
+    expect<i32>(pointerClickOrder).toBe(13);
+    expect<bool>(specializedSawHandled).toBe(true);
+  });
+
+  it("recognizes specialized pointer click handlers without an ordinary click handler", () => {
+    EventRouter.reset();
+    resetPointerState();
+
+    const node = new Text("target")
+      .onPointerDoubleClick(handleDoubleClick)
+      .onPointerTripleClick(handleTripleClick);
+    const handle = makeHandle(73, 1);
+    EventRouter.register(handle, node);
+
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, 2);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0, 0.0, 0.0, 0.0, 2);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, 3);
+    EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0, 0.0, 0.0, 0.0, 3);
+
+    expect<i32>(doubleClickCount).toBe(1);
+    expect<i32>(tripleClickCount).toBe(1);
   });
 
   it("routes structured pointer args and preserves legacy callbacks", () => {

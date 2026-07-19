@@ -1191,6 +1191,8 @@ describe("Node builders", () => {
 
     new FlexBox()
       .onPointerClick((_event) => {})
+      .onPointerDoubleClick((_event) => {})
+      .onPointerTripleClick((_event) => {})
       .build();
 
     const interactiveIndex = findCall(CALL_SET_INTERACTIVE);

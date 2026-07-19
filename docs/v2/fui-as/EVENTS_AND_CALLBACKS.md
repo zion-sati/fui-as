@@ -11,21 +11,26 @@ Available on nodes/controls that inherit `Node`:
 - `onPointerUp((x, y) => ...)`
 - `onPointerEnter(() => ...)`
 - `onPointerLeave(() => ...)`
-- `onClick((count) => ...)`
+- `onPointerClick((event) => ...)`
+- `onPointerDoubleClick((event) => ...)`
+- `onPointerTripleClick((event) => ...)`
 
 ### Ordering and trigger semantics
 
-For pointer-down events:
+Raw pointer click callbacks run after a successful primary-button press/release.
+`onPointerClick` fires for every click count. For an exact double or triple
+click, `onPointerDoubleClick` or `onPointerTripleClick` then fires with the same
+mutable `PointerClickEventArgs`; handling the ordinary callback is therefore
+visible to the specialized callback. A fourth repeated click has no specialized
+callback but still fires `onPointerClick`.
 
-1. `onPointerDown` callback runs first (if set).
-2. `onClick` runs next (if set), with `count` set to `1` for a single click,
-   `2` for the second click in a double-click sequence, and `3` for the third
-   click in a triple-click sequence. A fourth repeated click starts a fresh
-   sequence and reports `1`.
-
-`onClick` is currently **pointer-down based** (not pointer-up based) on base `Node`, except for nodes that opt into drag-data participation. Drag-enabled nodes defer click until pointer-up so the drag gesture can suppress click once the threshold is crossed.
-Controls such as `Button` may also defer action until pointer-up while preserving
-the `count` from pointer-down.
+These are raw routed pointer gestures. Semantic controls expose separate action
+events: `Button`, `Checkbox`, `RadioButton`, and `Switch` use `onClick`, while
+`NavLink` uses `onNavigate`. Semantic activation includes supported keyboard
+input, receives count-free `ClickEventArgs`, and does not fire raw pointer
+callbacks for keyboard activation. Toggle controls emit `onChanged` before
+`onClick` when user activation changes their value. Programmatic and persisted
+changes emit `onChanged` but never `onClick`.
 
 ## Node-level focus and key callbacks
 
@@ -128,7 +133,7 @@ See [Keyboard policy](./KEYBOARD_POLICY.md) for key maps by control.
 ## Practical guidance
 
 1. Use `onPointerDown`/`onPointerUp` when you need explicit press/release phases.
-2. Use control-level semantic callbacks (`onChanged`, `onAccept`, etc.) over raw pointer/key hooks when available.
+2. Use control-level semantic callbacks (`onClick`, `onChanged`, `onAccept`, etc.) over raw pointer/key hooks when available.
 3. Prefer owner-bound `...With(...)` callbacks for long-lived controller objects.
 4. For custom drag handles, prefer `DragGesture` + owner-bound `Signal.bind(...)` wiring over ad hoc pointer-delta bookkeeping.
 

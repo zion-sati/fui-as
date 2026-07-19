@@ -13,6 +13,7 @@ export class DashboardModel {
   commonCheckboxState: SemanticCheckedState = SemanticCheckedState.False;
   commonTriStateValue: SemanticCheckedState = SemanticCheckedState.Mixed;
   commonSwitchValue: bool = true;
+  commonSwitchClickCount: i32 = 0;
   commonRadioValue: string = "system";
   commonHorizontalSliderValue: f32 = 40.0;
   commonVerticalSliderValue: f32 = 60.0;

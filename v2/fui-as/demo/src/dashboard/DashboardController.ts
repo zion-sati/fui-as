@@ -246,6 +246,10 @@ export class DashboardController {
       c.model.commonSwitchValue = event.checked;
       c.updateCommonControlsState();
     });
+    this.view.commonSwitch.onClickWith(this, (c, _event) => {
+      c.model.commonSwitchClickCount += 1;
+      c.updateCommonControlsState();
+    });
     this.view.commonRadioGroup.onChangedWith(this, (c, event) => {
       c.model.commonRadioValue = event.value;
       c.updateCommonControlsState();
@@ -587,7 +591,8 @@ export class DashboardController {
       this.view.commonToggleStatusText,
       "Checkbox: " + this.formatCheckedState(this.model.commonCheckboxState) +
       " • Tri-state: " + this.formatCheckedState(this.model.commonTriStateValue) +
-      " • Switch: " + (this.model.commonSwitchValue ? "on" : "off"),
+      " • Switch changed: " + (this.model.commonSwitchValue ? "on" : "off") +
+      " • Switch semantic clicks: " + this.model.commonSwitchClickCount.toString(),
     );
     this.updateSemanticText(this.view.commonRadioStatusText, "Radio group: " + this.model.commonRadioValue);
     this.updateSemanticText(

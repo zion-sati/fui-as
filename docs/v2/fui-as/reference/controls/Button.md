@@ -5,7 +5,7 @@ import { Button, ButtonColors } from "./Fui";
 ```
 
 - **Constructor:** `new Button(label: string)`
-- **Action:** `onClick((count) => ...)`
+- **Action:** `onClick((event) => ...)`, `onClickWith(owner, handler)`
 - **State callback:** `onHoverChanged(cb)`
 - **Content:** `label(text)`
 - **Colors:** `colors(new ButtonColors().background(...).backgroundHover(...).backgroundPressed(...).border(...).textPrimary(...))`
@@ -20,6 +20,11 @@ column stays content-sized unless you explicitly give it `fillWidth()`,
 `width(...)`, `alignSelf(AlignSelf.Stretch)`, or other sizing overrides.
 Color overrides flow into the built-in presenter and any custom `ButtonPresenter`
 template you attach.
+
+`onClick` is semantic activation: it fires once for supported pointer or
+keyboard activation and receives count-free `ClickEventArgs`. Use inherited
+`onPointerClick`, `onPointerDoubleClick`, and `onPointerTripleClick` only for raw
+routed pointer gestures.
 
 ## See also
 

@@ -24,7 +24,7 @@ import {
   resetCalls,
   resetTheme,
 } from "./ButtonTestUtils";
-import { ClickEventArgs } from "../../src/core/Node";
+import { ClickEventArgs, PointerClickEventArgs } from "../../src/core/Node";
 import { FontFamily, FontStack } from "../../src/core/Typography";
 
 let baseClickHits: i32 = 0;
@@ -41,11 +41,11 @@ function recordBaseClick(_event: ClickEventArgs): void {
   baseClickHits += 1;
 }
 
-function recordDoubleClick(_event: ClickEventArgs): void {
+function recordDoubleClick(_event: PointerClickEventArgs): void {
   doubleClickHits += 1;
 }
 
-function recordTripleClick(_event: ClickEventArgs): void {
+function recordTripleClick(_event: PointerClickEventArgs): void {
   tripleClickHits += 1;
 }
 
@@ -125,25 +125,22 @@ describe("Button", () => {
     resetTheme();
   });
 
-  it("fires onClick for double and triple click activations as well as specialized callbacks", () => {
+  it("fires semantic onClick for every pointer activation alongside raw specialized callbacks", () => {
     EventRouter.reset();
     resetTheme();
     resetMultiClickHits();
 
     const button = new Button("Action")
       .onClick(recordBaseClick)
-      .onDoubleClick(recordDoubleClick)
-      .onTripleClick(recordTripleClick);
-    button.build();
+      .onPointerDoubleClick(recordDoubleClick)
+      .onPointerTripleClick(recordTripleClick);
+    const handle = button.build();
+    EventRouter.register(handle, button);
 
-    button.beginPress();
-    button.endPress(1, true);
-    button.beginPress();
-    button.endPress(2, true);
-    button.beginPress();
-    button.endPress(3, true);
-    button.beginPress();
-    button.endPress(4, true);
+    for (let count: i32 = 1; count <= 4; count += 1) {
+      EventRouter.dispatchPointerEvent(handle, PointerEventType.Down, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 1, 0.0, 0.0, 0.0, count);
+      EventRouter.dispatchPointerEvent(handle, PointerEventType.Up, 12.0, 24.0, 0, -1, PointerType.Mouse, 0, 0, 0.0, 0.0, 0.0, count);
+    }
 
     expect<i32>(baseClickHits).toBe(4);
     expect<i32>(doubleClickHits).toBe(1);

@@ -1,6 +1,6 @@
 import { Callback1, Handler1 } from "../core/BoundCallback";
 import { KeyEventType, SemanticCheckedState, SemanticRole } from "../core/ffi";
-import { RadioButtonChangedEventArgs } from "../core/Node";
+import { ClickEventArgs, RadioButtonChangedEventArgs } from "../core/Node";
 import { activeTheme } from "../core/Theme";
 import { bind1 } from "../core/bind";
 import { LabeledControlSizing } from "./ControlSizing";
@@ -84,6 +84,21 @@ export class RadioButton extends PressableLabeledControl {
   onChanged(callback: ((event: RadioButtonChangedEventArgs) => void) | null): this {
     this.changedCallback = callback;
     this.changedBinding = null;
+    return this;
+  }
+
+  onClick(callback: (event: ClickEventArgs) => void): this {
+    super.onClick(callback);
+    return this;
+  }
+
+  bindClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    super.bindClick(owner, handler);
+    return this;
+  }
+
+  onClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    super.onClickWith(owner, handler);
     return this;
   }
 

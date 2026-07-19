@@ -9,7 +9,7 @@ import { FlexBox, Unit } from "./Fui";
 - **Layout:** `flexDirection`, `justifyContent`, `alignItems`, `alignSelf`, `padding`, `margin`
 - **Positioning:** `positionType`, `positionAbsolute`, `position`
 - **Visuals:** `bgColor`, `cornerRadius`, `corners`, `border`, `borderDashed`, `opacity`, `blur`, `dropShadow`, `backgroundBlur`, `linearGradient`
-- **Children/events:** `child`, `children`, `onClick`, `onPointerEnter`, `onPointerLeave`
+- **Children/events:** `child`, `children`, `onPointerClick`, `onPointerDoubleClick`, `onPointerTripleClick`, `onPointerEnter`, `onPointerLeave`
 
 `FlexBox` is the base retained box node used by most controls.
 

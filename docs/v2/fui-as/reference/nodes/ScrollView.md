@@ -13,7 +13,7 @@ import { ScrollState, ScrollView } from "./Fui";
 smooth target without waiting for a burst to finish. Pass `false` to restore
 immediate wheel-step scrolling. Touch, scrollbar, and explicit programmatic
 scrolling remain direct and take ownership immediately.
-- **Children/events:** `child`, `children`, `onClick`, `onPointerEnter`, `onPointerLeave`
+- **Children/events:** `child`, `children`, `onPointerClick`, `onPointerDoubleClick`, `onPointerTripleClick`, `onPointerEnter`, `onPointerLeave`
 
 ## Sizing guidance
 

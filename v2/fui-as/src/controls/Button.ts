@@ -74,10 +74,6 @@ export class Button extends FlexBox {
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
   private action: ((event: ClickEventArgs) => void) | null = null;
   private actionBinding: Callback1<ClickEventArgs> | null = null;
-  private doubleAction: ((event: ClickEventArgs) => void) | null = null;
-  private doubleActionBinding: Callback1<ClickEventArgs> | null = null;
-  private tripleAction: ((event: ClickEventArgs) => void) | null = null;
-  private tripleActionBinding: Callback1<ClickEventArgs> | null = null;
   private hoverChanged: ((event: HoverChangedEventArgs) => void) | null = null;
   private hoverChangedBinding: Callback1<HoverChangedEventArgs> | null = null;
   private disposed: bool = false;
@@ -168,40 +164,6 @@ export class Button extends FlexBox {
 
   onClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
     this.bindClick(owner, handler);
-    return this;
-  }
-
-  onDoubleClick(cb: (event: ClickEventArgs) => void): this {
-    this.doubleAction = cb;
-    this.doubleActionBinding = null;
-    return this;
-  }
-
-  bindDoubleClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
-    this.doubleAction = null;
-    this.doubleActionBinding = bind1<Owner, ClickEventArgs>(owner, handler);
-    return this;
-  }
-
-  onDoubleClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
-    this.bindDoubleClick(owner, handler);
-    return this;
-  }
-
-  onTripleClick(cb: (event: ClickEventArgs) => void): this {
-    this.tripleAction = cb;
-    this.tripleActionBinding = null;
-    return this;
-  }
-
-  bindTripleClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
-    this.tripleAction = null;
-    this.tripleActionBinding = bind1<Owner, ClickEventArgs>(owner, handler);
-    return this;
-  }
-
-  onTripleClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
-    this.bindTripleClick(owner, handler);
     return this;
   }
 
@@ -369,7 +331,7 @@ export class Button extends FlexBox {
     this.pressed.value = true;
   }
 
-  endPress(clickCount: i32 = 1, fireAction: bool = true): void {
+  endPress(fireAction: bool = true): void {
     const wasPressed = this.pressed.value;
     this.pressed.value = false;
     if (!wasPressed || !fireAction) {
@@ -382,26 +344,6 @@ export class Button extends FlexBox {
     const binding = this.actionBinding;
     if (binding !== null) {
       binding.invoke(ClickEventArgs.Empty);
-    }
-    if (clickCount == 2) {
-      const doubleCallback = this.doubleAction;
-      if (doubleCallback !== null) {
-        doubleCallback(ClickEventArgs.Empty);
-      }
-      const doubleBinding = this.doubleActionBinding;
-      if (doubleBinding !== null) {
-        doubleBinding.invoke(ClickEventArgs.Empty);
-      }
-    }
-    if (clickCount == 3) {
-      const tripleCallback = this.tripleAction;
-      if (tripleCallback !== null) {
-        tripleCallback(ClickEventArgs.Empty);
-      }
-      const tripleBinding = this.tripleActionBinding;
-      if (tripleBinding !== null) {
-        tripleBinding.invoke(ClickEventArgs.Empty);
-      }
     }
   }
 
@@ -459,7 +401,7 @@ export class Button extends FlexBox {
       return;
     }
     if (eventType == PointerEventType.Up && this.pressed.value) {
-      this.endPress(event === null || event.clickCount <= 0 ? 1 : event.clickCount, true);
+      this.endPress(true);
     }
   }
 
@@ -497,7 +439,7 @@ export class Button extends FlexBox {
     }
     if (eventType == KeyEventType.Up && this.keyboardArmedKey !== null && changetype<string>(this.keyboardArmedKey) == key) {
       this.keyboardArmedKey = null;
-      this.endPress(1, true);
+      this.endPress(true);
       return true;
     }
     return callbackHandled;

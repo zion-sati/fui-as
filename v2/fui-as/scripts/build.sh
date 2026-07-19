@@ -217,6 +217,7 @@ resolve_runtime_dist_dir() {
 }
 
 RUNTIME_DIST_DIR="$(resolve_runtime_dist_dir)"
+RUNTIME_SET_HASH="$(node -e 'const fs=require("fs"); const value=JSON.parse(fs.readFileSync(process.argv[1], "utf8")).runtime_set_hash; if (typeof value !== "string" || value.length === 0) process.exit(1); process.stdout.write(value);' "${RUNTIME_DIST_DIR}/effindom.v2.manifest.json")"
 
 write_runtime_config() {
   local destination="$1"
@@ -224,7 +225,11 @@ write_runtime_config() {
 
   cat > "${destination}/${RUNTIME_CONFIG_FILE}" <<EOF
 window.__effindomRuntime = Object.assign({}, window.__effindomRuntime, {
-  manifestUrl: new URL('${manifest_url}', document.currentScript && document.currentScript.src ? document.currentScript.src : document.baseURI).toString(),
+  manifestUrls: [
+    'https://runtimes.effindom.dev/v2/manifests/${RUNTIME_SET_HASH}.json',
+    new URL('${manifest_url}', document.currentScript && document.currentScript.src ? document.currentScript.src : document.baseURI).toString(),
+  ],
+  expectedRuntimeSetHash: '${RUNTIME_SET_HASH}',
   buildMode: 'debug',
 });
 EOF

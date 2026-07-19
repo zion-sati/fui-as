@@ -14,18 +14,18 @@ For the complete export list, see:
 | Control | Purpose | Key APIs |
 |---|---|---|
 | `Button` | Theme-aware action control | `onClick(...)`, `template(...)`, `colors(...)`, `bgColor(...)`, `hoverBgColor(...)`, `pressedBgColor(...)`, `textColor(...)`, `fontFamily(...)`, `fontSize(...)` |
-| `Checkbox` | Boolean/tri-state check control | `check(...)`, `triState(...)`, `mixed(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
+| `Checkbox` | Boolean/tri-state check control | `check(...)`, `triState(...)`, `mixed(...)`, `onChanged(...)`, `onClick(...)`, `template(...)`, `colors(...)` |
 | `ContextMenu` / `MenuItem` | Retained context menu surface | menu items + styling (`menuWidth(...)`, `itemHeight(...)`, `itemColor(...)`, `separatorColor(...)`) |
 | `Dialog` | Modal overlay with form-style actions | `show()`, `hide()`, `onAccept(...)`, `onCancel(...)`, dialog/card/backdrop styling, public accessors (`titleText`, `bodyText`, `acceptActionButton`, `cancelActionButton`) |
 | `Dropdown` / `DropdownItem` | Non-editable selection popup control | `items(...)`, `selectIndex(...)`, `onChanged(...)`, `colors(...)`, popup sizing/styling (`maxVisibleItems(...)`, `popupWidth(...)`), `fieldTemplate(...)`, `chevronTemplate(...)`, `optionRowTemplate(...)` |
 | `Form` | Enter/Escape default/cancel handling host | default/cancel action ownership for contained controls |
 | `NavLink` | Route/link control with browser-harness integration | constructor `NavLink(href, label?, newTab?)`, `hrefTo(...)`, `onNavigate(...)` |
 | `ProgressBar` | Determinate horizontal or vertical progress visualization | `value(...)`, `min(...)`, `max(...)`, `length(...)`, `thickness(...)`, `orientation(...)`, `trackColor(...)`, `fillColor(...)` |
-| `RadioButton` / `RadioGroup` | Single-choice grouped options | `addOption(...)`, `addOptions(...)`, `selectIndex(...)`, `selectedValue` (getter), `onChanged(...)`, radio `template(...)`, `colors(...)` |
+| `RadioButton` / `RadioGroup` | Single-choice grouped options | radio `onClick(...)`; group `addOption(...)`, `addOptions(...)`, `selectIndex(...)`, `selectedValue` (getter), `onChanged(...)`; radio `template(...)`, `colors(...)` |
 | `SelectionArea` | Cross-node text selection host | `selectedText`, selection hooks, Shift+Arrow extension for existing selections |
 | `AntiSelectionArea` | Selection barrier island | prevents parent `SelectionArea` from collecting subtree text |
 | `Slider` | Single-value range control | `min(...)`, `max(...)`, `step(...)`, `orientation(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
-| `Switch` | On/off toggle control | `check(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
+| `Switch` | On/off toggle control | `check(...)`, `onChanged(...)`, `onClick(...)`, `template(...)`, `colors(...)` |
 | `TextInput` | Single-line editable text | `template(...)`, `colors(...)`, `text(...)`, `placeholder(...)`, `readOnly(...)`, `password(...)`, `maxChars(...)`, change/selection/focus callbacks |
 | `TextArea` | Multiline editable text | `template(...)`, `colors(...)`, multiline input with wrapping and per-axis scrollbar visibility |
 

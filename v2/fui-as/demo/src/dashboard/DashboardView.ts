@@ -20,6 +20,7 @@ import {
   PanGestureEventArgs,
   PinchGestureEventArgs,
   PopupPlacement,
+  PointerClickEventArgs,
   PointerEventArgs,
   PointerEventType,
   PointerType,
@@ -329,6 +330,15 @@ class DashboardEventInspector extends FlexBox {
       })
       .onPointerCancelWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerEventArgs): void => {
         owner.handleChildPointer(event);
+      })
+      .onPointerClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: PointerClickEventArgs): void => {
+        owner.pushLog("child raw click count=" + event.clickCount.toString());
+      })
+      .onPointerDoubleClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event: PointerClickEventArgs): void => {
+        owner.pushLog("child exact raw double-click");
+      })
+      .onPointerTripleClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event: PointerClickEventArgs): void => {
+        owner.pushLog("child exact raw triple-click");
       });
 
     this.onWheelWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, event: WheelEventArgs): void => {

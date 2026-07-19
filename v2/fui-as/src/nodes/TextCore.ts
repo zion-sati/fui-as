@@ -618,6 +618,16 @@ export class TextCore extends Node {
     return this;
   }
 
+  onPointerDoubleClick(cb: (event: PointerClickEventArgs) => void): this {
+    super.onPointerDoubleClick(cb);
+    return this;
+  }
+
+  onPointerTripleClick(cb: (event: PointerClickEventArgs) => void): this {
+    super.onPointerTripleClick(cb);
+    return this;
+  }
+
   onPointerEnter(cb: (event: PointerEventArgs) => void): this {
     super.onPointerEnter(cb);
     return this;

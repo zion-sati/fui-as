@@ -34,7 +34,7 @@ import {
   TextInput,
 } from "../../src/controls";
 import { Application } from "../../src/core/Application";
-import { CheckboxChangedEventArgs, ComboBoxChangedEventArgs, DropdownChangedEventArgs, Node, PointerType, RadioButtonChangedEventArgs, RadioGroupChangedEventArgs, SliderChangedEventArgs, SwitchChangedEventArgs, TextChangedEventArgs } from "../../src/core/Node";
+import { CheckboxChangedEventArgs, ClickEventArgs, ComboBoxChangedEventArgs, DropdownChangedEventArgs, Node, PointerType, RadioButtonChangedEventArgs, RadioGroupChangedEventArgs, SliderChangedEventArgs, SwitchChangedEventArgs, TextChangedEventArgs } from "../../src/core/Node";
 import { EventRouter } from "../../src/core/EventRouter";
 import { flushCommit } from "../../src/core/FrameScheduler";
 import { AlignItems, AlignSelf, CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
@@ -119,9 +119,32 @@ let checkboxChangedState: SemanticCheckedState = SemanticCheckedState.None;
 let dropdownSelectedValue = "";
 let comboBoxSelectedValue = "";
 let comboBoxTextValue = "";
+let semanticClickCount: i32 = 0;
+let semanticChangedCount: i32 = 0;
+let semanticActivationOrder: i32 = 0;
 
 function handleCheckboxChanged(event: CheckboxChangedEventArgs): void {
   checkboxChangedState = event.state;
+}
+
+function handleSemanticClick(_event: ClickEventArgs): void {
+  semanticClickCount += 1;
+  semanticActivationOrder = semanticActivationOrder * 10 + 2;
+}
+
+function handleOrderedCheckboxChanged(_event: CheckboxChangedEventArgs): void {
+  semanticChangedCount += 1;
+  semanticActivationOrder = semanticActivationOrder * 10 + 1;
+}
+
+function handleOrderedRadioChanged(_event: RadioButtonChangedEventArgs): void {
+  semanticChangedCount += 1;
+  semanticActivationOrder = semanticActivationOrder * 10 + 1;
+}
+
+function handleOrderedSwitchChanged(_event: SwitchChangedEventArgs): void {
+  semanticChangedCount += 1;
+  semanticActivationOrder = semanticActivationOrder * 10 + 1;
 }
 
 function handleDropdownChanged(event: DropdownChangedEventArgs<DropdownItem>): void {
@@ -355,6 +378,145 @@ describe("Common controls", () => {
     expect<SemanticCheckedState>(checkboxChangedState).toBe(SemanticCheckedState.True);
 
     checkbox.dispose();
+  });
+
+  it("checkbox emits changed before semantic click and programmatic changes do not click", () => {
+    EventRouter.reset();
+    resetTheme();
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    semanticActivationOrder = 0;
+
+    const checkbox = new Checkbox("Accept terms")
+      .onChanged(handleOrderedCheckboxChanged)
+      .onClick(handleSemanticClick);
+    checkbox.build();
+    checkbox._handlePointerEvent(PointerEventType.Down, 8.0, 8.0, 0);
+    checkbox._handlePointerEvent(PointerEventType.Up, 8.0, 8.0, 0);
+
+    expect<i32>(semanticChangedCount).toBe(1);
+    expect<i32>(semanticClickCount).toBe(1);
+    expect<i32>(semanticActivationOrder).toBe(12);
+
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    semanticActivationOrder = 0;
+    checkbox.check(false);
+    expect<i32>(semanticChangedCount).toBe(1);
+    expect<i32>(semanticClickCount).toBe(0);
+    expect<i32>(semanticActivationOrder).toBe(1);
+
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    semanticActivationOrder = 0;
+    checkbox._applyPersistedCheckedState(SemanticCheckedState.True);
+    expect<i32>(semanticChangedCount).toBe(1);
+    expect<i32>(semanticClickCount).toBe(0);
+    expect<i32>(semanticActivationOrder).toBe(1);
+    checkbox.dispose();
+  });
+
+  it("disabled pressable controls emit neither changed nor semantic click", () => {
+    EventRouter.reset();
+    resetTheme();
+
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    const checkbox = new Checkbox("Checkbox")
+      .onChanged(handleOrderedCheckboxChanged)
+      .onClick(handleSemanticClick)
+      .enabled(false);
+    checkbox.build();
+    checkbox._handlePointerEvent(PointerEventType.Down, 8.0, 8.0, 0);
+    checkbox._handlePointerEvent(PointerEventType.Up, 8.0, 8.0, 0);
+    expect<i32>(semanticChangedCount).toBe(0);
+    expect<i32>(semanticClickCount).toBe(0);
+    checkbox.dispose();
+
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    const radio = new RadioButton("disabled", "Radio")
+      .onChanged(handleOrderedRadioChanged)
+      .onClick(handleSemanticClick)
+      .enabled(false);
+    radio.build();
+    radio._handlePointerEvent(PointerEventType.Down, 8.0, 8.0, 0);
+    radio._handlePointerEvent(PointerEventType.Up, 8.0, 8.0, 0);
+    expect<i32>(semanticChangedCount).toBe(0);
+    expect<i32>(semanticClickCount).toBe(0);
+    radio.dispose();
+
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    const control = new Switch("Switch")
+      .onChanged(handleOrderedSwitchChanged)
+      .onClick(handleSemanticClick)
+      .enabled(false);
+    control.build();
+    control._handlePointerEvent(PointerEventType.Down, 8.0, 8.0, 0);
+    control._handlePointerEvent(PointerEventType.Up, 8.0, 8.0, 0);
+    expect<i32>(semanticChangedCount).toBe(0);
+    expect<i32>(semanticClickCount).toBe(0);
+    control.dispose();
+  });
+
+  it("switch persisted restore emits changed without semantic click", () => {
+    EventRouter.reset();
+    resetTheme();
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    semanticActivationOrder = 0;
+
+    const control = new Switch("Notifications")
+      .onChanged(handleOrderedSwitchChanged)
+      .onClick(handleSemanticClick);
+    control.build();
+    control._applyPersistedChecked(true);
+
+    expect<i32>(semanticChangedCount).toBe(1);
+    expect<i32>(semanticClickCount).toBe(0);
+    expect<i32>(semanticActivationOrder).toBe(1);
+    control.dispose();
+  });
+
+  it("radio emits semantic click even when activation does not change its selected state", () => {
+    EventRouter.reset();
+    resetTheme();
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    semanticActivationOrder = 0;
+
+    const radio = new RadioButton("alpha", "Alpha").check(true)
+      .onChanged(handleOrderedRadioChanged)
+      .onClick(handleSemanticClick);
+    radio.build();
+    radio._handlePointerEvent(PointerEventType.Down, 8.0, 8.0, 0);
+    radio._handlePointerEvent(PointerEventType.Up, 8.0, 8.0, 0);
+
+    expect<i32>(semanticChangedCount).toBe(0);
+    expect<i32>(semanticClickCount).toBe(1);
+    expect<i32>(semanticActivationOrder).toBe(2);
+    radio.dispose();
+  });
+
+  it("switch emits changed before semantic click for keyboard activation", () => {
+    EventRouter.reset();
+    resetTheme();
+    semanticClickCount = 0;
+    semanticChangedCount = 0;
+    semanticActivationOrder = 0;
+
+    const control = new Switch("Notifications")
+      .onChanged(handleOrderedSwitchChanged)
+      .onClick(handleSemanticClick);
+    const handle = control.build();
+    EventRouter.dispatchKeyEvent(handle, KeyEventType.Down, " ", 0);
+    EventRouter.dispatchKeyEvent(handle, KeyEventType.Up, " ", 0);
+
+    expect<i32>(semanticChangedCount).toBe(1);
+    expect<i32>(semanticClickCount).toBe(1);
+    expect<i32>(semanticActivationOrder).toBe(12);
+    control.dispose();
   });
 
   it("programmatic checkbox, radio, switch, radio-group, and slider changes emit without semantic announcements", () => {

@@ -1,9 +1,11 @@
 import { rgba } from "../../color";
 import { HandlerAction } from "../../core/Action";
+import { Callback1, Handler1 } from "../../core/BoundCallback";
+import { bind1 } from "../../core/bind";
 import { Disposable, disposeAll } from "../../core/Disposable";
 import { FocusAdornerManager } from "../../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../../core/FocusVisibility";
-import { Node } from "../../core/Node";
+import { ClickEventArgs, Node } from "../../core/Node";
 import {
   AlignItems,
   CursorStyle,
@@ -37,6 +39,8 @@ export class PressableLabeledControl extends FlexBox {
   protected focusedState: bool = false;
   private keyPressedState: bool = false;
   private pointerPressedState: bool = false;
+  private clickCallback: ((event: ClickEventArgs) => void) | null = null;
+  private clickBinding: Callback1<ClickEventArgs> | null = null;
 
   constructor(role: SemanticRole, label: string, indicatorPresenterRoot: FlexBox) {
     super();
@@ -106,6 +110,7 @@ export class PressableLabeledControl extends FlexBox {
       this.pressedState = false;
       this.syncVisualState();
       this.handleActivated();
+      this.fireSemanticClick();
     }
   }
 
@@ -125,6 +130,7 @@ export class PressableLabeledControl extends FlexBox {
       this.pressedState = false;
       this.syncVisualState();
       this.handleActivated();
+      this.fireSemanticClick();
       return true;
     }
     return callbackHandled;
@@ -156,6 +162,23 @@ export class PressableLabeledControl extends FlexBox {
   }
 
   protected handleActivated(): void {}
+
+  onClick(callback: (event: ClickEventArgs) => void): this {
+    this.clickCallback = callback;
+    this.clickBinding = null;
+    return this;
+  }
+
+  bindClick<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    this.clickCallback = null;
+    this.clickBinding = bind1<Owner, ClickEventArgs>(owner, handler);
+    return this;
+  }
+
+  onClickWith<Owner>(owner: Owner, handler: Handler1<Owner, ClickEventArgs>): this {
+    this.bindClick(owner, handler);
+    return this;
+  }
 
   protected syncVisualState(): void {}
 
@@ -244,5 +267,17 @@ export class PressableLabeledControl extends FlexBox {
       return;
     }
     FocusAdornerManager.hideOwner(this);
+  }
+
+  private fireSemanticClick(): void {
+    const callback = this.clickCallback;
+    if (callback !== null) {
+      callback(ClickEventArgs.Empty);
+      return;
+    }
+    const binding = this.clickBinding;
+    if (binding !== null) {
+      binding.invoke(ClickEventArgs.Empty);
+    }
   }
 }

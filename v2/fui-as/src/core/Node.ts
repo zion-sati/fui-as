@@ -684,6 +684,10 @@ export abstract class Node implements DragGestureHost, Disposable {
   private portalFlag: bool = false;
   private pointerClickCallback: ((event: PointerClickEventArgs) => void) | null = null;
   private pointerClickBinding: Callback1<PointerClickEventArgs> | null = null;
+  private pointerDoubleClickCallback: ((event: PointerClickEventArgs) => void) | null = null;
+  private pointerDoubleClickBinding: Callback1<PointerClickEventArgs> | null = null;
+  private pointerTripleClickCallback: ((event: PointerClickEventArgs) => void) | null = null;
+  private pointerTripleClickBinding: Callback1<PointerClickEventArgs> | null = null;
   private pointerDownEventCallback: ((event: PointerEventArgs) => void) | null = null;
   private pointerDownEventBinding: Callback1<PointerEventArgs> | null = null;
   private pointerMoveEventCallback: ((event: PointerEventArgs) => void) | null = null;
@@ -1101,6 +1105,44 @@ export abstract class Node implements DragGestureHost, Disposable {
 
   onPointerClickWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
     this.bindPointerClick(owner, handler);
+    return this;
+  }
+
+  onPointerDoubleClick(cb: (event: PointerClickEventArgs) => void): this {
+    this.pointerDoubleClickCallback = cb;
+    this.pointerDoubleClickBinding = null;
+    this.requireInteractive();
+    return this;
+  }
+
+  bindPointerDoubleClick<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
+    this.pointerDoubleClickCallback = null;
+    this.pointerDoubleClickBinding = bind1<Owner, PointerClickEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerDoubleClickWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
+    this.bindPointerDoubleClick(owner, handler);
+    return this;
+  }
+
+  onPointerTripleClick(cb: (event: PointerClickEventArgs) => void): this {
+    this.pointerTripleClickCallback = cb;
+    this.pointerTripleClickBinding = null;
+    this.requireInteractive();
+    return this;
+  }
+
+  bindPointerTripleClick<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
+    this.pointerTripleClickCallback = null;
+    this.pointerTripleClickBinding = bind1<Owner, PointerClickEventArgs>(owner, handler);
+    this.requireInteractive();
+    return this;
+  }
+
+  onPointerTripleClickWith<Owner>(owner: Owner, handler: Handler1<Owner, PointerClickEventArgs>): this {
+    this.bindPointerTripleClick(owner, handler);
     return this;
   }
 
@@ -2166,12 +2208,43 @@ export abstract class Node implements DragGestureHost, Disposable {
     const callback = this.pointerClickCallback;
     if (callback !== null) {
       callback(clickEvent);
-      return;
+    } else {
+      const binding = this.pointerClickBinding;
+      if (binding !== null) {
+        binding.invoke(clickEvent);
+      }
     }
-    const binding = this.pointerClickBinding;
-    if (binding !== null) {
-      binding.invoke(clickEvent);
+    if (clickEvent.clickCount == 2) {
+      const doubleCallback = this.pointerDoubleClickCallback;
+      if (doubleCallback !== null) {
+        doubleCallback(clickEvent);
+      } else {
+        const doubleBinding = this.pointerDoubleClickBinding;
+        if (doubleBinding !== null) {
+          doubleBinding.invoke(clickEvent);
+        }
+      }
+    } else if (clickEvent.clickCount == 3) {
+      const tripleCallback = this.pointerTripleClickCallback;
+      if (tripleCallback !== null) {
+        tripleCallback(clickEvent);
+      } else {
+        const tripleBinding = this.pointerTripleClickBinding;
+        if (tripleBinding !== null) {
+          tripleBinding.invoke(clickEvent);
+        }
+      }
     }
+    event.handled = clickEvent.handled;
+  }
+
+  private hasPointerClickHandler(): bool {
+    return this.pointerClickCallback !== null
+      || this.pointerClickBinding !== null
+      || this.pointerDoubleClickCallback !== null
+      || this.pointerDoubleClickBinding !== null
+      || this.pointerTripleClickCallback !== null
+      || this.pointerTripleClickBinding !== null;
   }
 
   private cancelDragState(): void {
@@ -2212,7 +2285,7 @@ export abstract class Node implements DragGestureHost, Disposable {
     if (!event.handled) {
       if (event.eventType == PointerEventType.Down) {
         const isPrimaryButton = isPrimaryActivationPointer(event);
-        this.clickPending = isPrimaryButton && (this.pointerClickCallback !== null || this.pointerClickBinding !== null);
+        this.clickPending = isPrimaryButton && this.hasPointerClickHandler();
         this.clickPendingCount = event.clickCount;
       } else if (event.eventType == PointerEventType.Up) {
         if (this.clickPending) {
@@ -2259,14 +2332,14 @@ export abstract class Node implements DragGestureHost, Disposable {
       if (dragGesture !== null && isPrimaryButton) {
         const waitForLongPress = event.pointerType == PointerType.Touch || event.pointerType == PointerType.Pen;
         dragGesture.handlePointerDown(nodeX, nodeY, _modifiers, waitForLongPress);
-        this.dragClickPending = this.pointerClickCallback !== null || this.pointerClickBinding !== null;
+        this.dragClickPending = this.hasPointerClickHandler();
         this.dragClickPendingCount = event.clickCount;
         this.clickPending = false;
         this.clickPendingCount = 0;
       } else {
         this.dragClickPending = false;
         this.dragClickPendingCount = 0;
-        this.clickPending = isPrimaryButton && (this.pointerClickCallback !== null || this.pointerClickBinding !== null);
+        this.clickPending = isPrimaryButton && this.hasPointerClickHandler();
         this.clickPendingCount = event.clickCount;
       }
       return;
