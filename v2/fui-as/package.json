@@ -4,6 +4,18 @@
   "private": false,
   "license": "AGPL-3.0-only OR LicenseRef-EffinDom-Commercial",
   "description": "EffinDom v2 AssemblyScript frontend framework SDK and browser harness",
+  "repository": "https://github.com/zion-sati/fui-as",
+  "keywords": [
+    "effindom",
+    "assemblyscript",
+    "webassembly",
+    "wasm",
+    "retained-mode",
+    "ui-framework",
+    "canvas-ui",
+    "skia",
+    "accessibility"
+  ],
   "type": "module",
   "publishConfig": {
     "access": "public"
@@ -70,8 +82,6 @@
     "src",
     "browser/routed-app-conventions.ts",
     "browser/favicon.ico",
-    "browser/loading-overlay-styles.html",
-    "browser/loading-overlay-body.html",
     "browser/src",
     "scripts",
     "LICENSE.md",

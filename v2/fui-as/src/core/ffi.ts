@@ -1,5 +1,7 @@
 export {
   fui_get_accent_color,
+  fui_get_host_capabilities,
+  fui_get_host_environment,
   fui_get_platform_family,
   fui_is_coarse_pointer,
   fui_is_dark_mode,

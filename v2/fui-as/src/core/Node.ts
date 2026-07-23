@@ -23,6 +23,7 @@ import { storePersistedTextState, tryLoadPersistedTextState } from "./PersistedU
 import { ToolTip } from "./ToolTip";
 import { ToolTipManager } from "./ToolTipManager";
 import { throwNullArgument } from "./Errors";
+import { HostContext } from "./Platform";
 import { bind0, bind1, bind2, bindResult0, bindResult1 } from "./bind";
 import {
   CursorStyle,
@@ -435,11 +436,13 @@ export class ContextMenuEventArgs {
   readonly target: Node | null;
   readonly x: f32;
   readonly y: f32;
+  readonly host: HostContext;
 
-  constructor(target: Node | null, x: f32, y: f32) {
+  constructor(target: Node | null, x: f32, y: f32, host: HostContext) {
     this.target = target;
     this.x = x;
     this.y = y;
+    this.host = host;
   }
 }
 

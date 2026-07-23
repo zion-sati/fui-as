@@ -21,7 +21,7 @@ test('demo loading overlay surfaces missing runtime config', async ({ page }) =>
 
   await expect(page.locator('#effindom-loading-overlay')).toBeVisible();
   await expect(page.locator('#effindom-loading-overlay')).toHaveAttribute('data-state', 'error');
-  await expect(page.locator('#effindom-loading-title')).toContainText('render raccoons');
+  await expect(page.locator('#effindom-loading-title')).toHaveText('Loading application');
   await expect(page.locator('#effindom-loading-detail')).toContainText('Missing effindom-runtime-config.js');
 });
 

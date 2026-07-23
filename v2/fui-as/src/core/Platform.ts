@@ -1,13 +1,58 @@
-import { fui_get_platform_family, fui_is_coarse_pointer, KeyModifier } from "./ffi";
+import {
+  fui_get_host_capabilities,
+  fui_get_host_environment,
+  fui_get_platform_family,
+  fui_is_coarse_pointer,
+  HostCapability,
+  HostEnvironment,
+  KeyModifier,
+  PlatformFamily,
+} from "./ffi";
 
-export enum PlatformFamily {
-  Unknown = 0,
-  Apple = 1,
-  Windows = 2,
-  Linux = 3,
+export { HostCapability, HostEnvironment, PlatformFamily } from "./ffi";
+
+const KNOWN_HOST_CAPABILITIES: u32 =
+  HostCapability.BrowserHistory |
+  HostCapability.Reload |
+  HostCapability.NewBrowsingContext |
+  HostCapability.OpenExternalUri |
+  HostCapability.ClipboardRead |
+  HostCapability.ClipboardWrite |
+  HostCapability.FileDialogs;
+
+function resolvePlatformFamily(value: u32): PlatformFamily {
+  if (value <= <u32>PlatformFamily.Linux) {
+    return <PlatformFamily>value;
+  }
+  return PlatformFamily.Unknown;
 }
 
-const detectedPlatformFamily = <PlatformFamily>fui_get_platform_family();
+function resolveHostEnvironment(value: u32): HostEnvironment {
+  if (value <= <u32>HostEnvironment.Headless) {
+    return <HostEnvironment>value;
+  }
+  return HostEnvironment.Unknown;
+}
+
+const detectedPlatformFamily = resolvePlatformFamily(fui_get_platform_family());
+const detectedHostEnvironment = resolveHostEnvironment(fui_get_host_environment());
+const detectedHostCapabilities = fui_get_host_capabilities() & KNOWN_HOST_CAPABILITIES;
+
+export class HostContext {
+  readonly platformFamily: PlatformFamily;
+  readonly environment: HostEnvironment;
+  private readonly capabilities: u32;
+
+  constructor(platformFamily: PlatformFamily, environment: HostEnvironment, capabilities: u32) {
+    this.platformFamily = resolvePlatformFamily(<u32>platformFamily);
+    this.environment = resolveHostEnvironment(<u32>environment);
+    this.capabilities = capabilities & KNOWN_HOST_CAPABILITIES;
+  }
+
+  supports(capability: HostCapability): bool {
+    return (this.capabilities & <u32>capability) != 0;
+  }
+}
 
 class KeyboardPolicy {
   constructor(
@@ -106,6 +151,18 @@ function appendShortcutModifierTokens(tokens: Array<string>, modifiers: KeyModif
 
 export function getPlatformFamily(): PlatformFamily {
   return detectedPlatformFamily;
+}
+
+export function getHostEnvironment(): HostEnvironment {
+  return detectedHostEnvironment;
+}
+
+export function getHostContext(): HostContext {
+  return new HostContext(detectedPlatformFamily, detectedHostEnvironment, detectedHostCapabilities);
+}
+
+export function hasHostCapability(capability: HostCapability): bool {
+  return (detectedHostCapabilities & <u32>capability) != 0;
 }
 
 export function isCoarsePointer(): bool {

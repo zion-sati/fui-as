@@ -20,8 +20,8 @@ HOST_EVENT_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-host-events.mjs"
 ABI_GENERATOR_BUILD="${PACKAGE_DIR}/build/generate-abi.mjs"
 RUNTIME_CONFIG_FILE="effindom-runtime-config.js"
 DEFAULT_MANIFEST_PATH="./runtime/dist/effindom.v2.manifest.json"
-LOADING_OVERLAY_STYLES_FILE="${PACKAGE_DIR}/browser/loading-overlay-styles.html"
-LOADING_OVERLAY_BODY_FILE="${PACKAGE_DIR}/browser/loading-overlay-body.html"
+LOADING_OVERLAY_STYLES_FILE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/loading-overlay-styles.css"
+LOADING_OVERLAY_BODY_FILE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/loading-overlay-body.html"
 RUNTIME_PACKAGE_DIR="${PACKAGE_DIR}/node_modules/@effindomv2/runtime"
 FILE_PROCESSING_WORKER_SOURCE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/file-processing-worker.ts"
 WORKER_BOOTSTRAP_SOURCE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/worker-bootstrap.ts"
@@ -192,9 +192,9 @@ resolve_runtime_dist_dir() {
   )
 
   if [ -f "${public_manifest}" ] && [ -f "${package_manifest}" ] && ! cmp -s "${public_manifest}" "${package_manifest}"; then
-    echo "Note: using ${public_runtime_dir} for monorepo runtime assets." >&2
+    echo "Note: using ${public_runtime_dir} for local runtime assets." >&2
     echo "      ${package_runtime_dir} is a staged package copy and may be stale." >&2
-    echo "      For ABI changes, run repo-root ./build.sh (or npm run build:v2:abi)." >&2
+    echo "      Rebuild the local runtime assets before changing the ABI." >&2
   fi
 
   for candidate in "${candidates[@]}"; do
@@ -211,7 +211,7 @@ resolve_runtime_dist_dir() {
   echo "  - ${REPO_ROOT}/node_modules/@effindomv2/runtime/dist" >&2
   echo "  - ${REPO_ROOT}/public/v2/browser-bridge" >&2
   echo "  - ${REPO_ROOT}/v2/browser-bridge/dist" >&2
-  echo "Monorepo note: repo-root ./build.sh (or npm run build:v2:abi) refreshes the runtime assets used here." >&2
+  echo "Build the local runtime assets or install @effindomv2/runtime first." >&2
   echo "Install @effindomv2/runtime or build runtime assets first." >&2
   exit 1
 }

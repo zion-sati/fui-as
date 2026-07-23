@@ -11,6 +11,56 @@ test('demo loading overlay hides after startup', async ({ page }) => {
   await expect(page.locator('#effindom-loading-overlay')).toBeHidden();
 });
 
+test('demo loading overlay tracks built-in font replay during a hot route load', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html`);
+  await demo.waitForDemoReady(page);
+
+  let releaseFonts: (() => void) | undefined;
+  const fontsBlocked = new Promise<void>((resolve) => {
+    releaseFonts = resolve;
+  });
+  await page.route('**/runtime/fonts/*.ttf', async (route) => {
+    await fontsBlocked;
+    await route.continue();
+  });
+
+  await page.evaluate(() => {
+    void window.__fui_debug?.navigateTo('/v2/fui-as/demo/advanced-controls/');
+  });
+
+  await expect(page.locator('#effindom-loading-overlay')).toBeVisible();
+  await expect(page.locator('#effindom-loading-detail')).toHaveText('Built-in fonts 0 / 6');
+
+  releaseFonts?.();
+  await demo.waitForDemoReady(page);
+  await expect(page).toHaveURL(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await expect(page.locator('#effindom-loading-overlay')).toBeHidden();
+});
+
+test('demo loading overlay does not wait for app-authored route fonts', async ({ page }) => {
+  await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html`);
+  await demo.waitForDemoReady(page);
+
+  let releaseFonts: (() => void) | undefined;
+  const fontsBlocked = new Promise<void>((resolve) => {
+    releaseFonts = resolve;
+  });
+  await page.route('**/v2/fonts/*.ttf', async (route) => {
+    await fontsBlocked;
+    await route.continue();
+  });
+
+  await page.evaluate(() => {
+    void window.__fui_debug?.navigateTo('/v2/fui-as/demo/advanced-controls/');
+  });
+
+  await demo.waitForDemoReady(page);
+  await expect(page).toHaveURL(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
+  await expect(page.locator('#effindom-loading-overlay')).toBeHidden();
+  await expect(page.locator('#effindom-loading-detail')).not.toContainText('Fonts ');
+  releaseFonts?.();
+});
+
 test('demo loading overlay surfaces popstate route load failures', async ({ page }) => {
   await page.goto(`${demo.baseUrl}/v2/fui-as/demo/index.html`);
   await demo.waitForDemoReady(page);
@@ -37,7 +87,7 @@ test('demo loading overlay surfaces popstate route load failures', async ({ page
 
   await expect(page.locator('#effindom-loading-overlay')).toBeVisible();
   await expect(page.locator('#effindom-loading-overlay')).toHaveAttribute('data-state', 'error');
-  await expect(page.locator('#effindom-loading-title')).toContainText('render raccoons');
+  await expect(page.locator('#effindom-loading-title')).toHaveText('Loading application');
   await expect(page.locator('#effindom-loading-detail')).toContainText('Failed to load history route /v2/fui-as/demo/advanced-controls/');
   await expect(page.locator('#effindom-loading-detail')).toContainText('/v2/fui-as/demo/advanced-controls/');
   await expect(page.locator('#effindom-loading-detail')).toContainText('advanced-controls.wasm');

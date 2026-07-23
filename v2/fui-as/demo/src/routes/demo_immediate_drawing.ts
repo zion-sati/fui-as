@@ -1,7 +1,7 @@
 export * from "../../../src/FuiExports";
 export * from "../generated/HostEvents";
 
-import { DynamicTextLayout, Node, PointerEventArgs, RichText, TextLayout, TextLayoutReadyEventArgs, createApplication, onLoaded, activeTheme, devicePixelRatio, rgba, rgb, span } from "../../../src/Fui";
+import { Application, DynamicTextLayout, Node, PointerEventArgs, RichText, TextLayout, TextLayoutReadyEventArgs, createApplication, onLoaded, activeTheme, devicePixelRatio, rgba, rgb, span } from "../../../src/Fui";
 import { FlexBox } from "../../../src/nodes/FlexBox";
 import { Text } from "../../../src/nodes/Text";
 import { CustomDrawable } from "../../../src/nodes/CustomDrawable";
@@ -788,6 +788,7 @@ class DancingYarn extends CustomDrawable {
 }
 
 function buildPage(): Node {
+  Application.caption("EffinDOM FUI-AS Demo • Immediate Drawing");
   demo.init();
   onLoaded((_event): void => {
     scheduleTimer(0, 25, tick);

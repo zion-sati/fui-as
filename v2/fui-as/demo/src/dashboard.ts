@@ -18,6 +18,7 @@ const demoHarness = createManagedApplication<DashboardController>(
 );
 
 export function __runDemoApp(): void {
+  Application.caption("EffinDOM FUI-AS Demo • Dashboard");
   demoHarness.run();
 }
 

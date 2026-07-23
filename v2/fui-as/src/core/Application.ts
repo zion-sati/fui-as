@@ -10,7 +10,7 @@ import { SelectionHandleAdornerManager } from "./SelectionHandleAdornerManager";
 import { ToolTipManager } from "./ToolTipManager";
 import * as ui from "../bindings/ui";
 import { flushCommit, fireLoadedCallbacks, markNeedsCommit, resetCommitState } from "./FrameScheduler";
-import { HandleValue, Unit } from "./ffi";
+import { fui_set_application_caption, HandleValue, Unit } from "./ffi";
 import { Node } from "./Node";
 import { cancelAllTimers } from "./Timers";
 import {
@@ -245,6 +245,11 @@ export class Application<TPage> {
     fireLoadedCallbacks();
     markNeedsCommit();
     return root;
+  }
+
+  static caption(value: string): void {
+    const bytes = Uint8Array.wrap(String.UTF8.encode(value, false));
+    fui_set_application_caption(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length);
   }
 
   static unmount(): void {

@@ -11,7 +11,10 @@ import {
   formatRedoShortcutLabel,
   formatShortcutLabel,
   formatUndoShortcutLabel,
+  getHostContext,
   getPlatformFamily,
+  HostCapability,
+  HostContext,
   PlatformFamily,
 } from "./Platform";
 import { ContextMenuEventArgs, Node, VisibilityChangedEventArgs } from "./Node";
@@ -101,18 +104,21 @@ export class ContextMenuManager {
     if (this.invokeCustomContextMenuHandler(targetNode, x, y)) {
       return;
     }
-    const items = this.buildBuiltInItems(handle, x, y, true);
+    const host = getHostContext();
+    const items = this.buildBuiltInItemsForHost(handle, x, y, true, host);
 
     const navigationItems = new Array<MenuItem>();
-    if (ffi.fui_can_navigate_back()) {
+    if (host.supports(HostCapability.BrowserHistory) && ffi.fui_can_navigate_back()) {
       navigationItems.push(new MenuItem("Back", ContextMenuAction.NavigateBack, null, 0, resolveHistoryShortcutLabel(false)));
     }
-    if (ffi.fui_can_navigate_forward()) {
+    if (host.supports(HostCapability.BrowserHistory) && ffi.fui_can_navigate_forward()) {
       navigationItems.push(new MenuItem("Forward", ContextMenuAction.NavigateForward, null, 0, resolveHistoryShortcutLabel(true)));
     }
-    navigationItems.push(
-      new MenuItem("Reload Page", ContextMenuAction.ReloadPage, null, 0, formatPrimaryShortcutLabel("r")),
-    );
+    if (host.supports(HostCapability.Reload)) {
+      navigationItems.push(
+        new MenuItem("Reload Page", ContextMenuAction.ReloadPage, null, 0, formatPrimaryShortcutLabel("r")),
+      );
+    }
     appendMenuSection(items, navigationItems);
     if (items.length == 0) {
       this.releaseActiveMenuLinkPreview();
@@ -123,7 +129,7 @@ export class ContextMenuManager {
   }
 
   static showForLongPress(handle: u64, x: f32, y: f32): bool {
-    const items = this.buildBuiltInItems(handle, x, y, false);
+    const items = this.buildBuiltInItemsForHost(handle, x, y, false, getHostContext());
     if (items.length == 0) {
       this.releaseActiveMenuLinkPreview();
       return false;
@@ -169,7 +175,7 @@ export class ContextMenuManager {
       }
       const handler = contextNode.contextMenuHandler;
       if (handler !== null) {
-        handler(new ContextMenuEventArgs(targetNode, x, y));
+        handler(new ContextMenuEventArgs(targetNode, x, y, getHostContext()));
         return true;
       }
       contextNode = contextNode.parentNode;
@@ -177,7 +183,14 @@ export class ContextMenuManager {
     return false;
   }
 
-  private static buildBuiltInItems(handle: u64, x: f32, y: f32, clearSelectionOnBackgroundMiss: bool): Array<MenuItem> {
+  /** @internal Exposed for deterministic host-policy tests; not part of the FUI public barrel. */
+  static buildBuiltInItemsForHost(
+    handle: u64,
+    x: f32,
+    y: f32,
+    clearSelectionOnBackgroundMiss: bool,
+    host: HostContext,
+  ): Array<MenuItem> {
     this.releaseActiveMenuLinkPreview();
     const targetNode = EventRouter.getRegisteredNode(handle);
     let contextNode = targetNode;
@@ -194,26 +207,34 @@ export class ContextMenuManager {
       link.pinPreviewForContextMenu();
       this.activeMenuLink = link;
       const linkItems = new Array<MenuItem>();
-      linkItems.push(new MenuItem("New Tab", ContextMenuAction.OpenLinkInNewTab, link.href));
-      linkItems.push(new MenuItem("Open", ContextMenuAction.OpenLink, link.href));
+      if (host.supports(HostCapability.NewBrowsingContext)) {
+        linkItems.push(new MenuItem("New Tab", ContextMenuAction.OpenLinkInNewTab, link.href));
+      }
+      if (host.supports(HostCapability.OpenExternalUri)) {
+        linkItems.push(new MenuItem("Open", ContextMenuAction.OpenLink, link.href));
+      }
       appendMenuSection(items, linkItems);
     }
 
     const textTarget = this.resolveTextTarget(targetNode);
     const selectionHit = ui.isPointInSelection(x, y) || this.selectionHintContainsHandle(handle);
     if (textTarget !== null) {
-      appendMenuSection(items, this.buildTextSection(textTarget, selectionHit ? this.currentSelectionText : ""));
+      appendMenuSection(items, this.buildTextSection(textTarget, selectionHit ? this.currentSelectionText : "", host));
     }
 
     const imageUrl = this.resolveImageUrl(targetNode, x, y);
     if (imageUrl !== null && imageUrl.length > 0) {
       const imageItems = new Array<MenuItem>();
-      imageItems.push(new MenuItem("New Tab", ContextMenuAction.OpenImageInNewTab, imageUrl));
-      imageItems.push(new MenuItem("Open", ContextMenuAction.OpenImage, imageUrl));
+      if (host.supports(HostCapability.NewBrowsingContext)) {
+        imageItems.push(new MenuItem("New Tab", ContextMenuAction.OpenImageInNewTab, imageUrl));
+      }
+      if (host.supports(HostCapability.OpenExternalUri)) {
+        imageItems.push(new MenuItem("Open", ContextMenuAction.OpenImage, imageUrl));
+      }
       appendMenuSection(items, imageItems);
     }
 
-    if (selectionHit && textTarget === null && this.currentSelectionText.length > 0) {
+    if (selectionHit && textTarget === null && this.currentSelectionText.length > 0 && host.supports(HostCapability.ClipboardWrite)) {
       const selectionItems = new Array<MenuItem>();
       selectionItems.push(new MenuItem("Copy", ContextMenuAction.CopyCurrentSelection, this.currentSelectionText));
       appendMenuSection(items, selectionItems);
@@ -266,7 +287,7 @@ export class ContextMenuManager {
     return null;
   }
 
-  private static buildTextSection(target: TextCore, currentSelectionText: string = ""): Array<MenuItem> {
+  private static buildTextSection(target: TextCore, currentSelectionText: string, host: HostContext): Array<MenuItem> {
     const items = new Array<MenuItem>();
     const handle = target.builtHandle;
     if (handle == <u64>HandleValue.Invalid || !target.isSelectableText) {
@@ -313,48 +334,52 @@ export class ContextMenuManager {
         ),
       );
       items.push(MenuItem.separator());
-      items.push(
-        new MenuItem(
-          "Cut",
-          ContextMenuAction.CutTextSelection,
-          selectedPayload,
-          0,
-          formatPrimaryShortcutLabel("x"),
-          !hasSelection,
-          handle,
-          0,
-          0,
-          true,
-        ).withSelectionRange(selectionStartByte, selectionEndByte),
-      );
-      items.push(
-        new MenuItem(
-          "Copy",
-          ContextMenuAction.CopyCurrentSelection,
-          selectedPayload,
-          0,
-          formatPrimaryShortcutLabel("c"),
-          !hasSelection,
-          handle,
-          0,
-          0,
-          true,
-        ),
-      );
-      items.push(
-        new MenuItem(
-          "Paste",
-          ContextMenuAction.PasteText,
-          null,
-          0,
-          formatPrimaryShortcutLabel("v"),
-          false,
-          handle,
-          0,
-          0,
-          true,
-        ),
-      );
+      if (host.supports(HostCapability.ClipboardWrite)) {
+        items.push(
+          new MenuItem(
+            "Cut",
+            ContextMenuAction.CutTextSelection,
+            selectedPayload,
+            0,
+            formatPrimaryShortcutLabel("x"),
+            !hasSelection,
+            handle,
+            0,
+            0,
+            true,
+          ).withSelectionRange(selectionStartByte, selectionEndByte),
+        );
+        items.push(
+          new MenuItem(
+            "Copy",
+            ContextMenuAction.CopyCurrentSelection,
+            selectedPayload,
+            0,
+            formatPrimaryShortcutLabel("c"),
+            !hasSelection,
+            handle,
+            0,
+            0,
+            true,
+          ),
+        );
+      }
+      if (host.supports(HostCapability.ClipboardRead)) {
+        items.push(
+          new MenuItem(
+            "Paste",
+            ContextMenuAction.PasteText,
+            null,
+            0,
+            formatPrimaryShortcutLabel("v"),
+            false,
+            handle,
+            0,
+            0,
+            true,
+          ),
+        );
+      }
       items.push(
         new MenuItem(
           "Select All",
@@ -372,6 +397,12 @@ export class ContextMenuManager {
       return items;
     }
 
+    if (!host.supports(HostCapability.ClipboardWrite)) {
+      items.push(
+        new MenuItem("Select All", ContextMenuAction.SelectAllText, null, 0, formatPrimaryShortcutLabel("a"), !hasText, handle),
+      );
+      return items;
+    }
     if (currentSelectionText.length > 0) {
       items.push(
         new MenuItem(

@@ -109,6 +109,7 @@ export class RoutePageController {
   }
 
   mount(): void {
+    Application.caption("EffinDOM FUI-AS Demo • " + this.model.title);
     Application.mount(this.view.getRoot());
   }
 

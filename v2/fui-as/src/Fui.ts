@@ -173,7 +173,18 @@ export { Worker, WorkerCompletedEventArgs, WorkerErrorEventArgs, WorkerProgressE
 export { Worker as WorkerRuntime } from "./worker/Worker";
 export { WorkerJob } from "./worker/WorkerJob";
 export { currentRoute, navigateTo } from "./core/Navigation";
-export { getPlatformFamily, hasPrimaryShortcutModifier, PlatformFamily, resolvePrimaryShortcutModifier } from "./core/Platform";
+export {
+  getHostContext,
+  getHostEnvironment,
+  getPlatformFamily,
+  hasHostCapability,
+  hasPrimaryShortcutModifier,
+  HostCapability,
+  HostContext,
+  HostEnvironment,
+  PlatformFamily,
+  resolvePrimaryShortcutModifier,
+} from "./core/Platform";
 export {
   Colors,
   ContextMenuItemTheme,

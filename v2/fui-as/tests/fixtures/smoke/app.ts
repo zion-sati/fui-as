@@ -52,6 +52,7 @@ const smokeHarness = createManagedApplication<SmokeApp>(
 );
 
 export function __runSmokeApp(): void {
+  Application.caption("EffinDOM • FUI-AS smoke");
   smokeHarness.run();
 }
 

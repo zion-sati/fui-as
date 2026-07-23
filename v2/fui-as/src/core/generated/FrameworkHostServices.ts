@@ -8,6 +8,20 @@ export function fui_get_accent_color(): u32 {
   return __host_fui_get_accent_color();
 }
 
+@external("fui_host", "fui_get_host_capabilities")
+declare function __host_fui_get_host_capabilities(): u32;
+
+export function fui_get_host_capabilities(): u32 {
+  return __host_fui_get_host_capabilities();
+}
+
+@external("fui_host", "fui_get_host_environment")
+declare function __host_fui_get_host_environment(): u32;
+
+export function fui_get_host_environment(): u32 {
+  return __host_fui_get_host_environment();
+}
+
 @external("fui_host", "fui_get_platform_family")
 declare function __host_fui_get_platform_family(): u32;
 

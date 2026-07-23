@@ -22,6 +22,7 @@ import { warn } from "../core/Logger";
 import { FontFamily, FontStyle, FontWeight } from "../core/Typography";
 import { Border, FlexBox, Grid, Portal, TextCore } from "../nodes";
 import { PopupPresenter } from "./internal/PopupPresenter";
+import { getHostContext, HostCapability } from "../core/Platform";
 
 const MENU_WIDTH: f32 = 220.0;
 const MENU_SEPARATOR_HEIGHT: f32 = 9.0;
@@ -304,6 +305,17 @@ function commitFocusedTextActionIfNeeded(item: MenuItem): void {
 }
 
 export function runContextMenuAction(item: MenuItem): void {
+  const host = getHostContext();
+  if (
+    ((item.action == ContextMenuAction.NavigateBack || item.action == ContextMenuAction.NavigateForward) && !host.supports(HostCapability.BrowserHistory)) ||
+    (item.action == ContextMenuAction.ReloadPage && !host.supports(HostCapability.Reload)) ||
+    ((item.action == ContextMenuAction.OpenLinkInNewTab || item.action == ContextMenuAction.OpenImageInNewTab) && !host.supports(HostCapability.NewBrowsingContext)) ||
+    ((item.action == ContextMenuAction.OpenLink || item.action == ContextMenuAction.OpenImage) && !host.supports(HostCapability.OpenExternalUri)) ||
+    ((item.action == ContextMenuAction.CopyCurrentSelection || item.action == ContextMenuAction.CutTextSelection) && !host.supports(HostCapability.ClipboardWrite)) ||
+    (item.action == ContextMenuAction.PasteText && !host.supports(HostCapability.ClipboardRead))
+  ) {
+    return;
+  }
   if (item.disabled) {
     const actionNeedsLiveSelection =
       item.targetHandle != <u64>HandleValue.Invalid &&
@@ -510,6 +522,23 @@ export class ContextMenu extends Portal implements GlobalKeyHandler {
     if (menu !== null) {
       menu.hide();
     }
+  }
+
+  static dismissForOutsidePointerDown(sceneX: f32, sceneY: f32): bool {
+    const menu = ContextMenu.activeInstance;
+    if (menu === null || !menu.isMenuVisible) {
+      return false;
+    }
+    const bounds = menu.panel.getBounds();
+    const left = unchecked(bounds[0]);
+    const top = unchecked(bounds[1]);
+    const right = left + unchecked(bounds[2]);
+    const bottom = top + unchecked(bounds[3]);
+    if (sceneX >= left && sceneX <= right && sceneY >= top && sceneY <= bottom) {
+      return false;
+    }
+    menu.hide();
+    return true;
   }
 
   static invokeActiveSlot(slot: i32): void {

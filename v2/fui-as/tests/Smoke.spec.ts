@@ -56,6 +56,7 @@ test('renders the fui-as smoke through the browser bridge', async ({ page }) => 
   }).toBe('ready');
 
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join('; ')}`);
+  await expect(page).toHaveTitle('EffinDOM • FUI-AS smoke');
 
   const state = await page.evaluate(() => window.__fuiState);
   expect(state).toBeDefined();

@@ -737,6 +737,7 @@ export default {
           record(CallOp.NavigateForward);
         },
         fui_copy_text() {},
+        fui_set_application_caption() {},
         fui_has_text_selection_snapshot() {
           return 0;
         },
@@ -812,6 +813,8 @@ export default {
         fui_is_dark_mode() { return 0; },
         fui_get_accent_color() { return 0x2563ebff; },
         fui_get_platform_family() { return 1; },
+        fui_get_host_environment() { return 1; },
+        fui_get_host_capabilities() { return 0x7f; },
         fui_is_coarse_pointer() { return coarsePointer ? 1 : 0; },
         fui_show_url_preview(ptr, len) {
           lastUrlPreviewText = readUtf8(memory, ptr, len);

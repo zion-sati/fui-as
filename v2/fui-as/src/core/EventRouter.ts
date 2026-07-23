@@ -24,6 +24,7 @@ import { NavLink } from "../controls/NavLink";
 import { TextInputCore } from "../controls/internal/TextInputCore";
 import { Image } from "../nodes/Image";
 import { Svg } from "../nodes/Svg";
+import { ContextMenu } from "../controls/ContextMenu";
 
 export interface GlobalKeyHandler {
   handleGlobalKeyEvent(eventType: KeyEventType, key: string, modifiers: u32): bool;
@@ -44,6 +45,7 @@ export class EventRouter {
   private static readonly keyFilterHandlers: Array<GlobalKeyHandler> = new Array<GlobalKeyHandler>();
   private static readonly keyFilterTokens: Array<u32> = new Array<u32>();
   private static capturedPointerHandle: u64 = <u64>HandleValue.Invalid;
+  private static selectionCursorHandle: u64 = <u64>HandleValue.Invalid;
   private static currentCursorStyle: CursorStyle = CursorStyle.Default;
   private static nextKeyFilterToken: u32 = 1;
   private static focusedNode: Node | null = null;
@@ -69,6 +71,9 @@ export class EventRouter {
     }
     if (this.capturedPointerHandle == handle) {
       this.capturedPointerHandle = <u64>HandleValue.Invalid;
+    }
+    if (this.selectionCursorHandle == handle) {
+      this.selectionCursorHandle = <u64>HandleValue.Invalid;
     }
     const index = getHandleIndex(handle);
     this.nodes.delete(index);
@@ -96,12 +101,29 @@ export class EventRouter {
     const pointedNode = this.resolveNode(handle);
     if (
       eventType == PointerEventType.Down &&
+      (button == 0 || pointerType == PointerType.Touch || pointerType == PointerType.Pen) &&
+      ContextMenu.dismissForOutsidePointerDown(x, y)
+    ) {
+      DragDropManager.handlePointerEvent(null, eventType, x, y, modifiers);
+      this.applyCurrentCursor();
+      return true;
+    }
+    if (
+      eventType == PointerEventType.Down &&
       !this.preservesSelectionOnPointerDownForRouting(pointedNode) &&
       MobileTextSelectionToolbarManager.dismissForOutsidePointerDown(x, y)
     ) {
       DragDropManager.handlePointerEvent(null, eventType, x, y, modifiers);
       this.applyCurrentCursor();
       return true;
+    }
+    if (eventType == PointerEventType.Down && button == 0 && pointerType != PointerType.Touch) {
+      const selectionCursorNode = this.resolveSelectionCursorNode(pointedNode);
+      this.selectionCursorHandle = selectionCursorNode === null
+        ? <u64>HandleValue.Invalid
+        : changetype<Node>(selectionCursorNode).builtHandle;
+    } else if (eventType == PointerEventType.Up || eventType == PointerEventType.Cancel) {
+      this.selectionCursorHandle = <u64>HandleValue.Invalid;
     }
     if (eventType == PointerEventType.Up) {
       trackKeyboardScrollPointerUp(pointedNode, x, y);
@@ -553,6 +575,7 @@ export class EventRouter {
     this.nodes.clear();
     this.generations.clear();
     this.capturedPointerHandle = <u64>HandleValue.Invalid;
+    this.selectionCursorHandle = <u64>HandleValue.Invalid;
     this.hoverStack.length = 0;
     this.focusedNode = null;
     this.keyFilterHandlers.length = 0;
@@ -687,6 +710,22 @@ export class EventRouter {
     return this.resolveNode(this.capturedPointerHandle);
   }
 
+  private static resolveSelectionCursorNode(node: Node | null): Node | null {
+    if (node === null || !node.isEnabled || !node.isVisible) {
+      return null;
+    }
+    if (node.isSelectableText || node.isEditableText) {
+      return node;
+    }
+    if (node instanceof TextInputCore) {
+      const editor = changetype<TextInputCore>(node).editorNode;
+      if (editor.isEnabled && editor.isVisible && (editor.isSelectableText || editor.isEditableText)) {
+        return editor;
+      }
+    }
+    return null;
+  }
+
   private static applyCurrentCursor(): void {
     const dragCursor = DragDropManager.cursorOverrideStyle();
     if (dragCursor != CursorStyle.Default) {
@@ -696,6 +735,11 @@ export class EventRouter {
     const captured = this.resolveCapturedNode();
     if (captured !== null) {
       this.applyCursor(captured.cursorStyle);
+      return;
+    }
+    const selectionCursorNode = this.resolveNode(this.selectionCursorHandle);
+    if (selectionCursorNode !== null) {
+      this.applyCursor(changetype<Node>(selectionCursorNode).cursorStyle);
       return;
     }
     if (this.hoverStack.length == 0) {

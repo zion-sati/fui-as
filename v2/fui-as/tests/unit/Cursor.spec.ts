@@ -1,4 +1,4 @@
-import { DragDataObject, DragDropEffects, DragEventArgs, DropProposal } from "../../src/Fui";
+import { DragDataObject, DragDropEffects, DragEventArgs, DropProposal, PointerType } from "../../src/Fui";
 import { EventRouter } from "../../src/core/EventRouter";
 import { CursorStyle, PointerEventType } from "../../src/core/ffi";
 import { Node } from "../../src/core/Node";
@@ -64,6 +64,30 @@ describe("Cursor styles", () => {
     EventRouter.dispatchPointerEvent(handle, PointerEventType.Enter, 8.0, 8.0);
     expect<CursorStyle>(lastCursorStyle()).toBe(CursorStyle.Text);
 
+    text.dispose();
+  });
+
+  it("keeps the I-beam cursor while a text selection drag leaves the text row", () => {
+    setCoarsePointer(false);
+    EventRouter.reset();
+    resetCalls();
+
+    const text = new Text("Selectable");
+    const textHandle = text.build();
+    const outside = new FlexBox().cursor(CursorStyle.Pointer);
+    const outsideHandle = outside.build();
+    resetCalls();
+
+    EventRouter.dispatchPointerEvent(textHandle, PointerEventType.Enter, 8.0, 8.0);
+    EventRouter.dispatchPointerEvent(textHandle, PointerEventType.Down, 8.0, 8.0, 0, 1, PointerType.Mouse, 0, 1);
+    EventRouter.dispatchPointerEvent(textHandle, PointerEventType.Leave, 8.0, 40.0, 0, 1, PointerType.Mouse, 0, 1);
+    EventRouter.dispatchPointerEvent(outsideHandle, PointerEventType.Enter, 40.0, 40.0, 0, 1, PointerType.Mouse, 0, 1);
+    expect<CursorStyle>(lastCursorStyle()).toBe(CursorStyle.Text);
+
+    EventRouter.dispatchPointerEvent(outsideHandle, PointerEventType.Up, 40.0, 40.0, 0, 1, PointerType.Mouse, 0, 0);
+    expect<CursorStyle>(lastCursorStyle()).toBe(CursorStyle.Pointer);
+
+    outside.dispose();
     text.dispose();
   });
 

@@ -8,6 +8,12 @@ import {
   hasLineBoundaryModifier,
   hasPrimaryShortcutModifier,
   hasWordNavigationModifier,
+  getHostContext,
+  getHostEnvironment,
+  hasHostCapability,
+  HostCapability,
+  HostContext,
+  HostEnvironment,
   isCoarsePointer,
   isRedoShortcut,
   isUndoShortcut,
@@ -76,5 +82,34 @@ describe("Platform", () => {
     expect<bool>(isCoarsePointer()).toBe(true);
 
     setCoarsePointer(false);
+  });
+
+  it("reports browser host context and operation capabilities", () => {
+    expect<HostEnvironment>(getHostEnvironment()).toBe(HostEnvironment.Browser);
+    expect<PlatformFamily>(getHostContext().platformFamily).toBe(PlatformFamily.Apple);
+    expect<bool>(hasHostCapability(HostCapability.NewBrowsingContext)).toBe(true);
+    expect<bool>(hasHostCapability(HostCapability.FileDialogs)).toBe(true);
+  });
+
+  it("keeps platform family and host environment orthogonal", () => {
+    const browser = new HostContext(PlatformFamily.Apple, HostEnvironment.Browser, HostCapability.Reload);
+    const desktop = new HostContext(PlatformFamily.Apple, HostEnvironment.Desktop, HostCapability.OpenExternalUri);
+    const windowsBrowser = new HostContext(PlatformFamily.Windows, HostEnvironment.Browser, 0);
+    const windowsDesktop = new HostContext(PlatformFamily.Windows, HostEnvironment.Desktop, 0);
+    expect<PlatformFamily>(browser.platformFamily).toBe(desktop.platformFamily);
+    expect<HostEnvironment>(browser.environment).not.toBe(desktop.environment);
+    expect<PlatformFamily>(windowsBrowser.platformFamily).toBe(windowsDesktop.platformFamily);
+    expect<HostEnvironment>(windowsBrowser.environment).not.toBe(windowsDesktop.environment);
+    expect<bool>(browser.supports(HostCapability.Reload)).toBe(true);
+    expect<bool>(desktop.supports(HostCapability.Reload)).toBe(false);
+    expect<bool>(desktop.supports(HostCapability.OpenExternalUri)).toBe(true);
+  });
+
+  it("ignores unknown capability bits", () => {
+    const context = new HostContext(<PlatformFamily>99, <HostEnvironment>99, 0x80000000);
+    expect<PlatformFamily>(context.platformFamily).toBe(PlatformFamily.Unknown);
+    expect<HostEnvironment>(context.environment).toBe(HostEnvironment.Unknown);
+    expect<bool>(context.supports(HostCapability.BrowserHistory)).toBe(false);
+    expect<bool>(context.supports(HostCapability.FileDialogs)).toBe(false);
   });
 });

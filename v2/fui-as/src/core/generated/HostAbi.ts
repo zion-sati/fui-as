@@ -15,6 +15,9 @@ export declare function get_viewport_height(): f32;
 @external("fui_host", "get_device_pixel_ratio")
 export declare function get_device_pixel_ratio(): f32;
 
+@external("fui_host", "fui_set_application_caption")
+export declare function fui_set_application_caption(captionPtr: usize, captionLen: u32): void;
+
 @external("fui_host", "fui_set_pointer_capture")
 export declare function fui_set_pointer_capture(handle: u64): void;
 
@@ -107,6 +110,12 @@ export declare function fui_get_accent_color(): u32;
 
 @external("fui_host", "fui_get_platform_family")
 export declare function fui_get_platform_family(): u32;
+
+@external("fui_host", "fui_get_host_environment")
+export declare function fui_get_host_environment(): u32;
+
+@external("fui_host", "fui_get_host_capabilities")
+export declare function fui_get_host_capabilities(): u32;
 
 @external("fui_host", "fui_is_coarse_pointer")
 export declare function fui_is_coarse_pointer(): bool;

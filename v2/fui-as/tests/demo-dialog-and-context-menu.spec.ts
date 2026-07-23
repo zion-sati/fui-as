@@ -616,16 +616,16 @@ test('images expose default image actions in the context menu', async ({ page, c
     { button: 'right' },
   );
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
-    'Open Image in New Tab',
-    'Open Image',
+    'New Tab',
+    'Open',
     'Reload Page',
   ]);
 
   const popupPromise = context.waitForEvent('page');
-  const popupItemBounds = await demo.findSemanticBounds(page, 'Open Image in New Tab');
+  const popupItemBounds = await demo.findSemanticBounds(page, 'New Tab');
   expect(popupItemBounds).not.toBeNull();
   if (popupItemBounds === null) {
-    throw new Error('Expected Open Image in New Tab menu item bounds.');
+    throw new Error('Expected New Tab menu item bounds.');
   }
   await page.mouse.click(
     canvasBox.x + popupItemBounds.x + (popupItemBounds.width * 0.5),
@@ -641,8 +641,8 @@ test('images expose default image actions in the context menu', async ({ page, c
     { button: 'right' },
   );
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
-    'Open Image in New Tab',
-    'Open Image',
+    'New Tab',
+    'Open',
     'Reload Page',
   ]);
 });
@@ -671,8 +671,8 @@ test('right-clicking a nav link opens link actions without navigating', async ({
 
   await expect(page).toHaveURL(`${demo.baseUrl}/v2/fui-as/demo/index.html`);
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
-    'Open Link in New Tab',
-    'Open Link',
+    'New Tab',
+    'Open',
     'Reload Page',
   ]);
 });
@@ -703,15 +703,15 @@ test('context menu background blur stays inside the popup panel', async ({ page,
   const clickY = canvasBox.y + textureBounds.y + (textureBounds.height * 0.5);
   await page.mouse.click(clickX, clickY, { button: 'right' });
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
-    'Open Image in New Tab',
-    'Open Image',
+    'New Tab',
+    'Open',
     'Reload Page',
   ]);
 
-  const itemBounds = await demo.findSemanticBounds(page, 'Open Image');
+  const itemBounds = await demo.findSemanticBounds(page, 'Open');
   expect(itemBounds).not.toBeNull();
   if (itemBounds === null) {
-    throw new Error('Expected Open Image bounds.');
+    throw new Error('Expected Open bounds.');
   }
 
   const outsideLeftX = Math.max(0, Math.floor(itemBounds.x - 180));
@@ -726,8 +726,8 @@ test('context menu background blur stays inside the popup panel', async ({ page,
 
   await page.mouse.click(clickX, clickY, { button: 'right' });
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
-    'Open Image in New Tab',
-    'Open Image',
+    'New Tab',
+    'Open',
     'Reload Page',
   ]);
 
@@ -778,16 +778,16 @@ test('repeated right clicks retarget image context menu while it is open', async
     { button: 'right' },
   );
   await expect.poll(async () => await demo.readContextMenuLabels(page)).toEqual([
-    'Open Image in New Tab',
-    'Open Image',
+    'New Tab',
+    'Open',
     'Reload Page',
   ]);
 
   const popupPromise = context.waitForEvent('page');
-  const popupItemBounds = await demo.findSemanticBounds(page, 'Open Image in New Tab');
+  const popupItemBounds = await demo.findSemanticBounds(page, 'New Tab');
   expect(popupItemBounds).not.toBeNull();
   if (popupItemBounds === null) {
-    throw new Error('Expected Open Image in New Tab menu item bounds.');
+    throw new Error('Expected New Tab menu item bounds.');
   }
   await page.mouse.click(
     canvasBox.x + popupItemBounds.x + (popupItemBounds.width * 0.5),
