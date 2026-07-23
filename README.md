@@ -1,5 +1,10 @@
 # EffinDom FUI-AS
 
+[![FUI-AS CI](https://github.com/zion-sati/fui-as/actions/workflows/fui-as-ci.yml/badge.svg)](https://github.com/zion-sati/fui-as/actions/workflows/fui-as-ci.yml)
+[![Integration tests](https://github.com/zion-sati/fui-as/actions/workflows/fui-as-integration.yml/badge.svg)](https://github.com/zion-sati/fui-as/actions/workflows/fui-as-integration.yml)
+[![npm](https://img.shields.io/npm/v/@effindomv2/fui-as?label=fui-as)](https://www.npmjs.com/package/@effindomv2/fui-as)
+[![License: AGPL-3.0 or commercial](https://img.shields.io/badge/license-AGPL--3.0%20or%20commercial-green.svg)](LICENSE.md)
+
 > **Build WPF/SwiftUI-grade web apps in AssemblyScript. No DOM. No CSS. No virtual DOM diffing.**
 
 FUI-AS is the flagship SDK for the [EffinDom](https://github.com/zion-sati/EffinDOM) display server. You write TypeScript-style AssemblyScript — typed, compiled to WebAssembly, running against a retained-mode C++ rendering engine.
