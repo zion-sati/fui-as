@@ -29,6 +29,12 @@ WORKER_BOOTSTRAP_SOURCE="${REPO_ROOT}/v2/browser-bridge/src/managed-harness/work
 if [ ! -d "${RUNTIME_PACKAGE_DIR}" ]; then
   RUNTIME_PACKAGE_DIR="${REPO_ROOT}/node_modules/@effindomv2/runtime"
 fi
+if [ ! -f "${LOADING_OVERLAY_STYLES_FILE}" ]; then
+  LOADING_OVERLAY_STYLES_FILE="${RUNTIME_PACKAGE_DIR}/src/managed-harness/loading-overlay-styles.css"
+fi
+if [ ! -f "${LOADING_OVERLAY_BODY_FILE}" ]; then
+  LOADING_OVERLAY_BODY_FILE="${RUNTIME_PACKAGE_DIR}/src/managed-harness/loading-overlay-body.html"
+fi
 if [ ! -f "${FILE_PROCESSING_WORKER_SOURCE}" ]; then
   FILE_PROCESSING_WORKER_SOURCE="${RUNTIME_PACKAGE_DIR}/src/managed-harness/file-processing-worker.ts"
 fi
