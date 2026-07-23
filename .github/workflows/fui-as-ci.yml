@@ -52,12 +52,22 @@ jobs:
           npm ci
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
+      - name: Assert the runtime package is framework-agnostic
+        run: |
+          node - <<'NODE'
+          const runtime = require('./node_modules/@effindomv2/runtime/package.json');
+          if (runtime.dependencies?.['@assemblyscript/loader'] !== undefined) {
+            throw new Error('@effindomv2/runtime must not depend on @assemblyscript/loader.');
+          }
+          NODE
       - name: Lint, typecheck, unit test, and build
         run: |
           npm run lint
           npm run typecheck
           npm run test
           npm run build
+      - name: Run FUI-AS runtime package boundary smoke
+        run: npm run test:runtime-boundary
       - name: Run browser integration tests
         run: npm run test:browser:release-gate
       - name: Record the tested runtime pin

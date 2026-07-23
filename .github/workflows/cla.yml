@@ -5,7 +5,6 @@ on:
   pull_request_target:
     types: [opened, closed, synchronize]
 
-# Permissions required to comment on PRs and block/allow merges
 permissions:
   actions: write
   contents: write
@@ -26,5 +25,4 @@ jobs:
           path-to-signatures: '.github/cla-signatures.json'
           branch: 'main'
           allowlist: 'zion-sati,bot*'
-
           custom-pr-sign-comment: "Thank you for your submission! Because FUI-AS utilizes a dual AGPL + Commercial licensing model, we require all contributors to sign our Contributor License Agreement before code can be merged. Please read our [CLA.md](https://github.com) and reply to this comment with the exact phrase below:\n\n`I have read the CLA Document and I hereby sign the CLA`"

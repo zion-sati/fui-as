@@ -3,7 +3,7 @@
 By contributing to the `fui-as` repository, you (the "Contributor") grant the repository owner full legal rights to use, modify, and re-license your contributions.
 
 ### 1. License Grant and Re-Licensing Rights
-You hereby grant the repository owner a permanent, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to use, reproduce, modify, display, and distribute your contributions. 
+You hereby grant the repository owner a permanent, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to use, reproduce, modify, display, and distribute your contributions.
 
 Crucially, you grant the repository owner the unrestricted right to re-license your contributions under any terms, including but not limited to the GNU Affero General Public License (AGPL) and separate proprietary or commercial licenses.
 

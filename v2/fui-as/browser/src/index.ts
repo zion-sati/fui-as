@@ -1,6 +1,9 @@
 export {
   startHarness,
   startManagedHarness,
+} from './assemblyscript-harness';
+
+export {
   canManagedNavigateBack,
   canManagedNavigateForward,
   pushManagedHistoryEntry,

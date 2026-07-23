@@ -42,7 +42,7 @@ test.afterAll(async () => {
   await server.close();
 });
 
-test('renders the fui-as smoke through the browser bridge', async ({ page }) => {
+test('mounts an AssemblyScript app through the FUI-AS adapter over the raw runtime package', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
 

@@ -275,15 +275,26 @@ copy_runtime_assets() {
   rm -rf "${destination}/runtime"
   mkdir -p "${destination}/runtime/dist"
   cp "${RUNTIME_DIST_DIR}/effindom.v2.manifest.json" "${destination}/runtime/dist/effindom.v2.manifest.json"
+  MANIFEST_PATH="${destination}/runtime/dist/effindom.v2.manifest.json" node <<'NODE'
+const fs = require('node:fs');
+const manifestPath = process.env.MANIFEST_PATH;
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+for (const font of Object.values(manifest.assets?.fonts ?? {})) {
+  if (typeof font.url === 'string' && font.url.startsWith('../fonts/')) {
+    font.url = `./fonts/${font.url.slice('../fonts/'.length)}`;
+  }
+}
+fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
   if [ -f "${RUNTIME_DIST_DIR}/icu-asset.json" ]; then
     cp "${RUNTIME_DIST_DIR}/icu-asset.json" "${destination}/runtime/dist/icu-asset.json"
   fi
   cp -R "${RUNTIME_DIST_DIR}/runtime" "${destination}/runtime/dist/runtime"
-  mkdir -p "${destination}/runtime/fonts"
+  mkdir -p "${destination}/runtime/dist/fonts"
   if [ -d "${REPO_ROOT}/public/v2/fonts" ]; then
-    cp -R "${REPO_ROOT}/public/v2/fonts/." "${destination}/runtime/fonts/"
+    cp -R "${REPO_ROOT}/public/v2/fonts/." "${destination}/runtime/dist/fonts/"
   elif [ -d "${RUNTIME_DIST_DIR}/fonts" ]; then
-    cp -R "${RUNTIME_DIST_DIR}/fonts/." "${destination}/runtime/fonts/"
+    cp -R "${RUNTIME_DIST_DIR}/fonts/." "${destination}/runtime/dist/fonts/"
   fi
 }
 
