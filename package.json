@@ -14,6 +14,8 @@
     "lint": "npm run lint:v2",
     "typecheck": "bash -lc 'bash v2/fui-as/scripts/check-runtime-dependency.sh && if [ -x v2/fui-as/node_modules/.bin/tsc ]; then v2/fui-as/node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; elif [ -x node_modules/.bin/tsc ]; then node_modules/.bin/tsc -p v2/fui-as/tsconfig.json --noEmit; else echo \"Could not locate tsc in node_modules/.bin.\" >&2; exit 1; fi'",
     "test": "bash -lc 'bash v2/fui-as/scripts/check-runtime-dependency.sh && if [ -x v2/fui-as/node_modules/.bin/asp ]; then v2/fui-as/node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; elif [ -x node_modules/.bin/asp ]; then node_modules/.bin/asp --verbose -c v2/fui-as/as-pect.config.mjs -a v2/fui-as/as-pect.asconfig.json; else echo \"Could not locate asp in node_modules/.bin.\" >&2; exit 1; fi'",
+    "test:browser:release-gate": "playwright test -c v2/fui-as/playwright.config.ts --grep 'renders the fui-as smoke through the browser bridge|renders the interactive fui-as demo scene|demo dashboard NavLink routes to the advanced controls playground inside the demo shell|immediate-drawing demo page loads and renders a gauge'",
+    "test:integration": "playwright test -c v2/fui-as/playwright.config.ts",
     "build": "bash v2/fui-as/scripts/check-runtime-dependency.sh && npm run lint:v2 && bash v2/fui-as/scripts/build.sh",
     "publish:local": "bash scripts/publish/local/fui-as.sh",
     "publish:npm": "bash scripts/publish/npm/fui-as.sh",
