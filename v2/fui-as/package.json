@@ -89,6 +89,7 @@
     "LICENSES"
   ],
   "scripts": {
+    "update:upstream": "node scripts/update-upstream-versions.mjs",
     "guard:runtime-dependency": "bash scripts/check-runtime-dependency.sh",
     "generate:abi": "mkdir -p build && esbuild ../abi/generate.ts --bundle --format=esm --platform=node --target=node20 --packages=external --outfile=build/generate-abi.mjs && node build/generate-abi.mjs fui-as-ui && node build/generate-abi.mjs fui-as-host && node build/generate-abi.mjs fui-as-enums",
     "check:abi": "mkdir -p build && esbuild ../abi/generate.ts --bundle --format=esm --platform=node --target=node20 --packages=external --outfile=build/generate-abi.mjs && node build/generate-abi.mjs fui-as-ui --check && node build/generate-abi.mjs fui-as-host --check && node build/generate-abi.mjs fui-as-enums --check",
@@ -105,7 +106,7 @@
     "typecheck": "npm run guard:runtime-dependency && npm run check:abi && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@effindomv2/runtime": "0.1.26"
+    "@effindomv2/runtime": "0.2.5"
   },
   "devDependencies": {
     "@as-pect/assembly": "9.0.0",

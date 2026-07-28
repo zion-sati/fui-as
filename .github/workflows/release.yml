@@ -45,7 +45,6 @@ jobs:
       contents: read
     outputs:
       fui_as_ci_run_id: ${{ steps.attestation.outputs.fui_as_ci_run_id }}
-      release_inputs_run_id: ${{ steps.attestation.outputs.release_inputs_run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,7 +56,7 @@ jobs:
           git fetch origin main
           git merge-base --is-ancestor HEAD origin/main
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Verify FUI-AS CI attestation and runtime pin
+      - name: Verify FUI-AS CI attestation
         id: attestation
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -80,28 +79,15 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - name: Download the tested runtime pin
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          ARTIFACT_RUN_ID: ${{ needs.verify_ci.outputs.release_inputs_run_id }}
-        run: |
-          mkdir -p .release-inputs
-          gh run download "$ARTIFACT_RUN_ID" \
-            --repo "$GITHUB_REPOSITORY" \
-            --name fui-as-release-inputs \
-            --dir .release-inputs
-          test -f .release-inputs/release-inputs.json
-      - name: Stamp package and runtime versions from verified inputs
+      - name: Stamp package version
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.release_version }}
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
-          const inputs = JSON.parse(fs.readFileSync('.release-inputs/release-inputs.json', 'utf8'));
           const packagePath = 'v2/fui-as/package.json';
           const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
           packageJson.version = process.env.RELEASE_VERSION;
-          packageJson.dependencies['@effindomv2/runtime'] = inputs.runtimeVersion;
           fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
           NODE
       - name: Pack FUI-AS
@@ -130,7 +116,7 @@ jobs:
           fi
       - name: Report release
         run: |
-          runtime_version="$(node -p "require('./.release-inputs/release-inputs.json').runtimeVersion")"
+          runtime_version="$(node -p "require('./v2/fui-as/package.json').dependencies['@effindomv2/runtime']")"
           {
             echo '## FUI-AS released'
             echo

@@ -8,14 +8,6 @@
     "strict": true,
     "noEmit": true,
     "types": ["node"],
-    "paths": {
-      "@effindomv2/runtime": [
-        "../browser-bridge/src/index.ts"
-      ],
-      "@effindomv2/runtime/*": [
-        "../browser-bridge/src/*"
-      ]
-    },
     "skipLibCheck": true
   },
   "include": [
