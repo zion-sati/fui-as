@@ -41,6 +41,25 @@
       --code-color: #1d4ed8;
     }
 
+    @media (prefers-color-scheme: light) {
+      :root:not([data-demo-theme="dark"]) {
+        color-scheme: light;
+        --page-background:
+          radial-gradient(circle at top left, rgba(14, 165, 233, 0.10), transparent 30%),
+          linear-gradient(180deg, #f8fbff, #eef4fb 55%, #e5eef8);
+        --page-text: #102033;
+        --canvas-border: #c5d2e2;
+        --canvas-background: #f8fbff;
+        --canvas-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+        --sidebar-border: #c5d2e2;
+        --sidebar-background: rgba(255, 255, 255, 0.92);
+        --sidebar-label: #334155;
+        --button-background: linear-gradient(180deg, #2563eb, #1d4ed8);
+        --button-text: #f8fbff;
+        --code-color: #1d4ed8;
+      }
+    }
+
     body {
       margin: 0;
       width: 100vw;
