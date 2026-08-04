@@ -22,7 +22,6 @@ import { FlexBox, ScrollBarVisibility, ScrollBox, TextCore } from "../../nodes";
 import { bind1 } from "../../core/bind";
 import { ScrollState } from "../../nodes/ScrollState";
 import { ScrollView } from "../../nodes/ScrollView";
-import { getControlTemplates } from "../ControlTemplateSet";
 import { TextInputColors } from "../TextInputColors";
 import {
   defaultTextInputTemplate,
@@ -973,11 +972,7 @@ export class TextInputCore extends FlexBox {
     if (template !== null) {
       return template.create();
     }
-    const templateSet = getControlTemplates();
-    const appTemplate = templateSet !== null
-      ? (this.profile.multiline ? templateSet.textArea : templateSet.textInput)
-      : null;
-    return (appTemplate === null ? defaultTextInputTemplate : appTemplate).create();
+    return defaultTextInputTemplate.create();
   }
 
   private editorHostNode(): Node {

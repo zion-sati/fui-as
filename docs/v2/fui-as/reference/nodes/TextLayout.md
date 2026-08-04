@@ -46,9 +46,10 @@ Owner-bound readiness callback.
 ### `DrawContext.drawTextLayout(layout: TextLayout, x: f32, y: f32): void`
 Draws the prepared layout at the supplied origin.
 
-### `Bitmap.renderTextLayout(layout: TextLayout, x: f32 = 0, y: f32 = 0, scale: f32 = 1): void`
+### `Bitmap.renderTextLayout(layout: TextLayout, x: f32 = 0, y: f32 = 0, scale: f32 = 1): bool`
 Renders the prepared layout into a bitmap. Pass the device pixel ratio as
-`scale` when the bitmap dimensions are DPR-sized.
+`scale` when the bitmap dimensions are DPR-sized. Returns `false` when the
+prepared node is not yet available in the renderer and can be retried next frame.
 
 ## Measurement
 

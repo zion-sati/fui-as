@@ -164,6 +164,9 @@ export enum SemanticRole {
   Switch = 14,
   Slider = 15,
   ComboBox = 16,
+  TabList = 17,
+  Tab = 18,
+  TabPanel = 19,
 }
 
 export enum PlatformFamily {

@@ -109,6 +109,7 @@ class ReorderRowView {
     .opacity(0.0) as FlexBox;
   readonly gripLabel: Text = new DemoText("Drag", DemoTextRecipe.StatusValue)
     .fontSize(14.0)
+    .selectable(false)
     .cursor(CursorStyle.Grab)
     .bindDragData<ReorderRowView>(this, rowDragData)
     .dragAllowedEffects(DragDropEffects.Move)

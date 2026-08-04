@@ -5,7 +5,6 @@ import { Node, createManagedApplication } from "../../../src/Fui";
 import { RoutePageController } from "../design-system";
 import { TemplatedControlsController } from "./templated-controls/TemplatedControlsController";
 import { createTemplatedControlsRoutePageModel } from "./templated-controls/TemplatedControlsModel";
-import { createTemplatedControlsTemplateSet } from "./templated-controls/TemplatedControlsTemplates";
 
 function buildController(): RoutePageController {
   const templatedControlsController = new TemplatedControlsController();
@@ -16,11 +15,9 @@ function buildController(): RoutePageController {
   );
 }
 
-const app = createManagedApplication<RoutePageController>(
+createManagedApplication<RoutePageController>(
   buildController,
   (controller): Node => controller.getRoot(),
   (controller): void => controller.mount(),
   (controller): void => controller.dispose(),
 );
-
-app.useControlTemplates(createTemplatedControlsTemplateSet());

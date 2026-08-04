@@ -22,7 +22,6 @@ import { FontFamily, FontStyle, FontWeight } from "../core/Typography";
 import { Border, FlexBox, TextCore } from "../nodes";
 import { ClickEventArgs, HoverChangedEventArgs, PointerEventArgs } from "../core/Node";
 import { ButtonColors } from "./ButtonColors";
-import { getControlTemplates } from "./ControlTemplateSet";
 import {
   ButtonPresenter,
   ButtonTemplate,
@@ -642,9 +641,7 @@ export class Button extends FlexBox {
     if (template !== null) {
       return template.create();
     }
-    const templateSet = getControlTemplates();
-    const appTemplate = templateSet !== null ? templateSet.button : null;
-    return (appTemplate === null ? defaultButtonTemplate : appTemplate).create();
+    return defaultButtonTemplate.create();
   }
 
   private replacePresenter(nextPresenter: ButtonPresenter): void {

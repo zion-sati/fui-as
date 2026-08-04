@@ -86,19 +86,16 @@ const myCheckbox = new Checkbox("Remember me")
   })());
 ```
 
-### App-wide defaults via `ControlTemplateSet`
+### Design-system templates
 
 ```ts
-import { Application, ControlTemplateSet } from "@effindomv2/fui-as";
+function appCheckbox(label: string): Checkbox {
+  return new Checkbox(label).template(new CapsuleCheckboxTemplate()) as Checkbox;
+}
 
-const templates = new ControlTemplateSet()
-  .setButtonTemplate(new CapsuleButtonTemplate())
-  .setCheckboxTemplate(new CapsuleCheckboxTemplate())
-  .setSwitchTemplate(new CapsuleSwitchTemplate());
-
-Application.register(app =>
-  app
-    .page(buildPage)
-    .controlTemplates(templates)
-);
+const rememberMe = appCheckbox("Remember me");
 ```
+
+Use design-system constructors to share house templates. Template ownership
+stays explicit and controls outside that design system continue using built-in
+presenters.

@@ -1,6 +1,7 @@
 export {
   Application,
   ApplicationRegistration,
+  PageZoomMode,
   ManagedApplicationController,
   createApplication,
   createManagedApplication,
@@ -44,6 +45,7 @@ export {
 export { Fetch, FetchErrorEventArgs, FetchRequest, FetchResponse } from "./core/Fetch";
 export { log } from "./core/Logger";
 export { disposeAll, Disposable } from "./core/Disposable";
+export { retainedView, RetainedView, RetainedViewLifecycleHandler } from "./core/RetainedView";
 export { cancelAllTimers, cancelTimer, hasTimer, scheduleTimer } from "./core/Timers";
 export { LoadedEventArgs, LoadedHandler, onLoaded, onLoadedWith } from "./core/FrameScheduler";
 export { SetBackgroundAction, SetTextAction } from "./core/Actions";
@@ -217,12 +219,10 @@ export {
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
   Checkbox,
-  clearControlTemplates,
   ComboBox,
   ComboBoxCommitMode,
   ComboBoxFilterMode,
   ComboBoxItem,
-  ControlTemplateSet,
   ContextMenu,
   Dialog,
   DropdownSizing,
@@ -241,7 +241,6 @@ export {
   DropdownOptionRowTemplate,
   DropdownOptionRowVisualState,
   Form,
-  getControlTemplates,
   MenuItem,
   NavLink,
   LabeledControlSizing,
@@ -265,13 +264,16 @@ export {
   SwitchIndicatorTemplate,
   SwitchIndicatorVisualState,
   Switch,
+  TabContentFactory,
+  TabItem,
+  TabSelectionChangedEventArgs,
+  TabView,
   TextArea,
   TextInputPresenter,
   TextInput,
   TextInputTemplate,
   TextInputColors,
   TextInputVisualState,
-  useControlTemplates,
 } from "./controls";
 export {
   Border,

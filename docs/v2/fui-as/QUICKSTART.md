@@ -198,31 +198,22 @@ dropdowns through `DropdownFieldTemplate`, `DropdownChevronTemplate`, and
 `TextInputTemplate`, so apps can replace button, slider, dropdown, or text-entry
 chrome without rewriting the built-in behavior.
 
-For app-wide defaults, define a `ControlTemplateSet` once at registration time:
+For house styling, keep template ownership explicit in a design-system helper:
 
 ```ts
 import {
-  Application,
   Checkbox,
-  Column,
-  ControlTemplateSet,
 } from "./Fui";
 
-const templates = new ControlTemplateSet();
-templates.checkboxIndicator = new CapsuleCheckboxTemplate();
-
-Application.register(app =>
-  app
-    .controlTemplates(templates)
-    .page(() => Column(
-      new Checkbox("Remember me"),
-      new Checkbox("Stay signed in"),
-    ))
-);
+function appCheckbox(label: string): Checkbox {
+  return new Checkbox(label)
+    .template(new CapsuleCheckboxTemplate()) as Checkbox;
+}
 ```
 
-Per-instance setters like `button.template(...)`, `checkbox.template(...)`, and
-`textInput.template(...)` still override the app-level default.
+Per-instance setters such as `button.template(...)`, `checkbox.template(...)`,
+and `textInput.template(...)` affect only that control. Controls without an
+explicit template use the built-in presenter.
 
 For custom theme-driven controls, `bindTheme(owner, handler)` removes the
 `activeTheme` boilerplate: it immediately applies the current theme and returns

@@ -10,7 +10,7 @@ import { SelectionHandleAdornerManager } from "./SelectionHandleAdornerManager";
 import { ToolTipManager } from "./ToolTipManager";
 import * as ui from "../bindings/ui";
 import { flushCommit, fireLoadedCallbacks, markNeedsCommit, resetCommitState } from "./FrameScheduler";
-import { fui_set_application_caption, HandleValue, Unit } from "./ffi";
+import { fui_set_application_caption, fui_set_page_zoom_enabled, HandleValue, Unit } from "./ffi";
 import { Node } from "./Node";
 import { cancelAllTimers } from "./Timers";
 import {
@@ -23,11 +23,15 @@ import {
   useSystemTheme,
 } from "./Theme";
 import { disposeAllWorkers } from "./Worker";
-import { ControlTemplateSet, clearControlTemplates, getControlTemplates, useControlTemplates } from "../controls/ControlTemplateSet";
 
 let mountedRoot: Node | null = null;
 let mountedShell: FlexBox | null = null;
 let exportedApplication: Application<Node> | null = null;
+
+export enum PageZoomMode {
+  Disabled = 0,
+  Enabled = 1,
+}
 
 function createEmptyPage(): Node {
   return new FlexBox().width(100.0, Unit.Percent).height(100.0, Unit.Percent);
@@ -78,8 +82,6 @@ export class ApplicationRegistration {
   private customThemeOnRegister: Theme | null = null;
   private accentColorOnRegister: u32 = 0;
   private hasAccentColorOnRegister: bool = false;
-  private controlTemplatesOnRegister: ControlTemplateSet | null = null;
-  private hasControlTemplatesOnRegister: bool = false;
 
   page(buildPage: () => Node): this {
     this.buildPageFn = buildPage;
@@ -108,15 +110,8 @@ export class ApplicationRegistration {
     return this;
   }
 
-  controlTemplates(templates: ControlTemplateSet | null): this {
-    this.controlTemplatesOnRegister = templates;
-    this.hasControlTemplatesOnRegister = true;
-    return this;
-  }
-
   register(): Application<Node> {
     const app = createApplication(this.buildPageFn);
-    app.useControlTemplates(this.hasControlTemplatesOnRegister ? this.controlTemplatesOnRegister : null);
     if (this.useSystemThemeOnRegister) {
       app.useSystemTheme();
       return app;
@@ -208,18 +203,6 @@ export class Application<TPage> {
     return activeTheme.value;
   }
 
-  useControlTemplates(templates: ControlTemplateSet | null): ControlTemplateSet | null {
-    return useControlTemplates(templates);
-  }
-
-  clearControlTemplates(): void {
-    clearControlTemplates();
-  }
-
-  getControlTemplates(): ControlTemplateSet | null {
-    return getControlTemplates();
-  }
-
   static mount(root: Node): Node {
     const previousShell = mountedShell;
     if (previousShell !== null) {
@@ -250,6 +233,10 @@ export class Application<TPage> {
   static caption(value: string): void {
     const bytes = Uint8Array.wrap(String.UTF8.encode(value, false));
     fui_set_application_caption(bytes.length > 0 ? bytes.dataStart : 0, <u32>bytes.length);
+  }
+
+  static pageZoom(value: PageZoomMode): void {
+    fui_set_page_zoom_enabled(value === PageZoomMode.Enabled);
   }
 
   static unmount(): void {

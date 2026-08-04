@@ -5,12 +5,6 @@ export {
   createDefaultButtonPresenter,
   defaultButtonTemplate,
 } from "./internal/ButtonPresenter";
-export {
-  ControlTemplateSet,
-  clearControlTemplates,
-  getControlTemplates,
-  useControlTemplates,
-} from "./ControlTemplateSet";
 export { PressableIndicatorMetrics } from "./internal/PressableIndicatorPresenter";
 export {
   CheckboxIndicatorPresenter,

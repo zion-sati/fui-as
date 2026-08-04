@@ -28,7 +28,19 @@ import {
   RoutePageSection,
   createRoutePageSection,
 } from "../../design-system";
-import { createTemplatedControlsLocalCheckboxTemplate } from "./TemplatedControlsTemplates";
+import {
+  createTemplatedControlsButtonTemplate,
+  createTemplatedControlsCheckboxTemplate,
+  createTemplatedControlsDropdownChevronTemplate,
+  createTemplatedControlsDropdownFieldTemplate,
+  createTemplatedControlsDropdownOptionTemplate,
+  createTemplatedControlsLocalCheckboxTemplate,
+  createTemplatedControlsRadioTemplate,
+  createTemplatedControlsSliderTemplate,
+  createTemplatedControlsSwitchTemplate,
+  createTemplatedControlsTextAreaTemplate,
+  createTemplatedControlsTextInputTemplate,
+} from "./TemplatedControlsTemplates";
 
 const HOUSE_DROPDOWN_ITEMS: Array<DemoDropdownItem> = [
   new DemoDropdownItem("rounded", "Rounded field"),
@@ -48,9 +60,9 @@ function createSummaryText(recipe: DemoTextRecipe): Text {
 function createModeGroup(): DemoRadioGroup {
   return new DemoRadioGroup(true)
     .addOptions([
-      new DemoRadioButton("balanced", "Balanced chrome", true),
-      new DemoRadioButton("compact", "Compact chrome", true),
-      new DemoRadioButton("bold", "Bold chrome", true),
+      new DemoRadioButton("balanced", "Balanced chrome", true).template(createTemplatedControlsRadioTemplate()) as DemoRadioButton,
+      new DemoRadioButton("compact", "Compact chrome", true).template(createTemplatedControlsRadioTemplate()) as DemoRadioButton,
+      new DemoRadioButton("bold", "Bold chrome", true).template(createTemplatedControlsRadioTemplate()) as DemoRadioButton,
     ])
     .selectIndex(1)
     .semanticLabel("House style mode") as DemoRadioGroup;
@@ -58,17 +70,20 @@ function createModeGroup(): DemoRadioGroup {
 
 export class TemplatedControlsView {
   readonly houseCheckbox: DemoCheckbox = new DemoCheckbox("House style notifications", true)
+    .template(createTemplatedControlsCheckboxTemplate())
     .nodeId("templated-controls:house-checkbox") as DemoCheckbox;
   readonly overrideCheckbox: DemoCheckbox = new DemoCheckbox("Local override emphasis", true)
     .template(createTemplatedControlsLocalCheckboxTemplate())
     .check(true)
     .nodeId("templated-controls:override-checkbox") as DemoCheckbox;
   readonly houseSwitch: DemoSwitch = new DemoSwitch("House style quick actions", true)
+    .template(createTemplatedControlsSwitchTemplate())
     .check(true)
     .nodeId("templated-controls:house-switch") as DemoSwitch;
   readonly modeGroup: DemoRadioGroup = createModeGroup()
     .nodeId("templated-controls:mode-group") as DemoRadioGroup;
   readonly intensitySlider: DemoSlider = new DemoSlider(40.0)
+    .template(createTemplatedControlsSliderTemplate())
     .min(0.0)
     .max(100.0)
     .step(5.0)
@@ -76,38 +91,50 @@ export class TemplatedControlsView {
     .semanticLabel("House style intensity")
     .nodeId("templated-controls:intensity-slider") as DemoSlider;
   readonly houseDropdown: DemoDropdown = new DemoDropdown()
+    .fieldTemplate(createTemplatedControlsDropdownFieldTemplate())
+    .chevronTemplate(createTemplatedControlsDropdownChevronTemplate())
+    .optionRowTemplate(createTemplatedControlsDropdownOptionTemplate())
     .items(HOUSE_DROPDOWN_ITEMS)
     .selectIndex(1)
     .fillWidth()
     .nodeId("templated-controls:house-dropdown") as DemoDropdown;
   readonly houseButton: Button = new Button("Run house action")
+    .template(createTemplatedControlsButtonTemplate())
     as Button;
   readonly houseTextInput: TextInput = new TextInput("Palette")
+    .template(createTemplatedControlsTextInputTemplate())
     .placeholder("House style input")
     .fillWidth()
     .nodeId("templated-controls:house-text-input") as TextInput;
   readonly houseTextArea: TextArea = new TextArea("Presenter-owned chrome.\nControl-owned behavior.")
+    .template(createTemplatedControlsTextAreaTemplate())
     .placeholder("House style text area")
     .fillWidth()
     .height(120.0, Unit.Pixel)
     .nodeId("templated-controls:house-text-area") as TextArea;
   readonly colorButton: Button = new Button("Run tinted action")
+    .template(createTemplatedControlsButtonTemplate())
     .nodeId("templated-controls:color-button") as Button;
   readonly colorCheckbox: DemoCheckbox = new DemoCheckbox("Tinted checkbox chrome", true)
+    .template(createTemplatedControlsCheckboxTemplate())
     .check(true)
     .nodeId("templated-controls:color-checkbox") as DemoCheckbox;
   readonly colorSwitch: DemoSwitch = new DemoSwitch("Tinted switch chrome", true)
+    .template(createTemplatedControlsSwitchTemplate())
     .check(true)
     .nodeId("templated-controls:color-switch") as DemoSwitch;
   readonly coolRadio: DemoRadioButton = new DemoRadioButton("cool", "Cool accent radio", true)
+    .template(createTemplatedControlsRadioTemplate())
     .nodeId("templated-controls:color-radio-cool") as DemoRadioButton;
   readonly warmRadio: DemoRadioButton = new DemoRadioButton("warm", "Warm accent radio", true)
+    .template(createTemplatedControlsRadioTemplate())
     .nodeId("templated-controls:color-radio-warm") as DemoRadioButton;
   readonly colorRadioGroup: DemoRadioGroup = new DemoRadioGroup(true)
     .addOptions([this.coolRadio, this.warmRadio])
     .selectIndex(0)
     .nodeId("templated-controls:color-radio-group") as DemoRadioGroup;
   readonly colorSlider: DemoSlider = new DemoSlider(72.0)
+    .template(createTemplatedControlsSliderTemplate())
     .min(0.0)
     .max(100.0)
     .step(2.0)
@@ -115,15 +142,20 @@ export class TemplatedControlsView {
     .semanticLabel("Tinted slider")
     .nodeId("templated-controls:color-slider") as DemoSlider;
   readonly colorDropdown: DemoDropdown = new DemoDropdown()
+    .fieldTemplate(createTemplatedControlsDropdownFieldTemplate())
+    .chevronTemplate(createTemplatedControlsDropdownChevronTemplate())
+    .optionRowTemplate(createTemplatedControlsDropdownOptionTemplate())
     .items(HOUSE_DROPDOWN_ITEMS)
     .selectIndex(2)
     .fillWidth()
     .nodeId("templated-controls:color-dropdown") as DemoDropdown;
   readonly colorTextInput: TextInput = new TextInput("Palette")
+    .template(createTemplatedControlsTextInputTemplate())
     .placeholder("Tinted text input")
     .fillWidth()
     .nodeId("templated-controls:color-text-input") as TextInput;
   readonly colorTextArea: TextArea = new TextArea("Control colors flow through presenter-owned chrome too.")
+    .template(createTemplatedControlsTextAreaTemplate())
     .placeholder("Tinted text area")
     .fillWidth()
     .height(96.0, Unit.Pixel)
@@ -131,13 +163,13 @@ export class TemplatedControlsView {
   readonly defaultsStatusText: Text = createSummaryText(DemoTextRecipe.StatusValue);
   readonly overrideStatusText: Text = createSummaryText(DemoTextRecipe.StatusSupporting);
   readonly defaultsHintText: Text = new DemoText(
-    "Button, Checkbox, Switch, RadioButton, Slider, Dropdown, TextInput, and TextArea pick up the route-wide template set without per-instance calls.",
+    "The demo design system applies explicit templates to Button, Checkbox, Switch, RadioButton, Slider, Dropdown, TextInput, and TextArea.",
     DemoTextRecipe.Hint,
   )
     .fontSize(15.0)
     .maxLines(3) as Text;
   readonly overrideHintText: Text = new DemoText(
-    "The square override checkbox keeps its own indicator template even though the route supplies app-level defaults.",
+    "The square override checkbox supplies a different explicit indicator template.",
     DemoTextRecipe.Hint,
   )
     .fontSize(15.0)
@@ -250,8 +282,8 @@ export class TemplatedControlsView {
       this.defaultsHintText,
     ).fillWidth();
     return createRoutePageSection(
-      "App-level defaults",
-      "These controls use the route-wide ControlTemplateSet and keep their built-in semantics, persistence, and interaction behavior.",
+      "Design-system templates",
+      "These controls receive explicit templates from the route design system while retaining their built-in semantics, persistence, and interaction behavior.",
       body,
     );
   }
@@ -263,8 +295,8 @@ export class TemplatedControlsView {
       this.overrideHintText,
     ).fillWidth();
     return createRoutePageSection(
-      "Per-instance override precedence",
-      "This control uses a local template override, so it stays distinct from the route's house defaults.",
+      "Alternative local template",
+      "This control uses a different local template, so it stays distinct from the route's house controls.",
       body,
     );
   }

@@ -20,6 +20,7 @@ All controls and nodes listed below inherit common `Node` state APIs, including 
 - [SelectionArea](./controls/SelectionArea.md)
 - [Slider](./controls/Slider.md)
 - [Switch](./controls/Switch.md)
+- [TabView](./controls/TabView.md)
 - [TextInput](./controls/TextInput.md)
 - [TextArea](./controls/TextArea.md)
 

@@ -5,7 +5,6 @@ import { activeTheme } from "../core/Theme";
 import { bind1 } from "../core/bind";
 import { LabeledControlSizing } from "./ControlSizing";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
-import { getControlTemplates } from "./ControlTemplateSet";
 import { RadioGroup } from "./RadioGroup";
 import {
   createDefaultRadioIndicatorPresenter,
@@ -18,11 +17,7 @@ function createIndicatorPresenter(template: RadioIndicatorTemplate | null, sizin
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.radioIndicator : null;
-  return appTemplate === null
-    ? createDefaultRadioIndicatorPresenter(sizing)
-    : appTemplate.create(sizing);
+  return createDefaultRadioIndicatorPresenter(sizing);
 }
 
 export class RadioButton extends PressableLabeledControl {
@@ -188,10 +183,6 @@ export class RadioButton extends PressableLabeledControl {
   }
 
   private usesDefaultIndicatorPresenter(): bool {
-    if (this.templateOverride !== null) {
-      return false;
-    }
-    const templateSet = getControlTemplates();
-    return templateSet === null || templateSet.radioIndicator === null;
+    return this.templateOverride === null;
   }
 }

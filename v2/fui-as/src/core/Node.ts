@@ -239,6 +239,11 @@ export class PointerEventArgs {
   readonly width: f32;
   readonly height: f32;
   readonly clickCount: i32;
+  readonly isPrimary: bool;
+  readonly tangentialPressure: f32;
+  readonly tiltX: f32;
+  readonly tiltY: f32;
+  readonly twist: f32;
   x: f32;
   y: f32;
   handled: bool = false;
@@ -256,6 +261,11 @@ export class PointerEventArgs {
     width: f32 = 0.0,
     height: f32 = 0.0,
     clickCount: i32 = 0,
+    isPrimary: bool = true,
+    tangentialPressure: f32 = 0.0,
+    tiltX: f32 = 0.0,
+    tiltY: f32 = 0.0,
+    twist: f32 = 0.0,
   ) {
     this.eventType = eventType;
     this.sceneX = sceneX;
@@ -271,6 +281,11 @@ export class PointerEventArgs {
     this.width = width;
     this.height = height;
     this.clickCount = clickCount;
+    this.isPrimary = isPrimary;
+    this.tangentialPressure = tangentialPressure;
+    this.tiltX = tiltX;
+    this.tiltY = tiltY;
+    this.twist = twist;
   }
 }
 

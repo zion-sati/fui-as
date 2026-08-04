@@ -26,6 +26,7 @@ export {
   __fui_on_cross_selection_changed,
   __fui_on_focus_changed,
   __fui_on_frame,
+  __fui_needs_animation_frame,
   __fui_get_gesture_intent,
   __fui_get_long_press_minimum_duration_ms,
   __fui_get_long_press_movement_tolerance,

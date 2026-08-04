@@ -26,6 +26,7 @@ For the complete export list, see:
 | `AntiSelectionArea` | Selection barrier island | prevents parent `SelectionArea` from collecting subtree text |
 | `Slider` | Single-value range control | `min(...)`, `max(...)`, `step(...)`, `orientation(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
 | `Switch` | On/off toggle control | `check(...)`, `onChanged(...)`, `onClick(...)`, `template(...)`, `colors(...)` |
+| `TabView` / `TabItem` | Headless retained content switching with lazy owned content | `addItem(...)`, `removeItemAt(...)`, `selectIndex(...)`, `onSelectionChanged(...)`; compose buttons, links, text, or custom drawing as selectors |
 | `TextInput` | Single-line editable text | `template(...)`, `colors(...)`, `text(...)`, `placeholder(...)`, `readOnly(...)`, `password(...)`, `maxChars(...)`, change/selection/focus callbacks |
 | `TextArea` | Multiline editable text | `template(...)`, `colors(...)`, multiline input with wrapping and per-axis scrollbar visibility |
 
@@ -301,7 +302,6 @@ smooth-scroll surfaces with focused browser coverage.
 and `TextArea` now expose typed per-instance templating through the public
 `./Fui` barrel:
 
-- `ControlTemplateSet`
 - `ButtonPresenter` / `ButtonTemplate`
 - `DropdownFieldPresenter` / `DropdownFieldTemplate`
 - `DropdownChevronPresenter` / `DropdownChevronTemplate`
@@ -319,11 +319,9 @@ This surface stays intentionally narrow: behavior, semantics, persistence, and
 input stay in the built-in controls, while presenters own only the indicator or
 chrome visual subtree.
 
-Apps can also set house-style defaults once through
-`Application.register(app => app.controlTemplates(templateSet)...)` or
-`Application.useControlTemplates(templateSet)`. Per-instance template setters
-still win over app defaults, and any control without either falls back to the
-built-in presenter.
+Apps share house styles through design-system constructors that apply typed
+templates explicitly. Any control without an explicit template falls back to
+the built-in presenter, with no mutable application-wide template state.
 
 ## Notes
 

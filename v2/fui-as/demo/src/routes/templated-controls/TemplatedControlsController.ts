@@ -79,7 +79,7 @@ export class TemplatedControlsController implements RoutePageLifecycleOwner {
     this.view.overrideStatusText.text(
       "Override checkbox stays " +
       checkedLabel(this.view.overrideCheckbox) +
-      " while keeping local template precedence over the app-level defaults.",
+      " with its distinct per-control template.",
     );
   }
 }

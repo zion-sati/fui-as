@@ -27,6 +27,11 @@ let lastModifiers: u32 = 0;
 let lastPressure: f32 = 0.0;
 let lastWidth: f32 = 0.0;
 let lastHeight: f32 = 0.0;
+let lastIsPrimary: bool = false;
+let lastTangentialPressure: f32 = 0.0;
+let lastTiltX: f32 = 0.0;
+let lastTiltY: f32 = 0.0;
+let lastTwist: f32 = 0.0;
 let childPointerOrder: i32 = 0;
 let parentPointerOrder: i32 = 0;
 let childPointerHandles: bool = false;
@@ -127,6 +132,11 @@ function handlePointerEvent(event: PointerEventArgs): void {
   lastPressure = event.pressure;
   lastWidth = event.width;
   lastHeight = event.height;
+  lastIsPrimary = event.isPrimary;
+  lastTangentialPressure = event.tangentialPressure;
+  lastTiltX = event.tiltX;
+  lastTiltY = event.tiltY;
+  lastTwist = event.twist;
 }
 
 function handlePointerMoveCounting(event: PointerEventArgs): void {
@@ -385,6 +395,12 @@ describe("EventRouterPointer", () => {
       0.625,
       12.0,
       14.0,
+      0,
+      false,
+      -0.25,
+      18.0,
+      -12.0,
+      90.0,
     );
     EventRouter.dispatchPointerEvent(
       handle,
@@ -399,6 +415,12 @@ describe("EventRouterPointer", () => {
       0.75,
       12.0,
       14.0,
+      0,
+      false,
+      -0.2,
+      20.0,
+      -10.0,
+      95.0,
     );
 
     expect<i32>(legacyDownCount).toBe(1);
@@ -416,6 +438,11 @@ describe("EventRouterPointer", () => {
     expect<f32>(lastPressure).toBe(0.75);
     expect<f32>(lastWidth).toBe(12.0);
     expect<f32>(lastHeight).toBe(14.0);
+    expect<bool>(lastIsPrimary).toBe(false);
+    expect<f32>(lastTangentialPressure).toBe(-0.2);
+    expect<f32>(lastTiltX).toBe(20.0);
+    expect<f32>(lastTiltY).toBe(-10.0);
+    expect<f32>(lastTwist).toBe(95.0);
   });
 
   it("supports owner-bound structured pointer callbacks", () => {

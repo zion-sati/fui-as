@@ -5,7 +5,6 @@ import { PersistedBoolCodec, PersistedValueState } from "../core/PersistedState"
 import { bind1 } from "../core/bind";
 import { activeTheme } from "../core/Theme";
 import { LabeledControlSizing } from "./ControlSizing";
-import { getControlTemplates } from "./ControlTemplateSet";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
 import {
   defaultSwitchIndicatorTemplate,
@@ -36,9 +35,7 @@ function createIndicatorPresenter(template: SwitchIndicatorTemplate | null, sizi
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.switchIndicator : null;
-  return (appTemplate === null ? defaultSwitchIndicatorTemplate : appTemplate).create(sizing);
+  return defaultSwitchIndicatorTemplate.create(sizing);
 }
 
 export class Switch extends PressableLabeledControl {

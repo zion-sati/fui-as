@@ -41,10 +41,10 @@ test('idles when the demo has no pending work', async ({ page }) => {
       renderCalls: 0,
     };
 
-    const originalRunAppFrameHandler = runtime.runAppFrameHandler.bind(runtime);
-    runtime.runAppFrameHandler = ((timestampMs: number) => {
+    const originalRunAppFrameController = runtime.runAppFrameController.bind(runtime);
+    runtime.runAppFrameController = ((timestampMs: number) => {
       counts.appFrameCalls += 1;
-      originalRunAppFrameHandler(timestampMs);
+      originalRunAppFrameController(timestampMs);
     });
 
     const originalCommitFrame = runtime.commitFrame.bind(runtime);
@@ -63,7 +63,7 @@ test('idles when the demo has no pending work', async ({ page }) => {
       window.setTimeout(() => { resolve(); }, 600);
     });
 
-    runtime.runAppFrameHandler = originalRunAppFrameHandler;
+    runtime.runAppFrameController = originalRunAppFrameController;
     runtime.commitFrame = originalCommitFrame;
     runtime.core._ed_render_frame = originalRenderFrame;
     return counts;

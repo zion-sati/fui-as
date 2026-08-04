@@ -9,7 +9,7 @@ import {
   getAnimationManager,
   rgb,
 } from "../../src/Fui";
-import { __fui_on_frame, frameTimeSignal } from "../../src/core/event_exports";
+import { __fui_needs_animation_frame, __fui_on_frame, frameTimeSignal } from "../../src/core/event_exports";
 import { resetAnimations } from "../../src/core/Animation";
 import { resetCommitState } from "../../src/core/FrameScheduler";
 import {
@@ -175,6 +175,7 @@ describe("Animation", () => {
   it("uses the shared frame hook to tick active animations", () => {
     const owner = new FloatOwner();
     animateFloatWith(owner, 2.0, 6.0, new AnimationTiming(100.0), writeOwnerFloat);
+    expect<bool>(__fui_needs_animation_frame()).toBe(true);
 
     __fui_on_frame(1000.0);
     expect<f64>(frameTimeSignal.value).toBe(1000.0);
@@ -182,6 +183,9 @@ describe("Animation", () => {
 
     __fui_on_frame(1050.0);
     expect<f32>(owner.value).toBe(4.0);
+    expect<bool>(__fui_needs_animation_frame()).toBe(true);
+    resetAnimations();
+    expect<bool>(__fui_needs_animation_frame()).toBe(false);
   });
 
   it("requests a render when an animation starts", () => {

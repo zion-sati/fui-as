@@ -18,6 +18,9 @@ export declare function get_device_pixel_ratio(): f32;
 @external("fui_host", "fui_set_application_caption")
 export declare function fui_set_application_caption(captionPtr: usize, captionLen: u32): void;
 
+@external("fui_host", "fui_set_page_zoom_enabled")
+export declare function fui_set_page_zoom_enabled(enabled: bool): void;
+
 @external("fui_host", "fui_set_pointer_capture")
 export declare function fui_set_pointer_capture(handle: u64): void;
 

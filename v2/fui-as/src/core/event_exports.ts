@@ -28,7 +28,7 @@ import { handleRouteChanged } from "./Navigation";
 import { handleSystemAccentColorChanged, handleSystemDarkModeChanged } from "./Theme";
 import { handleTimer } from "./Timers";
 import { handleWorkerComplete, handleWorkerError, handleWorkerProgress } from "./Worker";
-import { tickAnimations } from "./Animation";
+import { getAnimationManager, tickAnimations } from "./Animation";
 import { ExternalDragEventType } from "./ExternalDropManager";
 import {
   describeHandle,
@@ -74,6 +74,11 @@ export function __fui_on_pointer_event_with_metadata(
   width: f32,
   height: f32,
   clickCount: i32,
+  isPrimary: bool,
+  tangentialPressure: f32,
+  tiltX: f32,
+  tiltY: f32,
+  twist: f32,
 ): bool {
   log(
     "Event",
@@ -106,6 +111,11 @@ export function __fui_on_pointer_event_with_metadata(
     width,
     height,
     clickCount,
+    isPrimary,
+    tangentialPressure,
+    tiltX,
+    tiltY,
+    twist,
   );
 }
 
@@ -189,6 +199,10 @@ export function __fui_on_viewport_changed(w: f32, h: f32): void {
 export function __fui_on_frame(timestampMs: f64): void {
   frameTimeSignal.value = timestampMs;
   tickAnimations(timestampMs);
+}
+
+export function __fui_needs_animation_frame(): bool {
+  return getAnimationManager().hasActiveAnimations();
 }
 
 export function __fui_on_timer(timerId: u32): void {

@@ -147,20 +147,20 @@ export class Bitmap implements Disposable {
    *
    * @param node  A built Text or RichText node sized to match this bitmap's dimensions.
    */
-  render(node: Node, x: f32 = 0.0, y: f32 = 0.0, scale: f32 = 1.0): void {
+  render(node: Node, x: f32 = 0.0, y: f32 = 0.0, scale: f32 = 1.0): bool {
     this.ensureNotDisposed("Bitmap.render");
     const handle = node.builtHandle;
-    if (handle == <u64>0) return;
-    ui.renderNodeToRgba(handle, this.width, this.height, this.pixelPtr(), <u32>this.pixelBytes.length, scale, x, y);
+    if (handle == <u64>0) return false;
+    return ui.renderNodeToRgba(handle, this.width, this.height, this.pixelPtr(), <u32>this.pixelBytes.length, scale, x, y) != 0;
   }
 
-  renderTextLayout(layout: TextLayout, x: f32 = 0.0, y: f32 = 0.0, scale: f32 = 1.0): void {
+  renderTextLayout(layout: TextLayout, x: f32 = 0.0, y: f32 = 0.0, scale: f32 = 1.0): bool {
     this.ensureNotDisposed("Bitmap.renderTextLayout");
     if (!layout.isReady) {
       error("TextLayout", "Bitmap.renderTextLayout() called before the TextLayout was ready; register onReady/onReadyWith and render after the callback.");
-      return;
+      return false;
     }
-    this.render(layout._drawNode(), x, y, scale);
+    return this.render(layout._drawNode(), x, y, scale);
   }
 
   /** Queue text shaping for a built text node before the next CommitFrame. */

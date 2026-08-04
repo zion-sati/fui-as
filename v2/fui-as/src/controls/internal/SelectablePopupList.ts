@@ -6,7 +6,6 @@ import { Theme, activeTheme } from "../../core/Theme";
 import { FlexBox, Portal, ScrollBarVisibility, ScrollBox } from "../../nodes";
 import { DropdownSizing } from "../ControlSizing";
 import { DropdownColors } from "../DropdownColors";
-import { getControlTemplates } from "../ControlTemplateSet";
 import {
   createDefaultDropdownOptionRowPresenter,
   DropdownOptionRowPresenter,
@@ -35,11 +34,7 @@ function createOptionRowPresenter(template: DropdownOptionRowTemplate | null, si
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.dropdownOptionRow : null;
-  return appTemplate === null
-    ? createDefaultDropdownOptionRowPresenter(sizing)
-    : appTemplate.create(sizing);
+  return createDefaultDropdownOptionRowPresenter(sizing);
 }
 
 class SelectablePopupListOptionNode extends FlexBox {

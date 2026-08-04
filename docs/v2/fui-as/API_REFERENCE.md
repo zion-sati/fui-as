@@ -205,13 +205,23 @@ an internal bridge detail.
 
 - `Application`
 - `ApplicationRegistration`
-- `ApplicationRegistration.controlTemplates(templates)`
+- `PageZoomMode`
 - `ContextMenuManager`
 - `Worker`
 - `WorkerRuntime`
 - `createApplication`
 - `createManagedApplication`
 - `showKeyboardFocusForKeyEvent`
+
+Use `Application.pageZoom(PageZoomMode.Enabled)` or
+`Application.pageZoom(PageZoomMode.Disabled)` for application-owned page zoom.
+The packaged default can be set with `application.pageZoom` in
+`fui-config.json`; application code wins when both are present.
+Page zoom is enabled by default on web and native. Disabling it resets the
+application viewport to identity while preserving control-owned pinch gestures
+and ordinary wheel/scroll input. Native hosts normalize platform magnification
+into the same control-first fallback contract used by browser trackpads and
+touchscreens.
 
 Browser harness configuration also accepts debug/runtime options from
 `@effindomv2/runtime`: `buildMode` (`"debug"` or `"release"`) and
@@ -819,15 +829,35 @@ accent-filled controls and custom surfaces.
 - `SelectionArea`
 - `Slider`
 - `Switch`
+- `TabView`
+- `TabItem`
 - `TextArea`
 - `TextInput`
 
+### TabView
+
+`TabView` is the retained in-window page switcher for applications that do not
+want URL routing, including native application shells. It owns no selector
+chrome: applications compose buttons, links, text, or custom controls and call
+`selectIndex(...)`. Each `TabItem` owns a lazy `RetainedView`: content is
+created on first activation, retained while inactive, deactivated before
+detachment, and disposed with the item or control.
+
+- `new TabView(items?)`
+- `new TabItem(label, contentFactory?)`
+- `TabItem.content(...)` / `contentView(...)`
+- `addItem(...)`, `removeItem(...)`, `removeItemAt(...)`, `clearItems()`
+- `selectIndex(...)`, `selectedIndex`, `selectedItem`
+- `onSelectionChanged(...)` / `onSelectionChangedWith(...)`
+
+Disabled items are skipped during replacement selection. `TabView` projects
+the selected content host as `TabPanel`; application-owned selector controls
+own their visual layout, keyboard behavior, and selector semantics. This lets
+selectors wrap, scroll, collapse, or use custom drawing without built-in chrome
+constraining the application.
+
 ### Typed control templating
 
-- `ControlTemplateSet`
-- `getControlTemplates()`
-- `useControlTemplates(templates)`
-- `clearControlTemplates()`
 - `ButtonPresenter`
 - `ButtonTemplate`
 - `ButtonVisualState`
@@ -872,18 +902,13 @@ The public per-instance templating surface currently covers:
 - `TextInput.template(template)`
 - `TextArea.template(template)`
 
-App-level defaults now layer on top through:
-
-- `ApplicationRegistration.controlTemplates(templateSet)`
-- `Application.useControlTemplates(templateSet)`
-- `Application.clearControlTemplates()`
-- `Application.getControlTemplates()`
-
 Template lookup order is:
 
 1. per-instance template override
-2. active `ControlTemplateSet` default
-3. built-in default presenter/template
+2. built-in default presenter/template
+
+Share house templates through design-system constructors rather than mutable
+application-wide template state.
 
 These typed presenter/template contracts let app code replace indicator visuals,
 button chrome, slider/dropdown chrome, or text-entry shell chrome without

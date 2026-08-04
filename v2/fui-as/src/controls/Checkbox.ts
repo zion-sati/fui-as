@@ -4,7 +4,6 @@ import { CheckboxChangedEventArgs, ClickEventArgs } from "../core/Node";
 import { PersistedInt32Codec, PersistedValueState } from "../core/PersistedState";
 import { bind1 } from "../core/bind";
 import { LabeledControlSizing } from "./ControlSizing";
-import { getControlTemplates } from "./ControlTemplateSet";
 import { activeTheme } from "../core/Theme";
 import { PressableLabeledControl } from "./internal/PressableLabeledControl";
 import {
@@ -45,11 +44,7 @@ function createIndicatorPresenter(template: CheckboxIndicatorTemplate | null, si
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.checkboxIndicator : null;
-  return appTemplate === null
-    ? createDefaultCheckboxIndicatorPresenter(sizing)
-    : appTemplate.create(sizing);
+  return createDefaultCheckboxIndicatorPresenter(sizing);
 }
 
 export class Checkbox extends PressableLabeledControl {
@@ -214,11 +209,7 @@ export class Checkbox extends PressableLabeledControl {
   }
 
   private usesDefaultIndicatorPresenter(): bool {
-    if (this.templateOverride !== null) {
-      return false;
-    }
-    const templateSet = getControlTemplates();
-    return templateSet === null || templateSet.checkboxIndicator === null;
+    return this.templateOverride === null;
   }
 
 }

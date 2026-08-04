@@ -40,7 +40,6 @@ import { flushCommit } from "../../src/core/FrameScheduler";
 import { AlignItems, AlignSelf, CursorStyle, FlexDirection, KeyEventType, Orientation, PointerEventType, SemanticCheckedState, SemanticRole, TextVerticalAlign, Unit } from "../../src/core/ffi";
 import { activeTheme, Colors, defaultDarkTheme, Theme, useCustomTheme } from "../../src/core/Theme";
 import { rgb } from "../../src/color";
-import { clearControlTemplates } from "../../src/controls/ControlTemplateSet";
 import { __fui_on_selection_changed, __fui_on_text_changed, __fui_on_text_replaced, __fui_text_buffer } from "../../src/core/event_exports";
 import { FlexBox, ScrollBarVisibility, ScrollBox, Text } from "../../src/nodes";
 import {
@@ -352,7 +351,6 @@ function handleTextInputFocusChanged(_focused: bool): void {
 describe("Common controls", () => {
   afterEach(() => {
     Application.unmount();
-    clearControlTemplates();
     resetTheme();
   });
 

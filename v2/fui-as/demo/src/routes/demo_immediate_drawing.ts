@@ -145,9 +145,12 @@ class PaintCanvas extends CustomDrawable {
     ctx.drawRoundRect(0, 0, S, S, 12, 12, Paint.fill(CARD));
     ctx.drawImage(this.bmp.textureId, 0, 0, S, S);
     if (!this.hintBaked && this.hintLabel !== null) {
-      this.bmp.render(this.hintLabel!, 16.0, 32.0, this.bitmapScale);
-      this.bmp.commit();
-      this.hintBaked = true;
+      if (this.bmp.render(this.hintLabel!, 16.0, 32.0, this.bitmapScale)) {
+        this.bmp.commit();
+        this.hintBaked = true;
+      } else {
+        this.markDirty();
+      }
     }
     // Corner brackets...
     const hint = rgba(150, 150, 170, 120);

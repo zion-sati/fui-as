@@ -95,6 +95,11 @@ export class EventRouter {
     width: f32 = 0.0,
     height: f32 = 0.0,
     clickCount: i32 = 0,
+    isPrimary: bool = true,
+    tangentialPressure: f32 = 0.0,
+    tiltX: f32 = 0.0,
+    tiltY: f32 = 0.0,
+    twist: f32 = 0.0,
   ): bool {
     showKeyboardFocusForPointerEvent(eventType);
     SelectionHandleAdornerManager.recordPointerEvent(eventType, pointerType);
@@ -145,6 +150,11 @@ export class EventRouter {
           width,
           height,
           clickCount,
+          isPrimary,
+          tangentialPressure,
+          tiltX,
+          tiltY,
+          twist,
         );
         Node._dispatchPointerEventWithArgs(capturedNode, event);
         this.bubblePointerEvent(changetype<Node>(capturedNode).parentNode, event);
@@ -174,6 +184,11 @@ export class EventRouter {
         width,
         height,
         clickCount,
+        isPrimary,
+        tangentialPressure,
+        tiltX,
+        tiltY,
+        twist,
       );
       if (SelectionHandleAdornerManager.routeActiveHandleDragEvent(handleDragEvent)) {
         DragDropManager.handlePointerEvent(pointedNode, eventType, x, y, modifiers);
@@ -218,6 +233,11 @@ export class EventRouter {
       width,
       height,
       clickCount,
+      isPrimary,
+      tangentialPressure,
+      tiltX,
+      tiltY,
+      twist,
     );
     Node._dispatchPointerEventWithArgs(node, event);
     this.bubblePointerEvent(changetype<Node>(node).parentNode, event);
@@ -569,6 +589,37 @@ export class EventRouter {
       this.capturedPointerHandle = <u64>HandleValue.Invalid;
       this.applyCurrentCursor();
     }
+  }
+
+  static deactivateSubtree(root: Node): void {
+    const captured = this.resolveNode(this.capturedPointerHandle);
+    if (captured !== null && this.belongsToSubtree(changetype<Node>(captured), root)) {
+      this.capturedPointerHandle = <u64>HandleValue.Invalid;
+    }
+    if (this.focusedNode !== null && this.belongsToSubtree(changetype<Node>(this.focusedNode), root)) {
+      this.focusedNode = null;
+      ui.requestFocus(<u64>HandleValue.Invalid);
+    }
+    for (let index = this.hoverStack.length - 1; index >= 0; --index) {
+      if (this.belongsToSubtree(unchecked(this.hoverStack[index]), root)) this.removeHoverAt(index);
+    }
+    this.selectionCursorHandle = <u64>HandleValue.Invalid;
+    DragDropManager.reset();
+    ExternalDropManager.reset();
+    ContextMenuManager.hideActiveMenu();
+    ToolTipManager.clear();
+    SelectionHandleAdornerManager.clear();
+    MobileTextSelectionToolbarManager.clear();
+    this.applyCurrentCursor();
+  }
+
+  private static belongsToSubtree(node: Node, root: Node): bool {
+    let current: Node | null = node;
+    while (current !== null) {
+      if (current === root) return true;
+      current = changetype<Node>(current).parentNode;
+    }
+    return false;
   }
 
   static reset(): void {

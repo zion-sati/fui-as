@@ -21,6 +21,11 @@ export function __fui_debug_pointer_event(eventType: u32, handle: u64, x: f32, y
     0.0,
     0.0,
     0,
+    true,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
   );
 }
 

@@ -1,5 +1,6 @@
 import {
   Application,
+  PageZoomMode,
   Column,
   FlexBox,
   Row,
@@ -53,6 +54,7 @@ const smokeHarness = createManagedApplication<SmokeApp>(
 
 export function __runSmokeApp(): void {
   Application.caption("EffinDOM • FUI-AS smoke");
+  Application.pageZoom(PageZoomMode.Enabled);
   smokeHarness.run();
 }
 

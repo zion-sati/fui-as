@@ -23,7 +23,6 @@ import { FlexBox, ScrollView } from "../nodes";
 import { bind1 } from "../core/bind";
 import { DropdownSizing } from "./ControlSizing";
 import { DropdownColors } from "./DropdownColors";
-import { getControlTemplates } from "./ControlTemplateSet";
 import {
   createDefaultDropdownChevronPresenter,
   DropdownChevronPresenter,
@@ -74,22 +73,14 @@ function createFieldPresenter(template: DropdownFieldTemplate | null, sizing: Dr
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.dropdownField : null;
-  return appTemplate === null
-    ? createDefaultDropdownFieldPresenter(sizing)
-    : appTemplate.create(sizing);
+  return createDefaultDropdownFieldPresenter(sizing);
 }
 
 function createChevronPresenter(template: DropdownChevronTemplate | null, sizing: DropdownSizing | null = null): DropdownChevronPresenter {
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.dropdownChevron : null;
-  return appTemplate === null
-    ? createDefaultDropdownChevronPresenter(sizing)
-    : appTemplate.create(sizing);
+  return createDefaultDropdownChevronPresenter(sizing);
 }
 
 export class DropdownItem {
@@ -722,19 +713,11 @@ export class Dropdown extends FlexBox implements GlobalKeyHandler, SelectablePop
   }
 
   private usesDefaultFieldPresenter(): bool {
-    if (this.fieldTemplateValue !== null) {
-      return false;
-    }
-    const templateSet = getControlTemplates();
-    return templateSet === null || templateSet.dropdownField === null;
+    return this.fieldTemplateValue === null;
   }
 
   private usesDefaultChevronPresenter(): bool {
-    if (this.chevronTemplateValue !== null) {
-      return false;
-    }
-    const templateSet = getControlTemplates();
-    return templateSet === null || templateSet.dropdownChevron === null;
+    return this.chevronTemplateValue === null;
   }
 
   getPopupListItemCount(): i32 {

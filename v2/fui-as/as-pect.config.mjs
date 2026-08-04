@@ -738,6 +738,7 @@ export default {
         },
         fui_copy_text() {},
         fui_set_application_caption() {},
+        fui_set_page_zoom_enabled() {},
         fui_has_text_selection_snapshot() {
           return 0;
         },

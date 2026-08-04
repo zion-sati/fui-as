@@ -33,7 +33,6 @@ export {
 export {
   BuildMode,
   DevToolsDomMirrorMode,
-  PageZoomMode,
 } from '@effindomv2/runtime';
 
 export type {

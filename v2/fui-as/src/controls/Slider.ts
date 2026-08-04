@@ -21,7 +21,6 @@ import { FlexBox } from "../nodes";
 import { bind1 } from "../core/bind";
 import { SliderSizing } from "./ControlSizing";
 import { SliderColors } from "./SliderColors";
-import { getControlTemplates } from "./ControlTemplateSet";
 import {
   createDefaultSliderPresenter,
   SliderPresenter,
@@ -68,11 +67,7 @@ function createSliderPresenter(template: SliderTemplate | null, sizing: SliderSi
   if (template !== null) {
     return template.create(sizing);
   }
-  const templateSet = getControlTemplates();
-  const appTemplate = templateSet !== null ? templateSet.slider : null;
-  return appTemplate === null
-    ? createDefaultSliderPresenter(sizing)
-    : appTemplate.create(sizing);
+  return createDefaultSliderPresenter(sizing);
 }
 
 export class Slider extends FlexBox implements DragGestureHost {
@@ -472,11 +467,7 @@ export class Slider extends FlexBox implements DragGestureHost {
   }
 
   private usesDefaultPresenter(): bool {
-    if (this.templateOverride !== null) {
-      return false;
-    }
-    const templateSet = getControlTemplates();
-    return templateSet === null || templateSet.slider === null;
+    return this.templateOverride === null;
   }
 
   private track(disposable: Disposable): void {

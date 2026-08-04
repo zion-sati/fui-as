@@ -27,6 +27,7 @@ This page is the SDK-user contract for semantic roles/labels and out-of-the-box 
 | `TextInput` | `Textbox` (editor node) | placeholder text when present; else `"Text input"`; password mode uses `"Password input"` | selection/focus/edit state through text engine |
 | `TextArea` | `Textbox` (editor node) | placeholder text when present; else `"Text area"` | selection/focus/edit state through text engine |
 | `NavLink` | `Link` | constructor label | n/a |
+| `TabView` / `TabItem` | `TabPanel` on the selected-content host | selected item label on the active panel | selector controls are application-owned and must project truthful roles and selected state |
 | `Dialog` | `Dialog` (card), heading/body semantic text | title/body text drive labels | modal semantic scope while open |
 | `Form` | `Form` | none by default | n/a |
 | `Text` | `StaticText` (when auto-applicable) | content text when no explicit semantic ancestor/role | n/a |

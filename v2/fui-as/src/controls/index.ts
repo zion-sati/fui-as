@@ -20,6 +20,12 @@ export { AntiSelectionArea } from "./AntiSelectionArea";
 export { SelectionArea } from "./SelectionArea";
 export { Slider } from "./Slider";
 export { Switch } from "./Switch";
+export {
+  TabContentFactory,
+  TabItem,
+  TabSelectionChangedEventArgs,
+  TabView,
+} from "./TabView";
 export { TextArea } from "./TextArea";
 export { TextInput } from "./TextInput";
 export * from "./templating";

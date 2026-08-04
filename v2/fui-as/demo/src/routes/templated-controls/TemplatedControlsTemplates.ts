@@ -7,7 +7,6 @@ import {
   CheckboxIndicatorPresenter,
   CheckboxIndicatorTemplate,
   CheckboxIndicatorVisualState,
-  ControlTemplateSet,
   DropdownChevronPresenter,
   DropdownChevronTemplate,
   DropdownChevronVisualState,
@@ -540,19 +539,44 @@ class HouseTextAreaTemplate extends TextInputTemplate {
   }
 }
 
-export function createTemplatedControlsTemplateSet(): ControlTemplateSet {
-  const templates = new ControlTemplateSet();
-  templates.button = new HouseButtonTemplate();
-  templates.checkboxIndicator = new HouseCheckboxIndicatorTemplate();
-  templates.radioIndicator = new HouseRadioIndicatorTemplate();
-  templates.switchIndicator = new HouseSwitchIndicatorTemplate();
-  templates.slider = new HouseSliderTemplate();
-  templates.dropdownField = new HouseDropdownFieldTemplate();
-  templates.dropdownChevron = new HouseDropdownChevronTemplate();
-  templates.dropdownOptionRow = new HouseDropdownOptionRowTemplate();
-  templates.textInput = new HouseTextInputTemplate();
-  templates.textArea = new HouseTextAreaTemplate();
-  return templates;
+export function createTemplatedControlsButtonTemplate(): ButtonTemplate {
+  return new HouseButtonTemplate();
+}
+
+export function createTemplatedControlsCheckboxTemplate(): CheckboxIndicatorTemplate {
+  return new HouseCheckboxIndicatorTemplate();
+}
+
+export function createTemplatedControlsRadioTemplate(): RadioIndicatorTemplate {
+  return new HouseRadioIndicatorTemplate();
+}
+
+export function createTemplatedControlsSwitchTemplate(): SwitchIndicatorTemplate {
+  return new HouseSwitchIndicatorTemplate();
+}
+
+export function createTemplatedControlsSliderTemplate(): SliderTemplate {
+  return new HouseSliderTemplate();
+}
+
+export function createTemplatedControlsDropdownFieldTemplate(): DropdownFieldTemplate {
+  return new HouseDropdownFieldTemplate();
+}
+
+export function createTemplatedControlsDropdownChevronTemplate(): DropdownChevronTemplate {
+  return new HouseDropdownChevronTemplate();
+}
+
+export function createTemplatedControlsDropdownOptionTemplate(): DropdownOptionRowTemplate {
+  return new HouseDropdownOptionRowTemplate();
+}
+
+export function createTemplatedControlsTextInputTemplate(): TextInputTemplate {
+  return new HouseTextInputTemplate();
+}
+
+export function createTemplatedControlsTextAreaTemplate(): TextInputTemplate {
+  return new HouseTextAreaTemplate();
 }
 
 export function createTemplatedControlsLocalCheckboxTemplate(): CheckboxIndicatorTemplate {
