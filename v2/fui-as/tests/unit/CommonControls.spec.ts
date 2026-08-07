@@ -1080,6 +1080,7 @@ describe("Common controls", () => {
     const presenterRoot = requireChild<Node>(slider, 0);
     const presenterRootHandle = presenterRoot.builtHandle;
     const trackHandle = requireChildHandle(presenterRoot, 0);
+    const fillHandle = requireChildHandle(presenterRoot, 1);
     const thumbHandle = requireChildHandle(presenterRoot, 2);
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, slider.builtHandle), 1)).toBe(30.0);
@@ -1092,6 +1093,38 @@ describe("Common controls", () => {
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, thumbHandle), 1)).toBe(18.0);
     expect<i32>(findPositionCall(7.0, 9.0)).toBeGreaterThan(-1);
     expect<i32>(findPositionCall(1.0, 81.0)).toBeGreaterThan(-1);
+
+    const boundaryValues = [25.0, 26.0, 48.0, 49.0, 75.0, 76.0];
+    const expectedFillLengths = [41.0, 42.0, 78.0, 79.0, 122.0, 123.0];
+    for (let i = 0; i < boundaryValues.length; i += 1) {
+      EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "Home", 0);
+      resetCalls();
+      for (let step = 0; step < <i32>boundaryValues[i]; step += 1) {
+        EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "ArrowUp", 0);
+      }
+      const fillLength = getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1);
+      const fillTop = getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 2);
+      expect<f64>(fillLength).toBe(expectedFillLengths[i]);
+      expect<f64>(fillTop + fillLength).toBe(171.0);
+    }
+
+    resetCalls();
+    EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "End", 0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(162.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(162.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 1)).toBe(7.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 2)).toBe(9.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 1)).toBe(7.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 2)).toBe(9.0);
+
+    resetCalls();
+    EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "Home", 0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(162.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(0.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 1)).toBe(7.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 2)).toBe(9.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 1)).toBe(7.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 2)).toBe(171.0);
 
     slider.dispose();
   });

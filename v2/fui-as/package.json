@@ -106,7 +106,7 @@
     "typecheck": "npm run guard:runtime-dependency && npm run check:abi && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@effindomv2/runtime": "0.2.11"
+    "@effindomv2/runtime": "0.2.12"
   },
   "devDependencies": {
     "@as-pect/assembly": "9.0.0",
@@ -116,7 +116,7 @@
     "@types/node": "^24.10.1",
     "assemblyscript": "0.28.19",
     "@devcycle/assemblyscript-json": "2.0.0",
-    "esbuild": "^0.27.7",
+    "esbuild": "^0.28.1",
     "typescript": "^5.9.3"
   }
 }

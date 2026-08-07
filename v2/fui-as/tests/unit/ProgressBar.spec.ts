@@ -45,7 +45,7 @@ describe("ProgressBar", () => {
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(220.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(14.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(0.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(14.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(12.0);
 
     const rootBoxIndex = lastCallIndexForHandle(CALL_SET_BOX_STYLE, handle);
     const fillBoxIndex = lastCallIndexForHandle(CALL_SET_BOX_STYLE, fillHandle);
@@ -68,12 +68,12 @@ describe("ProgressBar", () => {
     const handle = bar.build();
     const fillHandle = requireChild<Node>(bar, 0).builtHandle;
 
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(37.5);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(37.25);
 
     resetCalls();
     bar.value(250.0);
 
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(300.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(298.0);
     const semanticIndex = lastCallIndexForHandle(CALL_SET_SEMANTIC_VALUE_RANGE, handle);
     expect<f64>(getCallArg(semanticIndex, 2)).toBe(200.0);
     expect<f64>(getCallArg(semanticIndex, 3)).toBe(0.0);
@@ -94,16 +94,16 @@ describe("ProgressBar", () => {
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(18.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(300.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(18.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(75.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(74.5);
 
     resetCalls();
     bar.orientation(Orientation.Horizontal);
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(300.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(18.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(75.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(74.5);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(16.0);
 
     bar.dispose();
   });

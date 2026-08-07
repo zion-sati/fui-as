@@ -15,6 +15,12 @@ function clamp(value: f32, min: f32, max: f32): f32 {
   return value;
 }
 
+const PROGRESS_BORDER_WIDTH: f32 = 1.0;
+
+function insetRadius(radius: f32): f32 {
+  return radius > PROGRESS_BORDER_WIDTH ? radius - PROGRESS_BORDER_WIDTH : 0.0;
+}
+
 export class ProgressBar extends FlexBox {
   private readonly fillNode: FlexBox;
   private readonly disposables: Array<Disposable> = new Array<Disposable>();
@@ -118,7 +124,7 @@ export class ProgressBar extends FlexBox {
   cornerRadius(radius: f32): this {
     this.cornerRadiusOverridden = true;
     super.cornerRadius(radius);
-    this.fillNode.cornerRadius(radius);
+    this.fillNode.cornerRadius(insetRadius(radius));
     return this;
   }
 
@@ -139,13 +145,16 @@ export class ProgressBar extends FlexBox {
   private syncGeometry(): void {
     const range = this.maxValue - this.minValue;
     const fraction = range > 0.0 ? clamp((this.currentValue - this.minValue) / range, 0.0, 1.0) : 0.0;
-    const fillLength = this.lengthValue * fraction;
+    const inset = PROGRESS_BORDER_WIDTH * 2.0;
+    const innerLength = this.lengthValue > inset ? this.lengthValue - inset : 0.0;
+    const innerThickness = this.thicknessValue > inset ? this.thicknessValue - inset : 0.0;
+    const fillLength = innerLength * fraction;
     if (this.orientationValue == Orientation.Vertical) {
       this.flexDirection(FlexDirection.Column);
       this.justifyContent(JustifyContent.End);
       this.width(this.thicknessValue);
       this.height(this.lengthValue);
-      this.fillNode.width(this.thicknessValue);
+      this.fillNode.width(innerThickness);
       this.fillNode.height(fillLength);
     } else {
       this.flexDirection(FlexDirection.Row);
@@ -153,7 +162,7 @@ export class ProgressBar extends FlexBox {
       this.width(this.lengthValue);
       this.height(this.thicknessValue);
       this.fillNode.width(fillLength);
-      this.fillNode.height(this.thicknessValue);
+      this.fillNode.height(innerThickness);
     }
     this.semanticValueRange(this.currentValue, this.minValue, this.maxValue);
     this.syncSemanticLabel();
@@ -173,10 +182,10 @@ export class ProgressBar extends FlexBox {
     const fillColor = this.fillColorOverridden ? this.fillColorValue : theme.colors.accent;
     if (!this.cornerRadiusOverridden) {
       super.cornerRadius(this.thicknessValue * 0.5);
-      this.fillNode.cornerRadius(this.thicknessValue * 0.5);
+      this.fillNode.cornerRadius(insetRadius(this.thicknessValue * 0.5));
     }
     super.bgColor(trackColor);
-    super.border(1.0, theme.colors.border);
+    super.border(PROGRESS_BORDER_WIDTH, theme.colors.border);
     this.fillNode.bgColor(fillColor);
   }
 

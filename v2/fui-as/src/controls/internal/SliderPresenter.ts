@@ -117,6 +117,7 @@ class DefaultSliderPresenter extends SliderPresenter {
     const crossAxisInset = crossAxisExtra * 0.5;
     const trackOffset = crossAxisInset + ((thumbSize - trackThickness) * 0.5);
     if (state.orientation == Orientation.Vertical) {
+      const fillLength = Mathf.round(available * fraction);
       this.root
         .width(thumbSize + crossAxisExtra, Unit.Pixel)
         .height(length, Unit.Pixel);
@@ -129,10 +130,10 @@ class DefaultSliderPresenter extends SliderPresenter {
         );
       this.fillNode
         .width(trackThickness, Unit.Pixel)
-        .height(available * fraction, Unit.Pixel)
+        .height(fillLength, Unit.Pixel)
         .position(
           trackOffset,
-          thumbSize * 0.5 + (available * (1.0 - fraction)),
+          thumbSize * 0.5 + available - fillLength,
         );
       this.thumbNode.position(
         crossAxisInset,
