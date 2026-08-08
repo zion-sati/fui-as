@@ -26,7 +26,7 @@ This page is the SDK-user contract for semantic roles/labels and out-of-the-box 
 | `Dropdown` | `ComboBox` | selected option label (or `"Dropdown"` if none) | `semanticExpanded`; options list/item semantics |
 | `TextInput` | `Textbox` (editor node) | placeholder text when present; else `"Text input"`; password mode uses `"Password input"` | selection/focus/edit state through text engine |
 | `TextArea` | `Textbox` (editor node) | placeholder text when present; else `"Text area"` | selection/focus/edit state through text engine |
-| `NavLink` | `Link` | constructor label | n/a |
+| `NavLink` | `Link` | caller-authored content or explicit semantic label | n/a |
 | `TabView` / `TabItem` | `TabPanel` on the selected-content host | selected item label on the active panel | selector controls are application-owned and must project truthful roles and selected state |
 | `Dialog` | `Dialog` (card), heading/body semantic text | title/body text drive labels | modal semantic scope while open |
 | `Form` | `Form` | none by default | n/a |
@@ -65,7 +65,7 @@ These controls explicitly mirror enabled/disabled state into semantic disabled s
 
 ## When to override
 
-- Prefer the built-in defaults first. Controls like `Button`, `NavLink`, `Text`, `TextInput`, and `TextArea` already supply roles and names from their normal content/behavior.
+- Prefer the built-in defaults first. Controls like `Button`, `Text`, `TextInput`, and `TextArea` already supply roles and names from their normal content/behavior. `NavLink` supplies the `Link` role while its caller-owned content or `semanticLabel(...)` supplies the accessible name.
 - Use `semanticLabel(...)` when visible text is ambiguous (icon-only actions, shortened labels, contextual meaning).
 - Use explicit `semanticRole(...)` when a generic node is acting as a specific semantic control.
 - Use `altText(...)` on `Image`/`Svg` for meaningful non-decorative media.

@@ -19,7 +19,7 @@ For the complete export list, see:
 | `Dialog` | Modal overlay with form-style actions | `show()`, `hide()`, `onAccept(...)`, `onCancel(...)`, dialog/card/backdrop styling, public accessors (`titleText`, `bodyText`, `acceptActionButton`, `cancelActionButton`) |
 | `Dropdown` / `DropdownItem` | Non-editable selection popup control | `items(...)`, `selectIndex(...)`, `onChanged(...)`, `colors(...)`, popup sizing/styling (`maxVisibleItems(...)`, `popupWidth(...)`), `fieldTemplate(...)`, `chevronTemplate(...)`, `optionRowTemplate(...)` |
 | `Form` | Enter/Escape default/cancel handling host | default/cancel action ownership for contained controls |
-| `NavLink` | Route/link control with browser-harness integration | constructor `NavLink(href, label?, newTab?)`, `hrefTo(...)`, `onNavigate(...)` |
+| `NavLink` | Arbitrary-content route/link host with browser-harness integration | `NavLink(href, newTab?)`, child composition, `hrefTo(...)`, `onNavigate(...)`, interaction-state binding |
 | `ProgressBar` | Determinate horizontal or vertical progress visualization | `value(...)`, `min(...)`, `max(...)`, `length(...)`, `thickness(...)`, `orientation(...)`, `trackColor(...)`, `fillColor(...)` |
 | `RadioButton` / `RadioGroup` | Single-choice grouped options | radio `onClick(...)`; group `addOption(...)`, `addOptions(...)`, `selectIndex(...)`, `selectedValue` (getter), `onChanged(...)`; radio `template(...)`, `colors(...)` |
 | `SelectionArea` | Cross-node text selection host | `selectedText`, selection hooks, Shift+Arrow extension for existing selections |

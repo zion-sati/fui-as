@@ -33,7 +33,7 @@ function itemsFor(handle: u64, host: HostContext): Array<MenuItem> {
 describe("ContextMenu host policy", () => {
   it("filters blank, link, image, SVG, static text, and editable text by host capabilities", () => {
     const blank = new FlexBox();
-    const link = new NavLink("https://example.test", "Example");
+    const link = new NavLink("https://example.test").child(new Text("Example")) as NavLink;
     const image = new Image().source("https://example.test/image.png");
     const svg = new Svg().source("https://example.test/image.svg");
     const staticText = new Text("Selectable");

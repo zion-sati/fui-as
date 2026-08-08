@@ -113,7 +113,7 @@ export {
 } from "./core/Node";
 export { DragCompletedEvent, DragDeltaEvent, DragGesture, DragGestureHost, DragStartedEvent } from "./core/DragGesture";
 export { ContextMenuManager } from "./core/ContextMenuManager";
-export { NavigateEventArgs } from "./controls/NavLink";
+export { NavigateEventArgs, NavLinkInteractionState } from "./controls/NavLink";
 export {
   AlignSelf,
   AlignItems,

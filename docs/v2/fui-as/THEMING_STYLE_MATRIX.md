@@ -30,7 +30,7 @@ Core elevation tokens: `theme.colors.dialogShadow` is the stronger modal shadow,
 | `ScrollBar` | Track/thumb colors | `trackColor`, `thumbColor`, thickness/geometry APIs | Overridden colors persist; non-overridden colors track theme |
 | `TextInput` / `TextArea` | Surface, border, text colors, caret, spacing, disabled opacity, default typography | `fontFamily`, `fontSize`, `lineHeight` | Typography overrides persist; container colors/border track theme |
 | `Checkbox` / `Switch` / `RadioButton` / `RadioGroup` / `Slider` | Built-in control visuals from theme tokens | No dedicated high-level token override APIs on these controls | Track theme |
-| `NavLink` | Focus chrome + inherited box/text style defaults | Use inherited `FlexBox`/`Text` styling APIs | Explicit inherited styling persists; focus chrome tracks theme |
+| `NavLink` | Link cursor + focus chrome | Use inherited `FlexBox` styling and style caller-owned children through interaction-state binding | Explicit host/child styling persists; focus chrome tracks theme |
 
 ## Node style matrix
 

@@ -106,12 +106,17 @@ export function resolveDemoNavLinkRecipe(theme: Theme, recipe: DemoNavLinkRecipe
   );
 }
 
-export function applyDemoNavLinkRecipe(link: NavLink, theme: Theme, recipe: DemoNavLinkRecipe): void {
+export function applyDemoNavLinkRecipe(
+  link: NavLink,
+  label: Text,
+  theme: Theme,
+  recipe: DemoNavLinkRecipe,
+): void {
   const style = resolveDemoNavLinkRecipe(theme, recipe);
   link
     .bgColor(style.background)
     .borderConfig(new Border(style.borderWidth, style.borderColor, style.borderStyle));
-  link.textColor(style.textColor);
+  label.textColor(style.textColor);
 }
 
 export enum DemoFieldRecipe {

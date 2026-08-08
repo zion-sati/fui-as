@@ -11,7 +11,7 @@ export { ContextMenu, MenuItem } from "./ContextMenu";
 export { Dialog, DialogShownEventArgs } from "./Dialog";
 export { Dropdown, DropdownItem } from "./Dropdown";
 export { Form } from "./Form";
-export { NavLink } from "./NavLink";
+export { NavLink, NavLinkInteractionState } from "./NavLink";
 export { Popup, PopupPlacement } from "./Popup";
 export { ProgressBar } from "./ProgressBar";
 export { RadioButton } from "./RadioButton";

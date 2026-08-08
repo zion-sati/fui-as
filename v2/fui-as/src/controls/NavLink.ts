@@ -8,14 +8,16 @@ import {
   fui_show_url_preview,
 } from "../core/ffi";
 import { HandlerAction } from "../core/Action";
+import { Callback2, Handler2 } from "../core/Callbacks";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { FocusAdornerManager } from "../core/FocusAdornerManager";
 import { keyboardFocusVisible } from "../core/FocusVisibility";
+import { bind2 } from "../core/bind";
 import { navigateTo } from "../core/Navigation";
 import { PointerButton, PointerEventArgs, PointerType } from "../core/Node";
 import { hasPrimaryShortcutModifier } from "../core/Platform";
 import { Theme, activeTheme } from "../core/Theme";
-import { FlexBox, Text } from "../nodes";
+import { FlexBox } from "../nodes";
 
 export class NavigateEventArgs {
   readonly path: string;
@@ -23,6 +25,15 @@ export class NavigateEventArgs {
   constructor(path: string) {
     this.path = path;
   }
+}
+
+export class NavLinkInteractionState {
+  constructor(
+    readonly hovered: bool,
+    readonly pressed: bool,
+    readonly focused: bool,
+    readonly enabled: bool,
+  ) {}
 }
 
 export class NavLink extends FlexBox {
@@ -40,29 +51,19 @@ export class NavLink extends FlexBox {
   private previewVisible: bool = false;
   private previewPinnedForContextMenu: bool = false;
   private disposed: bool = false;
-  private textColorValue: u32;
-  readonly labelNode: Text;
+  private interactionStateCallback: ((state: NavLinkInteractionState, theme: Theme) => void) | null = null;
+  private interactionStateBinding: Callback2<NavLinkInteractionState, Theme> | null = null;
 
-  constructor(href: string, label: string = href, openInNewTab: bool = false) {
+  constructor(href: string, openInNewTab: bool = false) {
     super();
-    const theme = activeTheme.value;
     this.hrefValue = href;
     this.openInNewTabValue = openInNewTab;
-    this.textColorValue = theme.colors.accent;
-    this.labelNode = new Text(label)
-      .fontFamily(theme.fonts.bodyFamily)
-      .fontSize(15.0)
-      .textColor(theme.colors.accent)
-      .selectable(false)
-      .cursor(CursorStyle.Pointer) as Text;
     this.semanticRole(SemanticRole.Link);
-    this.semanticLabel(label);
     this.cursor(CursorStyle.Pointer);
     this.focusable(true);
-    this.child(this.labelNode);
     this.track(activeTheme.addAction(new HandlerAction<NavLink, Theme>(this, (link: NavLink, _theme: Theme): void => {
-      link.syncVisualState();
       link.syncFocusChrome();
+      link.notifyInteractionState();
     })));
     this.track(keyboardFocusVisible.addAction(new HandlerAction<NavLink, bool>(this, (link: NavLink, _visible: bool): void => {
       link.syncFocusChrome();
@@ -87,15 +88,35 @@ export class NavLink extends FlexBox {
     return this;
   }
 
-  text(value: string): this {
-    this.semanticLabel(value);
-    this.labelNode.text(value);
+  onInteractionStateChanged(cb: (state: NavLinkInteractionState, theme: Theme) => void): this {
+    this.interactionStateCallback = cb;
+    this.interactionStateBinding = null;
+    this.notifyInteractionState();
     return this;
   }
 
-  textColor(color: u32): this {
-    this.textColorValue = color;
-    this.syncVisualState();
+  bindInteractionState<Owner>(
+    owner: Owner,
+    handler: Handler2<Owner, NavLinkInteractionState, Theme>,
+  ): this {
+    this.interactionStateCallback = null;
+    this.interactionStateBinding = bind2<Owner, NavLinkInteractionState, Theme>(owner, handler);
+    this.notifyInteractionState();
+    return this;
+  }
+
+  enabled(flag: bool): this {
+    super.enabled(flag);
+    if (!flag) {
+      this.hovered = false;
+      this.focused = false;
+      this.pointerPressed = false;
+      this.pointerPressedOpenInNewTab = false;
+      this.enterPressed = false;
+      this.enterPressedOpenInNewTab = false;
+    }
+    this.syncFocusChrome();
+    this.notifyInteractionState();
     return this;
   }
 
@@ -103,6 +124,8 @@ export class NavLink extends FlexBox {
     this.hidePreview();
     if (!this.disposed) {
       this.disposed = true;
+      this.interactionStateCallback = null;
+      this.interactionStateBinding = null;
       disposeAll(this.disposables);
     }
     super.dispose();
@@ -119,7 +142,7 @@ export class NavLink extends FlexBox {
     super._handlePointerEvent(eventType, x, y, modifiers);
     if (eventType == PointerEventType.Enter) {
       this.hovered = true;
-      this.syncVisualState();
+      this.notifyInteractionState();
       this.showPreview();
       return;
     }
@@ -127,7 +150,7 @@ export class NavLink extends FlexBox {
       this.hovered = false;
       this.pointerPressed = false;
       this.pointerPressedOpenInNewTab = false;
-      this.syncVisualState();
+      this.notifyInteractionState();
       if (!this.previewPinnedForContextMenu && !this.focused) {
         this.hidePreview();
       }
@@ -137,16 +160,19 @@ export class NavLink extends FlexBox {
       if (!isActivation) {
         this.pointerPressed = false;
         this.pointerPressedOpenInNewTab = false;
+        this.notifyInteractionState();
         return;
       }
       this.pointerPressed = true;
       this.pointerPressedOpenInNewTab = isMiddleClick || this.shouldOpenInNewTab(modifiers);
+      this.notifyInteractionState();
       return;
     }
     if (eventType == PointerEventType.Up && this.pointerPressed && isActivation) {
       this.pointerPressed = false;
       this.activate(isMiddleClick || this.pointerPressedOpenInNewTab || this.shouldOpenInNewTab(modifiers));
       this.pointerPressedOpenInNewTab = false;
+      this.notifyInteractionState();
     }
   }
 
@@ -164,6 +190,7 @@ export class NavLink extends FlexBox {
         this.hidePreview();
       }
     }
+    this.notifyInteractionState();
   }
 
   _handleKeyEvent(eventType: KeyEventType, key: string, modifiers: u32): bool {
@@ -177,12 +204,14 @@ export class NavLink extends FlexBox {
     if (eventType == KeyEventType.Down) {
       this.enterPressed = true;
       this.enterPressedOpenInNewTab = this.shouldOpenInNewTab(modifiers);
+      this.notifyInteractionState();
       return true;
     }
     if (eventType == KeyEventType.Up && this.enterPressed) {
       this.enterPressed = false;
       this.activate(this.enterPressedOpenInNewTab || this.shouldOpenInNewTab(modifiers));
       this.enterPressedOpenInNewTab = false;
+      this.notifyInteractionState();
       return true;
     }
     return callbackHandled;
@@ -261,8 +290,23 @@ export class NavLink extends FlexBox {
     FocusAdornerManager.hideOwner(this);
   }
 
-  private syncVisualState(): void {
-    this.labelNode.textColor(this.hovered ? activeTheme.value.colors.accentHovered : this.textColorValue);
+  private notifyInteractionState(): void {
+    const state = new NavLinkInteractionState(
+      this.hovered,
+      this.pointerPressed || this.enterPressed,
+      this.focused,
+      this.isEnabled,
+    );
+    const theme = activeTheme.value;
+    const callback = this.interactionStateCallback;
+    if (callback !== null) {
+      callback(state, theme);
+      return;
+    }
+    const binding = this.interactionStateBinding;
+    if (binding !== null) {
+      binding.invoke(state, theme);
+    }
   }
 
   private track(disposable: Disposable): void {
