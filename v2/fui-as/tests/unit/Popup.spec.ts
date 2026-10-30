@@ -1,6 +1,7 @@
 import { Popup, PopupPlacement } from "../../src/controls/Popup";
 import { FlexBox } from "../../src/nodes";
-import { Unit } from "../../src/core/ffi";
+import { PointerEventType, Unit } from "../../src/core/ffi";
+import { PointerButton, PointerButtons, PointerEventArgs, PointerType } from "../../src/core/Node";
 import {
   CALL_ADD_CHILD,
   CALL_PUSH_SEMANTIC_SCOPE,
@@ -15,6 +16,7 @@ import {
   getCallArg,
   getCallSequence,
   resetCalls,
+  setNodeBounds,
 } from "./FfiTestImports";
 
 function findBoxStyleByColor(color: u32): i32 {
@@ -26,6 +28,13 @@ function findBoxStyleByColor(color: u32): i32 {
     }
   }
   return -1;
+}
+
+function click(node: FlexBox, x: f32, y: f32): void {
+  node._handlePointerEventWithArgs(new PointerEventArgs(
+    PointerEventType.Down, x, y, 0, 1, PointerType.Mouse, PointerButton.Primary, PointerButtons.Primary));
+  node._handlePointerEventWithArgs(new PointerEventArgs(
+    PointerEventType.Up, x, y, 0, 1, PointerType.Mouse, PointerButton.Primary, PointerButtons.None));
 }
 
 function findCallWithArg(op: i32, argIndex: i32, value: f64): i32 {
@@ -68,6 +77,24 @@ describe("Popup", () => {
 
     expect<i32>(findCall(CALL_REMOVE_CHILD)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_REMOVE_SEMANTIC_SCOPE)).toBeGreaterThan(-1);
+
+    popup.dispose();
+  });
+
+  it("keeps the popup open for clicks on its panel and hides it for backdrop clicks", () => {
+    resetCalls();
+
+    const popup = new Popup();
+    popup.build();
+    popup.showAtPoint(24.0, 36.0, 220.0, 96.0);
+    setNodeBounds(popup.surface.builtHandle, 24.0, 36.0, 220.0, 96.0);
+    const overlay = changetype<FlexBox>(popup.surface.parentNode);
+
+    click(overlay, 60.0, 50.0);
+    expect<bool>(popup.isOpen).toBe(true);
+
+    click(overlay, 400.0, 300.0);
+    expect<bool>(popup.isOpen).toBe(false);
 
     popup.dispose();
   });

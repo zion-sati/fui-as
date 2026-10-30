@@ -761,6 +761,20 @@ export async function setHiddenTextInputSelection(page: Page, start: number, end
   }, { selectionStart: start, selectionEnd: end });
 }
 
+/** Waits until a label's bounds stop moving; false when they were still moving after two seconds. */
+async function waitForSemanticBoundsToSettle(page: Page, label: string): Promise<boolean> {
+  let previous = await findSemanticBounds(page, label);
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await page.waitForTimeout(100);
+    const current = await findSemanticBounds(page, label);
+    if (current !== null && previous !== null && current.x === previous.x && current.y === previous.y) {
+      return true;
+    }
+    previous = current;
+  }
+  return false;
+}
+
 export async function scrollSemanticLabelIntoView(page: Page, label: string): Promise<void> {
   const canvasBox = await page.locator('#fui-canvas').boundingBox();
   expect(canvasBox).not.toBeNull();
@@ -795,7 +809,11 @@ export async function scrollSemanticLabelIntoView(page: Page, label: string): Pr
       continue;
     }
     if (bounds.y >= 48 && (bounds.y + bounds.height) <= ((canvasBox?.height ?? 0) - 32)) {
-      return;
+      // A wheel scroll animates, so wait for the label to come to rest before a caller clicks its bounds.
+      if (await waitForSemanticBoundsToSettle(page, label)) {
+        return;
+      }
+      continue;
     }
     const delta = Math.max(-720, Math.min(720, bounds.y - desiredY));
     await page.mouse.move(probe.x, probe.y);

@@ -73,10 +73,16 @@ class DefaultDropdownOptionRowPresenter extends DropdownOptionRowPresenter {
     labelNode
       .overflowFade(true, false)
       .verticalAlign(TextVerticalAlign.Center);
+    // The label sits in a host that clips the rest of a long label where its fade ends; the row's padding surrounds it.
+    const labelHost = new FlexBox()
+      .fillSize()
+      .alignItems(AlignItems.Center)
+      .clipToBounds(true)
+      .child(labelNode) as FlexBox;
     const root = new FlexBox()
       .fillSize()
       .alignItems(AlignItems.Center)
-      .child(labelNode);
+      .child(labelHost);
     super(root, labelNode, metrics);
   }
 

@@ -391,22 +391,22 @@ describe("Node builders", () => {
     )).toBe(true);
   });
 
-  it("clips flex containers by default and allows opting out explicitly", () => {
+  it("lets flex containers overflow by default and clips when asked", () => {
     resetCalls();
 
     new FlexBox().build();
 
     let clipIndex = findCall(CALL_SET_CLIP_TO_BOUNDS);
     expect<i32>(clipIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(clipIndex, 1)).toBe(1.0);
+    expect<f64>(getCallArg(clipIndex, 1)).toBe(0.0);
 
     resetCalls();
 
-    new FlexBox().clipToBounds(false).build();
+    new FlexBox().clipToBounds(true).build();
 
     clipIndex = findCall(CALL_SET_CLIP_TO_BOUNDS);
     expect<i32>(clipIndex).toBeGreaterThan(-1);
-    expect<f64>(getCallArg(clipIndex, 1)).toBe(0.0);
+    expect<f64>(getCallArg(clipIndex, 1)).toBe(1.0);
   });
 
   it("emits retained box styling for radii and border", () => {
@@ -1143,6 +1143,36 @@ describe("Node builders", () => {
     expect<i32>(findCall(CALL_SET_IS_SHARED_SIZE_SCOPE)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_GRID_SET_COLUMN_SHARED_SIZE_GROUP)).toBeGreaterThan(-1);
     expect<i32>(findCall(CALL_GRID_SET_ROW_SHARED_SIZE_GROUP)).toBeGreaterThan(-1);
+  });
+
+  it("applies grid tracks and placements after build", () => {
+    const values = new Array<f32>();
+    values.push(1.0);
+    const types = new Array<GridUnit>();
+    types.push(GridUnit.Star);
+    const grid = new Grid();
+    grid.build();
+    resetCalls();
+
+    grid
+      .columns(1, values, types)
+      .rows(1, values, types)
+      .placeChild(new Text("late"), 1, 0);
+
+    expect<i32>(findCall(CALL_GRID_SET_COLUMNS)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_GRID_SET_ROWS)).toBeGreaterThan(-1);
+    const placementIndex = findCall(CALL_SET_GRID_PLACEMENT);
+    expect<i32>(placementIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(placementIndex, 1)).toBe(1.0);
+  });
+
+  it("builds grid children added without a placement", () => {
+    resetCalls();
+
+    new Grid().child(new Text("plain")).build();
+
+    expect<i32>(findCall(CALL_ADD_CHILD)).toBeGreaterThan(-1);
+    expect<i32>(findCall(CALL_SET_GRID_PLACEMENT)).toBe(-1);
   });
 
   it("marks portals on top of the box container node", () => {

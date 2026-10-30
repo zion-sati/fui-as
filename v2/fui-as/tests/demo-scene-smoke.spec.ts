@@ -274,9 +274,10 @@ test('rounded foundations scope clips child content at the card edge', async ({ 
     throw new Error('Expected foundations clip sample bounds.');
   }
 
+  // Inside the scope's 14 px padding, clear of its border's anti-aliased edge.
   const lowerLeftClipPixel = await demo.readScenePixel(
     page,
-    canvasBox.x + activationsBounds.x - 12,
+    canvasBox.x + activationsBounds.x - 8,
     canvasBox.y + activationsBounds.y + activationsBounds.height + 2,
   );
   const lowerCenterClipPixel = await demo.readScenePixel(

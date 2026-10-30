@@ -115,8 +115,10 @@ class DefaultDropdownFieldPresenter extends DropdownFieldPresenter {
     valueNode
       .overflowFade(true, false)
       .verticalAlign(TextVerticalAlign.Center);
+    // The value fades at the host's edge, which clips the rest of a long label.
     const valueHost = new FlexBox()
       .fillSize()
+      .clipToBounds(true)
       .child(valueNode) as FlexBox;
     const chevronHost = new FlexBox()
       .width(metrics.chevronBoxSize, Unit.Pixel)

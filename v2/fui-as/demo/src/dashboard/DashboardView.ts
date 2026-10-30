@@ -1,5 +1,6 @@
 import {
   AlignItems,
+  AlignSelf,
   Column,
   ContextMenu,
   Dialog,
@@ -77,22 +78,20 @@ import {
   ACCENT_SWATCH_HEIGHT,
   FULL_SIZE,
   MAIN_CONTENT_STARTUP_HEIGHT,
-  MIN_SIDEBAR_LIST_VIEWPORT_HEIGHT,
   NESTED_SCROLL_CONTENT_HEIGHT,
   NESTED_SCROLL_CONTENT_WIDTH,
   NESTED_SCROLL_VIEWPORT_HEIGHT,
   NESTED_SCROLL_VIEWPORT_WIDTH,
   DEMO_ROOT_PADDING,
-  SIDEBAR_DESCRIPTION_BLOCK_HEIGHT,
   SIDEBAR_LIST_BOTTOM_PADDING,
   SIDEBAR_LIST_ITEM_HEIGHT,
   SIDEBAR_LIST_TOTAL_ITEMS,
-  SIDEBAR_TITLE_BLOCK_HEIGHT,
   SIDEBAR_WIDTH,
   SCROLLBAR_TRACK_WIDTH,
   SPACING_LARGE,
   SPACING_MEDIUM,
   SPACING_SMALL,
+  SURFACE_PANEL_MARGIN,
   SURFACE_RADIUS_MEDIUM,
   SURFACE_RADIUS_SMALL,
 } from "../design-system";
@@ -188,20 +187,6 @@ function bindDemoListItem(container: FlexBox, index: i32): void {
   detail.text("Fixed height row.");
 }
 
-function computeSidebarListViewportHeight(): f32 {
-  const rootInnerHeight = viewportHeightSignal.value - (DEMO_ROOT_PADDING * 2.0);
-  const sidebarInnerHeight = rootInnerHeight - 32.0;
-  const reservedHeight =
-    SIDEBAR_TITLE_BLOCK_HEIGHT +
-    SIDEBAR_DESCRIPTION_BLOCK_HEIGHT +
-    SPACING_MEDIUM +
-    SIDEBAR_LIST_BOTTOM_PADDING;
-  const available = sidebarInnerHeight - reservedHeight;
-  return available > MIN_SIDEBAR_LIST_VIEWPORT_HEIGHT
-    ? available
-    : MIN_SIDEBAR_LIST_VIEWPORT_HEIGHT;
-}
-
 function computeMainContentViewportHeight(): f32 {
   const available = viewportHeightSignal.value - (DEMO_ROOT_PADDING * 2.0);
   return available > 0.0 ? available : 0.0;
@@ -282,8 +267,9 @@ class DashboardEventInspector extends FlexBox {
       .child(this.parentGesturePinchButton.margin(0.0, 6.0, 6.0, 0.0))
       .child(this.parentGestureLongPressButton.margin(0.0, 6.0, 6.0, 0.0));
 
-    this.statusText.height(94.0, Unit.Pixel);
-    this.logText.height(148.0, Unit.Pixel);
+    // At least their usual height, and taller when narrow lines wrap.
+    this.statusText.minHeight(94.0, Unit.Pixel);
+    this.logText.minHeight(148.0, Unit.Pixel);
     this.childHandledButton.onClickWith<DashboardEventInspector>(this, (owner: DashboardEventInspector, _event): void => {
       owner.toggleChildHandled();
     });
@@ -720,7 +706,7 @@ export class DashboardView {
     .onBindItem(bindDemoListItem)
     .nodeId("demo-dashboard:sidebar-list")
     .width(FULL_SIZE, Unit.Percent)
-    .height(computeSidebarListViewportHeight(), Unit.Pixel) as VirtualList;
+    .fillHeight() as VirtualList;
   readonly counterButton: DemoButton = new DemoButton("Click me", DemoButtonTone.Primary)
     .width(196.0, Unit.Pixel) as DemoButton;
   readonly dialogButton: DemoButton = new DemoButton("Open dialog")
@@ -811,15 +797,15 @@ export class DashboardView {
   readonly templatedControlsLink: DemoNavLink = new DemoNavLink(demoTemplatedControlsRoute(), "Templated controls") as DemoNavLink;
   readonly scrollbarGutterLink: DemoNavLink = new DemoNavLink(demoScrollbarGutterRoute(), "Scrollbar gutter bug") as DemoNavLink;
   readonly immediateDrawingLink: DemoNavLink = new DemoNavLink(demoImmediateDrawingRoute(), "Immediate-mode drawing") as DemoNavLink;
+  // The links wrap onto another line when the card is too narrow for them.
   readonly demoScopeNavRow: FlexBox = Row(
-    this.advancedControlsLink,
-    this.horizontalSpacer(10.0),
-    this.templatedControlsLink,
-    this.horizontalSpacer(10.0),
-    this.scrollbarGutterLink,
-    this.horizontalSpacer(10.0),
-    this.immediateDrawingLink,
-  ).width(FULL_SIZE, Unit.Percent) as FlexBox;
+    this.advancedControlsLink.margin(0.0, 0.0, 10.0, 8.0),
+    this.templatedControlsLink.margin(0.0, 0.0, 10.0, 8.0),
+    this.scrollbarGutterLink.margin(0.0, 0.0, 10.0, 8.0),
+    this.immediateDrawingLink.margin(0.0, 0.0, 0.0, 8.0),
+  )
+    .flexWrap(FlexWrap.Wrap)
+    .width(FULL_SIZE, Unit.Percent) as FlexBox;
   readonly demoScopeCard: FlexBox = new DemoSurface(DemoSurfaceRecipe.SectionPanel)
     .padding(16.0, 16.0, 16.0, 16.0)
     .child(
@@ -858,9 +844,10 @@ export class DashboardView {
     .height(2.0, Unit.Pixel) as FlexBox;
   readonly sidebarHeadingText: Text = new DashboardText("Scrollable list", 22.0, DemoTextRecipe.SectionTitle);
   readonly sidebarDescriptionText: Text = new DashboardText("This pooled retained list rebinds rows in place so scrolling stays stable while item content changes.", 14.0, DemoTextRecipe.Hint);
+  // The panel stretches to the row's height inside its margins, and the list takes what its column leaves.
   readonly sidebarShell: FlexBox = new DemoSurface(DemoSurfaceRecipe.SectionPanel)
     .width(dashboardSidebarWidth(), Unit.Pixel)
-    .height(FULL_SIZE, Unit.Percent)
+    .alignSelf(AlignSelf.Stretch)
     .padding(16.0, 16.0, 16.0, 16.0)
     .child(
       Column(
@@ -1137,21 +1124,27 @@ export class DashboardView {
         this.verticalSpacer(8.0),
         this.mediaDescriptionText,
         this.verticalSpacer(12.0),
+        // The tiles wrap onto another line when the card is too narrow for two.
         Row(
           this.mediaTextureFrame
+            .margin(0.0, 0.0, 12.0, 12.0)
             .child(Column(this.mediaTextureImage, this.verticalSpacer(8.0), this.mediaTextureCaptionText)),
-          this.horizontalSpacer(12.0),
           this.mediaSvgFrame
+            .margin(0.0, 0.0, 0.0, 12.0)
             .child(Column(this.mediaSvgImage, this.verticalSpacer(8.0), this.mediaSvgCaptionText)),
-        ).width(FULL_SIZE, Unit.Percent),
-        this.verticalSpacer(12.0),
+        )
+          .flexWrap(FlexWrap.Wrap)
+          .width(FULL_SIZE, Unit.Percent),
         Row(
           this.mediaSecondaryTextureFrame
+            .margin(0.0, 0.0, 12.0, 12.0)
             .child(Column(this.mediaSecondaryTextureImage, this.verticalSpacer(8.0), this.mediaSecondaryTextureCaptionText)),
-          this.horizontalSpacer(12.0),
           this.mediaBitmapFrame
+            .margin(0.0, 0.0, 0.0, 12.0)
             .child(Column(this.mediaBitmapImage, this.verticalSpacer(8.0), this.mediaBitmapCaptionText)),
-        ).width(FULL_SIZE, Unit.Percent),
+        )
+          .flexWrap(FlexWrap.Wrap)
+          .width(FULL_SIZE, Unit.Percent),
       ).width(FULL_SIZE, Unit.Percent),
     ) as FlexBox;
   readonly previewPanel: FlexBox = new DemoSurface(DemoSurfaceRecipe.SectionPanel)
@@ -1251,8 +1244,8 @@ export class DashboardView {
 
     this.configureMainPanel();
     const columnGap = dashboardColumnGap();
+    // The row sizes to its children, the panels' margins included, so the shell's scroll extent covers them.
     this.dashboardContentRow
-      .width(dashboardSidebarWidth() + columnGap + this.mainColumnWidth(), Unit.Pixel)
       .children([
         this.sidebarShell,
         this.dashboardGapSpacer.width(columnGap, Unit.Pixel),
@@ -1302,17 +1295,15 @@ export class DashboardView {
   }
 
   mainColumnWidth(): f32 {
-    const available = viewportWidthSignal.value - (DEMO_ROOT_PADDING * 2.0) - dashboardSidebarWidth() - dashboardColumnGap();
+    // The sidebar panel's margins take room beside it too.
+    const available = viewportWidthSignal.value - (DEMO_ROOT_PADDING * 2.0) - dashboardSidebarWidth()
+      - (SURFACE_PANEL_MARGIN * 2.0) - dashboardColumnGap();
     return available > 320.0 ? available : 320.0;
   }
 
   mainContentScrollBoxWidth(): f32 {
     const available = this.mainColumnWidth() - MAIN_CONTENT_SCROLLBAR_RAIL_RESERVE;
     return available > 0.0 ? available : this.mainColumnWidth();
-  }
-
-  sidebarListViewportHeight(): f32 {
-    return computeSidebarListViewportHeight();
   }
 
   syncViewportLayout(): void {
@@ -1322,10 +1313,8 @@ export class DashboardView {
     this.sidebarShell.width(dashboardSidebarWidth(), Unit.Pixel);
     this.mainPanel.width(this.mainColumnWidth(), Unit.Pixel);
     this.mainContentScrollBox.width(this.mainContentScrollBoxWidth(), Unit.Pixel);
-    this.dashboardContentRow.width(dashboardSidebarWidth() + columnGap + this.mainColumnWidth(), Unit.Pixel);
     this.dashboardGapSpacer.width(columnGap, Unit.Pixel);
     this.mainContentScrollState.viewportHeight.value = computeMainContentViewportHeight();
-    this.sidebarList.height(this.sidebarListViewportHeight(), Unit.Pixel);
   }
 
   rebuildMainHeaderContent(): void {

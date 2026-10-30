@@ -61,6 +61,8 @@ See [Forms and autofill guide](./FORMS_AND_AUTOFILL.md).
 | `VirtualList` | Pooled retained list surface | `onBindItem(...)` / `onBindItemWith(...)`, recycled rows + owned scrollbar (`list.scrollBar`) |
 | `GradientStop` | Linear gradient stop value | `offset` + packed color |
 
+A `FlexBox` does not clip its children by default, as CSS's `overflow: visible` does: content and drop shadows may extend past it, over what lies beneath. Call `clipToBounds(true)` where overflow must be hidden, such as a rounded card that cuts its image at the corners. Scroll views always clip their content.
+
 ## Helpers
 
 - `Row(...)`

@@ -43,7 +43,7 @@ const formGrid = new Grid()
 ```
 
 Notes:
-- Use `GridUnit.Star` (and a numeric weight) to distribute remaining space across star tracks. `Auto` sizes to content; `Pixel` is fixed pixels.
+- Use `GridUnit.Star` (and a numeric weight) to distribute remaining space across star tracks. `Auto` sizes to content, or to a child's own fixed width or height when it has one; `Pixel` is fixed pixels.
 - `placeChild()` appends the child; use `rowSpan` / `colSpan` to span multiple cells: `placeChild(node, 0, 0, 1, 2)`.
 - For vertical centering of inline text, use `verticalAlign(TextVerticalAlign.Center)` on `Text` nodes or set `alignItems(AlignItems.Center)` on the grid.
 - To make columns share the same width across several grids, call `Grid.sharedSizeScope(parent, true)` on a common ancestor and set `columnSharedSizeGroup(index, "group-name")` on each grid.

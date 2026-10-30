@@ -53,6 +53,10 @@ export class Grid extends FlexBox {
         unchecked(changetype<Uint8Array>(this.columnTypes)[i] = <u8>unchecked(types[i]));
       }
     }
+    if (this.hasBuiltHandle()) {
+      ui.gridSetColumns(this.handle, changetype<Float32Array>(this.columnValues), changetype<Uint8Array>(this.columnTypes));
+      this.notifyRetainedLayoutMutation();
+    }
     return this;
   }
 
@@ -69,12 +73,19 @@ export class Grid extends FlexBox {
         unchecked(changetype<Uint8Array>(this.rowTypes)[i] = <u8>unchecked(types[i]));
       }
     }
+    if (this.hasBuiltHandle()) {
+      ui.gridSetRows(this.handle, changetype<Float32Array>(this.rowValues), changetype<Uint8Array>(this.rowTypes));
+      this.notifyRetainedLayoutMutation();
+    }
     return this;
   }
 
   placeChild(child: Node, row: u32, col: u32, rowSpan: u32 = 1, colSpan: u32 = 1): this {
     this.appendChild(child);
     this.placements.push(new GridPlacement(child, row, col, rowSpan, colSpan));
+    if (this.hasBuiltHandle() && child.builtHandle != <u64>HandleValue.Invalid) {
+      ui.setGridPlacement(child.builtHandle, row, col, rowSpan, colSpan);
+    }
     return this;
   }
 
@@ -173,11 +184,14 @@ export class Grid extends FlexBox {
         ui.gridSetRowSharedSizeGroup(this.handle, <u32>i, group);
       }
     }
+    // Every child is built, as in any container; placed children then move to their cells.
+    this.buildChildren();
     for (let i = 0; i < this.placements.length; ++i) {
       const placement = unchecked(this.placements[i]);
-      const childHandle = placement.child.build();
-      ui.addChild(this.handle, childHandle);
-      ui.setGridPlacement(childHandle, placement.row, placement.col, placement.rowSpan, placement.colSpan);
+      const childHandle = placement.child.builtHandle;
+      if (placement.child.parentNode === this && childHandle != <u64>HandleValue.Invalid) {
+        ui.setGridPlacement(childHandle, placement.row, placement.col, placement.rowSpan, placement.colSpan);
+      }
     }
     return this.handle;
   }

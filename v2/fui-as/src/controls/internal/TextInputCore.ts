@@ -308,6 +308,8 @@ export class TextInputCore extends FlexBox {
     }
     this.presenter = this.createPresenter(null);
     this.presenter.bind(this, this.editorHostNode(), this.placeholderHost);
+    // A field clips its text and placeholder, as a browser's input does; children never extend its chrome.
+    this.clipToBounds(true);
 
     this.track(activeTheme.addAction(new HandlerAction<TextInputCore, Theme>(this, (control: TextInputCore, theme: Theme): void => {
       control.handleThemeChanged(theme);
@@ -664,10 +666,7 @@ export class TextInputCore extends FlexBox {
       .caretColor(resolvedCaretColor);
     this.syncEditorWrapping();
 
-    this.placeholderHost
-      .width(100.0, Unit.Percent)
-      .height(this.profile.multiline ? 0.0 : lineHeight, this.profile.multiline ? Unit.Auto : Unit.Pixel)
-      .cursor(editableCursor);
+    this.placeholderHost.cursor(editableCursor);
     const resolvedPlaceholderColor = colors !== null && colors.hasPlaceholder ? colors.placeholderColor : theme.colors.textMuted;
     this.placeholderText
       .width(100.0, Unit.Percent)

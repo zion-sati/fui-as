@@ -21,6 +21,12 @@ export abstract class TextInputPresenter {
     this.hostValue = host;
     this.editorHostValue = editorHost;
     this.placeholderHostValue = placeholderHost;
+    // A new presenter lays out the placeholder from scratch, not on top of the previous presenter's geometry.
+    placeholderHost
+      .position(0.0, 0.0)
+      .padding(0.0, 0.0, 0.0, 0.0)
+      .width(0.0, Unit.Auto)
+      .height(0.0, Unit.Auto);
     return this;
   }
 
@@ -59,9 +65,13 @@ class DefaultTextInputPresenter extends TextInputPresenter {
       .cursor(shellCursor);
     this.host.opacity(state.enabled ? 1.0 : 0.6);
     this.editorHost.cursor(editableCursor);
+    // The placeholder covers the field inside its border, with the field's padding, so its text sits where the editor's
+    // does and its box ends at the field's edge.
     this.placeholderHost
-      .position(horizontalPadding, verticalPadding)
+      .position(0.0, 0.0)
       .width(100.0, Unit.Percent)
+      .height(100.0, Unit.Percent)
+      .padding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
       .cursor(editableCursor);
   }
 }

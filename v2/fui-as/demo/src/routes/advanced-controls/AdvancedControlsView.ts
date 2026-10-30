@@ -4,6 +4,7 @@ import {
   Column,
   Easings,
   FlexBox,
+  FlexWrap,
   FontFace,
   FontFamily,
   FontStack,
@@ -56,10 +57,6 @@ export const ANIMATION_SCROLL_LOGICAL_CONTENT_HEIGHT_PX: f32 =
 
 function verticalSpacer(height: f32): FlexBox {
   return new FlexBox().fillWidth().height(height, Unit.Pixel);
-}
-
-function horizontalSpacer(width: f32): FlexBox {
-  return new FlexBox().width(width, Unit.Pixel).fillHeight();
 }
 
 function createFullWidthCheckbox(label: string, checked: bool = false): DemoCheckbox {
@@ -633,7 +630,7 @@ export class AdvancedControlsView {
       .bgColor(rgb(220, 38, 38)) as FlexBox;
 
     const sectionBody = Column(
-      Row(demoBox1, horizontalSpacer(20.0), demoBox2),
+      Row(demoBox1.margin(0.0, 0.0, 20.0, 12.0), demoBox2.margin(0.0, 0.0, 0.0, 12.0)).flexWrap(FlexWrap.Wrap),
       verticalSpacer(14.0),
       new DemoText(
         "Auto-sized containers shrink to their content, ignoring flex growth. Perfect for cards, panels, and labels that need custom borders and padding without hardcoded dimensions.",

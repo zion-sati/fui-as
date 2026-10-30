@@ -1,5 +1,5 @@
 import { FlexDirection, Unit } from "../core/ffi";
-import { Node } from "../core/Node";
+import { Node, PointerClickEventArgs } from "../core/Node";
 import { throwNullArgument } from "../core/Errors";
 import { Border, FlexBox, Portal } from "../nodes";
 import { PopupPlacement, PopupPresenter } from "./internal/PopupPresenter";
@@ -21,7 +21,7 @@ export class Popup extends Portal {
       .position(0.0, 0.0)
       .width(100.0, Unit.Percent)
       .height(100.0, Unit.Percent);
-    this.presenter.overlayNode.onPointerClickWith(this, (popup, _event) => popup.handleBackdropClick());
+    this.presenter.overlayNode.onPointerClickWith(this, (popup, event) => popup.handleBackdropClick(event));
   }
 
   get isOpen(): bool {
@@ -126,8 +126,16 @@ export class Popup extends Portal {
     super.dispose();
   }
 
-  private handleBackdropClick(): void {
-    if (this.dismissOnBackdropClickValue) {
+  // Clicks on the panel's own background reach the overlay too, since the panel is not a hit target.
+  private handleBackdropClick(event: PointerClickEventArgs): void {
+    if (!this.dismissOnBackdropClickValue) {
+      return;
+    }
+    const bounds = this.surfaceNode.getBounds();
+    const insideSurface =
+      event.sceneX >= unchecked(bounds[0]) && event.sceneX < unchecked(bounds[0]) + unchecked(bounds[2]) &&
+      event.sceneY >= unchecked(bounds[1]) && event.sceneY < unchecked(bounds[1]) + unchecked(bounds[3]);
+    if (!insideSurface) {
       this.hide();
     }
   }

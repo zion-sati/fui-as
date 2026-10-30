@@ -133,8 +133,9 @@ const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 let darkMode = darkModeQuery.matches;
 let demoShellTickTimer: number | null = null;
 
-function syncDemoShellState(): void {
-  setDemoShellTick(tick);
+// The clock ticks once a second; the accent color and dark mode are read only when they can have changed (the color
+// scheme changed, or the page came back into view or focus), so a page showing nothing that ticks stays idle.
+function syncDemoShellTheme(): void {
   setDemoShellAccentColor(readHostAccentColor());
   setDemoShellDarkMode(darkMode);
 }
@@ -157,7 +158,7 @@ function scheduleDemoShellTick(): void {
       return;
     }
     tick += 1;
-    syncDemoShellState();
+    setDemoShellTick(tick);
     scheduleDemoShellTick();
   }, 1000);
 }
@@ -167,7 +168,7 @@ function syncDemoShellTickVisibility(): void {
     stopDemoShellTick();
     return;
   }
-  syncDemoShellState();
+  syncDemoShellTheme();
   scheduleDemoShellTick();
 }
 
@@ -218,11 +219,13 @@ function installHostCallbacks(): void {
 window.__fuiReady = false;
 delete window.__fuiError;
 installHostCallbacks();
-syncDemoShellState();
+setDemoShellTick(tick);
+syncDemoShellTheme();
 darkModeQuery.addEventListener('change', (event) => {
   darkMode = event.matches;
-  syncDemoShellState();
+  syncDemoShellTheme();
 });
+window.addEventListener('focus', syncDemoShellTheme);
 document.addEventListener('visibilitychange', syncDemoShellTickVisibility);
 scheduleDemoShellTick();
 

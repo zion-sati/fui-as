@@ -3,6 +3,7 @@ export * from "../generated/HostEvents";
 
 import { Application, DynamicTextLayout, Node, PointerEventArgs, RichText, TextLayout, TextLayoutReadyEventArgs, createApplication, onLoaded, activeTheme, devicePixelRatio, rgba, rgb, span } from "../../../src/Fui";
 import { FlexBox } from "../../../src/nodes/FlexBox";
+import { ScrollBox } from "../../../src/nodes/ScrollBox";
 import { Text } from "../../../src/nodes/Text";
 import { CustomDrawable } from "../../../src/nodes/CustomDrawable";
 import { FlexDirection, FlexWrap } from "../../../src/core/ffi";
@@ -386,6 +387,9 @@ class BarChart extends CustomDrawable {
     const b = this.getBounds();
     const S: f32 = b[2]; const pad: f32 = 14; const barW: f32 = 48; const gap: f32 = 16;
     const baseY: f32 = S - pad;
+    // The tallest bar leaves room above it for the title and its label.
+    const headroom: f32 = 76;
+    const plotH: f32 = baseY - headroom;
     ctx.drawRoundRect(0, 0, S, S, 12, 12, Paint.fill(CARD));
     drawPlotTitle(ctx, this.title);
     // Bars
@@ -393,10 +397,10 @@ class BarChart extends CustomDrawable {
     const x1: f32 = pad + (barW + gap);
     const x2: f32 = pad + (barW + gap) * 2;
     const x3: f32 = pad + (barW + gap) * 3;
-    const h0 = (this.v0 / 100.0) * (S - pad * 2);
-    const h1 = (this.v1 / 100.0) * (S - pad * 2);
-    const h2 = (this.v2 / 100.0) * (S - pad * 2);
-    const h3 = (this.v3 / 100.0) * (S - pad * 2);
+    const h0 = (this.v0 / 100.0) * plotH;
+    const h1 = (this.v1 / 100.0) * plotH;
+    const h2 = (this.v2 / 100.0) * plotH;
+    const h3 = (this.v3 / 100.0) * plotH;
     ctx.drawRect(x0, baseY - h0, barW, h0, Paint.fill(BAR1));
     ctx.drawRect(x1, baseY - h1, barW, h1, Paint.fill(BAR2));
     ctx.drawRect(x2, baseY - h2, barW, h2, Paint.fill(BAR3));
@@ -809,16 +813,17 @@ function buildPage(): Node {
       canvas.setHintLabel(changetype<Text>(event.node));
     });
   });
+  // The cards wrap to the window's width and the page scrolls when they are taller than it.
   return new FlexBox()
     .flexDirection(FlexDirection.Column)
     .fillSize()
     .bgColor(rgba(20, 20, 40, 255))
-    .padding(24, 24, 24, 24)
-    .child(
+    .child(new ScrollBox().fillSize().child(
       new FlexBox()
         .flexDirection(FlexDirection.Row)
         .flexWrap(FlexWrap.Wrap)
-        .fillSize()
+        .fillWidth()
+        .padding(24, 24, 24, 24)
         .child(demo.gauge!.margin(0, 0, 0, 16))
         .child(new FlexBox().width(16).height(1))
         .child(demo.chart!.margin(0, 0, 0, 16))
@@ -834,7 +839,7 @@ function buildPage(): Node {
         .child(demo.yarn!.margin(0, 0, 0, 16))
         .child(new FlexBox().width(16).height(1))
         .child(demo.paintCanvas!.margin(0, 0, 0, 16)),
-    );
+    ));
 }
 
 const app = createApplication(buildPage);

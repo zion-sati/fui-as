@@ -83,7 +83,7 @@ export class FlexBoxProps {
   marginBottom: f32 = 0.0;
   marginLeft: f32 = 0.0;
   hasMargin: bool = false;
-  clipEnabled: bool = true;
+  clipEnabled: bool = false;
   hasClip: bool = true;
   readonly childNodes: Array<Node> = new Array<Node>();
 }
@@ -176,7 +176,7 @@ export class FlexBox extends Node {
   private positionBottom: f32 = NaN;
   private positionLeft: f32 = NaN;
   private hasPosition: bool = false;
-  private clipEnabled: bool = true;
+  private clipEnabled: bool = false;
   private hasClip: bool = true;
   private opacityValue: f32 = 1.0;
   private blurSigmaValue: f32 = 0.0;

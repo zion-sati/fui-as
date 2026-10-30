@@ -107,7 +107,8 @@ function requireComboBoxOptionsHost(comboBox: ComboBox): FlexBox {
 function requirePopupOptionLabel(optionsHost: FlexBox, index: i32): string {
   const optionNode = requireChild<FlexBox>(optionsHost, index);
   const presenterRoot = requireChild<FlexBox>(optionNode, 0);
-  return requireChild<Text>(presenterRoot, 0).content;
+  const labelHost = requireChild<FlexBox>(presenterRoot, 0);
+  return requireChild<Text>(labelHost, 0).content;
 }
 
 function resetTheme(): void {

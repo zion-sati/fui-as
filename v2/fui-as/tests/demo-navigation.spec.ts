@@ -86,10 +86,16 @@ test('demo loading overlay does not wait for app-authored route fonts', async ({
     void window.__fui_debug?.navigateTo('/v2/fui-as/demo/advanced-controls/');
   });
 
+  // The route finishes loading while its fonts are still blocked. A warm swap keeps __fuiReady set, so wait for the
+  // route the shell reports ready. The overlay may not appear at all: a route that draws within the overlay's delay
+  // never shows it.
+  await expect.poll(async () => page.evaluate(() =>
+    (window as { __fuiManagerState?: { routePath: string } }).__fuiManagerState?.routePath ?? '',
+  )).toBe('/v2/fui-as/demo/advanced-controls/');
   await demo.waitForDemoReady(page);
   await expect(page).toHaveURL(`${demo.baseUrl}/v2/fui-as/demo/advanced-controls/`);
   await expect(page.locator('#effindom-loading-overlay')).toBeHidden();
-  await expect(page.locator('#effindom-loading-detail')).not.toContainText('Fonts ');
+  await expect(page.locator('#effindom-loading-detail', { hasText: 'Fonts ' })).toHaveCount(0);
   releaseFonts?.();
 });
 
