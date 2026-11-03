@@ -220,79 +220,96 @@ class HouseSwitchIndicatorTemplate extends SwitchIndicatorTemplate {
 }
 
 class HouseSliderPresenter extends SliderPresenter {
+  private readonly rail: FlexBox;
   private readonly trackNode: FlexBox;
+  private readonly fillBox: FlexBox;
   private readonly fillNode: FlexBox;
+  private readonly spacer: FlexBox;
   private readonly thumbNode: FlexBox;
 
   constructor() {
     const root = new FlexBox();
     super(root, new SliderPresenterMetrics(22.0, 8.0, 6.0));
+    // Lays out relative to the root the slider sizes: a rail between the thumb's centre at each end holds the track,
+    // the fill and a spacer as long as the value's share, which the thumb follows.
     const trackNode = new FlexBox().positionAbsolute();
-    const fillNode = new FlexBox().positionAbsolute();
+    const fillNode = new FlexBox();
+    const fillBox = new FlexBox().positionAbsolute().child(fillNode) as FlexBox;
+    const spacer = new FlexBox();
     const thumbNode = new FlexBox()
-      .positionAbsolute()
       .width(22.0, Unit.Pixel)
       .height(22.0, Unit.Pixel);
-    this.trackNode = trackNode;
-    this.fillNode = fillNode;
-    this.thumbNode = thumbNode;
-    root
+    const rail = new FlexBox()
+      .alignItems(AlignItems.Center)
       .child(trackNode)
-      .child(fillNode)
-      .child(thumbNode);
+      .child(fillBox)
+      .child(spacer)
+      .child(thumbNode) as FlexBox;
+    this.rail = rail;
+    this.trackNode = trackNode;
+    this.fillBox = fillBox;
+    this.fillNode = fillNode;
+    this.spacer = spacer;
+    this.thumbNode = thumbNode;
+    root.child(rail);
   }
 
-  layout(state: SliderVisualState, length: f32): void {
+  layout(state: SliderVisualState): void {
     const metrics = this.metrics;
-    const available = length > metrics.thumbSize ? length - metrics.thumbSize : 0.0;
     const fraction = state.normalizedValue;
     const crossAxisInset = metrics.crossAxisExtra * 0.5;
+    const halfThumb = metrics.thumbSize * 0.5;
+    const trackOffset = (metrics.thumbSize - metrics.trackThickness) * 0.5;
     if (state.orientation == Orientation.Vertical) {
-      this.root
-        .width(metrics.thumbSize + metrics.crossAxisExtra, Unit.Pixel)
-        .height(length, Unit.Pixel);
+      this.root.flexDirection(FlexDirection.Row);
+      this.rail
+        .flexDirection(FlexDirection.Column)
+        .width(metrics.thumbSize, Unit.Pixel)
+        .fillHeight()
+        .margin(crossAxisInset, halfThumb, crossAxisInset, halfThumb);
       this.trackNode
         .width(metrics.trackThickness, Unit.Pixel)
-        .height(available, Unit.Pixel)
-        .position(
-          crossAxisInset + ((metrics.thumbSize - metrics.trackThickness) * 0.5),
-          metrics.thumbSize * 0.5,
-        );
-      this.fillNode
+        .height(100.0, Unit.Percent)
+        .position(trackOffset, 0.0);
+      this.fillBox
+        .flexDirection(FlexDirection.Column)
+        .justifyContent(JustifyContent.End)
         .width(metrics.trackThickness, Unit.Pixel)
-        .height(available * fraction, Unit.Pixel)
-        .position(
-          crossAxisInset + ((metrics.thumbSize - metrics.trackThickness) * 0.5),
-          metrics.thumbSize * 0.5 + (available * (1.0 - fraction)),
-        );
-      this.thumbNode.position(
-        crossAxisInset,
-        available - (available * fraction),
-      );
+        .height(100.0, Unit.Percent)
+        .position(trackOffset, 0.0);
+      this.fillNode
+        .width(100.0, Unit.Percent)
+        .height(fraction * 100.0, Unit.Percent);
+      this.spacer
+        .width(1.0, Unit.Pixel)
+        .height((1.0 - fraction) * 100.0, Unit.Percent);
+      this.thumbNode.position(0.0, -halfThumb);
       return;
     }
 
-    this.root
-      .width(length, Unit.Pixel)
-      .height(metrics.thumbSize + metrics.crossAxisExtra, Unit.Pixel);
+    this.root.flexDirection(FlexDirection.Column);
+    this.rail
+      .flexDirection(FlexDirection.Row)
+      .height(metrics.thumbSize, Unit.Pixel)
+      .fillWidth()
+      .margin(halfThumb, crossAxisInset, halfThumb, crossAxisInset);
     this.trackNode
-      .width(available, Unit.Pixel)
+      .width(100.0, Unit.Percent)
       .height(metrics.trackThickness, Unit.Pixel)
-      .position(
-        metrics.thumbSize * 0.5,
-        crossAxisInset + ((metrics.thumbSize - metrics.trackThickness) * 0.5),
-      );
+      .position(0.0, trackOffset);
+    this.fillBox
+      .flexDirection(FlexDirection.Row)
+      .justifyContent(JustifyContent.Start)
+      .width(100.0, Unit.Percent)
+      .height(metrics.trackThickness, Unit.Pixel)
+      .position(0.0, trackOffset);
     this.fillNode
-      .width(available * fraction, Unit.Pixel)
-      .height(metrics.trackThickness, Unit.Pixel)
-      .position(
-        metrics.thumbSize * 0.5,
-        crossAxisInset + ((metrics.thumbSize - metrics.trackThickness) * 0.5),
-      );
-    this.thumbNode.position(
-      available * fraction,
-      crossAxisInset,
-    );
+      .width(fraction * 100.0, Unit.Percent)
+      .height(100.0, Unit.Percent);
+    this.spacer
+      .width(fraction * 100.0, Unit.Percent)
+      .height(1.0, Unit.Pixel);
+    this.thumbNode.position(-halfThumb, 0.0);
   }
 
   apply(theme: Theme, state: SliderVisualState, colors: SliderColors | null): void {

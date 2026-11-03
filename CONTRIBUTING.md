@@ -92,11 +92,11 @@ docs/             — SDK reference docs
 
 Full reference:
 
-- **[SDK Docs Index](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/SDK_INDEX.md)**
-- **[API Reference](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/API_REFERENCE.md)**
-- **[Controls & Nodes](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/CONTROLS_AND_NODES.md)**
-- **[Accessibility & Semantics](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
-- **[Theming & Style Matrix](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
+- **[SDK Docs Index](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/SDK_INDEX.md)**
+- **[API Reference](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/API_REFERENCE.md)**
+- **[Controls & Nodes](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/CONTROLS_AND_NODES.md)**
+- **[Accessibility & Semantics](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
+- **[Theming & Style Matrix](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
 
 ---
 

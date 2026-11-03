@@ -6,13 +6,15 @@ import { Orientation, ProgressBar } from "./Fui";
 
 - **Constructor:** `new ProgressBar(value = 0.0)`
 - **Range:** `min(value)`, `max(value)`, `value(value)`
-- **Geometry:** `length(value)`, `thickness(value)`, `orientation(Orientation.Horizontal|Vertical)`
+- **Geometry:** `length(value)`, `fillLength()`, `thickness(value)`, `orientation(Orientation.Horizontal|Vertical)`
 - **Styling:** `trackColor(color)`, `fillColor(color)`
 - **Read current value:** `valueNow` getter
 
 `ProgressBar` is determinate and defaults to horizontal. `length(...)` controls
 the orientation axis and `thickness(...)` controls the cross axis. Horizontal
-bars fill left-to-right; vertical bars fill bottom-to-top.
+bars fill left-to-right; vertical bars fill bottom-to-top. `fillLength()` makes
+the bar fill its container along its orientation instead of a fixed length; the
+value's share of the bar follows whatever length layout gives it.
 
 ```ts
 new ProgressBar(40.0)

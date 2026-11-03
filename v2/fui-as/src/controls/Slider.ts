@@ -61,7 +61,6 @@ const SLIDER_PADDING: f32 = 2.0;
 const SLIDER_CHROME_INSET: f32 = SLIDER_FOCUS_BORDER_WIDTH + SLIDER_PADDING;
 const SLIDER_CONTENT_INSET: f32 = 1.0;
 const SLIDER_OUTER_INSET: f32 = SLIDER_CHROME_INSET + SLIDER_CONTENT_INSET;
-const SLIDER_CHILD_INSET: f32 = SLIDER_PADDING + SLIDER_CONTENT_INSET;
 
 function createSliderPresenter(template: SliderTemplate | null, sizing: SliderSizing | null = null): SliderPresenter {
   if (template !== null) {
@@ -87,6 +86,7 @@ export class Slider extends FlexBox implements DragGestureHost {
   private stepValue: f32 = 1.0;
   private currentValue: f32 = 0.0;
   private lengthValue: f32 = 180.0;
+  private fillsLength: bool = false;
   private orientationValue: Orientation = Orientation.Horizontal;
 
   constructor(value: f32 = 0.0) {
@@ -98,7 +98,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     this.requireInteractive();
     this.reflectSemanticDisabledFromEnabled();
     this.cursor(CursorStyle.Pointer);
-    this.child(this.sliderPresenter.root.positionAbsolute());
+    this.child(this.sliderPresenter.root);
     this.track(activeTheme.addAction(new HandlerAction<Slider, Theme>(this, (slider: Slider, _theme: Theme): void => {
       slider.handleThemeChanged();
     })));
@@ -160,6 +160,14 @@ export class Slider extends FlexBox implements DragGestureHost {
       );
     }
     this.lengthValue = value > thumbSize ? value : thumbSize + 1.0;
+    this.fillsLength = false;
+    this.syncPresentation();
+    return this;
+  }
+
+  /** Fills the container along the slider's orientation, as `fillWidth` or `fillHeight` does, instead of a fixed `length`. */
+  fillLength(): this {
+    this.fillsLength = true;
     this.syncPresentation();
     return this;
   }
@@ -361,31 +369,50 @@ export class Slider extends FlexBox implements DragGestureHost {
       }
     }
     const thumbSize = this.sliderPresenter.metrics.thumbSize;
-    const available = this.lengthValue - thumbSize;
+    const vertical = this.orientationValue == Orientation.Vertical;
+    let length = this.lengthValue;
+    // A filling slider's length is whatever layout gave it.
+    if (this.fillsLength && this.builtHandle != 0) {
+      const bounds = ui.tryGetBounds(this.builtHandle);
+      if (bounds !== null) {
+        length = (vertical ? unchecked(bounds[3]) : unchecked(bounds[2])) - (SLIDER_OUTER_INSET * 2.0);
+      }
+    }
+    const available = length - thumbSize;
     if (available <= 0.0) {
       return;
     }
     const leadingInset = SLIDER_OUTER_INSET + (thumbSize * 0.5);
-    const offset = this.orientationValue == Orientation.Vertical
+    const offset = vertical
       ? available - clamp(localY - leadingInset, 0.0, available)
       : clamp(localX - leadingInset, 0.0, available);
     const fraction = clamp(offset / available, 0.0, 1.0);
     this.setValue(this.minValue + ((this.maxValue - this.minValue) * fraction), emit);
   }
 
+  /** Sizes the slider, its fixed length or the length it fills; the presenter's root fills it inside the focus chrome. */
   private syncGeometryWithState(state: SliderVisualState): void {
     const metrics = this.sliderPresenter.metrics;
+    const thickness = metrics.thumbSize + (SLIDER_OUTER_INSET * 2.0) + metrics.crossAxisExtra;
     if (this.orientationValue == Orientation.Vertical) {
-      this.width(metrics.thumbSize + (SLIDER_OUTER_INSET * 2.0) + metrics.crossAxisExtra, Unit.Pixel);
-      this.height(this.lengthValue + (SLIDER_OUTER_INSET * 2.0), Unit.Pixel);
+      this.width(thickness, Unit.Pixel);
+      if (this.fillsLength) {
+        this.fillHeight();
+      } else {
+        this.height(this.lengthValue + (SLIDER_OUTER_INSET * 2.0), Unit.Pixel);
+      }
     } else {
-      this.width(this.lengthValue + (SLIDER_OUTER_INSET * 2.0), Unit.Pixel);
-      this.height(metrics.thumbSize + (SLIDER_OUTER_INSET * 2.0) + metrics.crossAxisExtra, Unit.Pixel);
+      this.height(thickness, Unit.Pixel);
+      if (this.fillsLength) {
+        this.fillWidth();
+      } else {
+        this.width(this.lengthValue + (SLIDER_OUTER_INSET * 2.0), Unit.Pixel);
+      }
     }
     this.sliderPresenter.root
-      .positionAbsolute()
-      .position(SLIDER_CHILD_INSET, SLIDER_CHILD_INSET);
-    this.sliderPresenter.layout(state, this.lengthValue);
+      .fillSize()
+      .margin(SLIDER_CONTENT_INSET, SLIDER_CONTENT_INSET, SLIDER_CONTENT_INSET, SLIDER_CONTENT_INSET);
+    this.sliderPresenter.layout(state);
     this.semanticValueRange(this.currentValue, this.minValue, this.maxValue);
     this.syncSemanticLabel();
   }
@@ -461,7 +488,7 @@ export class Slider extends FlexBox implements DragGestureHost {
     const previousRoot = this.sliderPresenter.root;
     this.sliderPresenter = nextPresenter;
     const children = new Array<Node>();
-    children.push(nextPresenter.root.positionAbsolute());
+    children.push(nextPresenter.root);
     this.replaceChildren(children);
     previousRoot.dispose();
   }

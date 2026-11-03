@@ -1,9 +1,11 @@
 import { ProgressBar } from "../../src/controls";
 import { Node } from "../../src/core/Node";
 import { activeTheme, defaultDarkTheme, generateTheme } from "../../src/core/Theme";
-import { Orientation } from "../../src/core/ffi";
+import { Orientation, Unit } from "../../src/core/ffi";
 import {
   CALL_SET_BOX_STYLE,
+  CALL_SET_FILL_HEIGHT,
+  CALL_SET_FILL_WIDTH,
   CALL_SET_HEIGHT,
   CALL_SET_SEMANTIC_VALUE_RANGE,
   CALL_SET_WIDTH,
@@ -44,8 +46,10 @@ describe("ProgressBar", () => {
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(220.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(14.0);
+    // The fill is the value's share of the bar inside its border.
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(0.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(12.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 2)).toBe(<f64>Unit.Percent);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(100.0);
 
     const rootBoxIndex = lastCallIndexForHandle(CALL_SET_BOX_STYLE, handle);
     const fillBoxIndex = lastCallIndexForHandle(CALL_SET_BOX_STYLE, fillHandle);
@@ -68,12 +72,12 @@ describe("ProgressBar", () => {
     const handle = bar.build();
     const fillHandle = requireChild<Node>(bar, 0).builtHandle;
 
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(37.25);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(12.5);
 
     resetCalls();
     bar.value(250.0);
 
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(298.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(100.0);
     const semanticIndex = lastCallIndexForHandle(CALL_SET_SEMANTIC_VALUE_RANGE, handle);
     expect<f64>(getCallArg(semanticIndex, 2)).toBe(200.0);
     expect<f64>(getCallArg(semanticIndex, 3)).toBe(0.0);
@@ -94,16 +98,36 @@ describe("ProgressBar", () => {
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(18.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(300.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(16.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(74.5);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(100.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(25.0);
 
     resetCalls();
     bar.orientation(Orientation.Horizontal);
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, handle), 1)).toBe(300.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(18.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(74.5);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(16.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(25.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(100.0);
+
+    bar.dispose();
+  });
+
+  it("fillLength fills the container along the bar's orientation", () => {
+    resetCalls();
+
+    const bar = new ProgressBar(40.0).fillLength();
+    const handle = bar.build();
+    const fillHandle = requireChild<Node>(bar, 0).builtHandle;
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, handle)).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, fillHandle), 1)).toBe(40.0);
+
+    resetCalls();
+    bar.orientation(Orientation.Vertical);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_HEIGHT, handle)).toBeGreaterThan(-1);
+
+    resetCalls();
+    bar.length(200.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, handle), 1)).toBe(200.0);
 
     bar.dispose();
   });

@@ -241,7 +241,7 @@ new Button("Go to settings").onClick(() => navigate("/settings"));
 | `new Dialog()` | Modal overlay with Accept/Cancel wiring |
 | `new VirtualList()` | Fixed-height virtualised list for large datasets |
 
-Full control docs: **[Controls & Nodes](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/CONTROLS_AND_NODES.md)**
+Full control docs: **[Controls & Nodes](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/CONTROLS_AND_NODES.md)**
 
 ---
 
@@ -257,9 +257,9 @@ npm run typecheck    # type-check without full build
 
 ## Next steps
 
-- **[API Reference](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/API_REFERENCE.md)**
-- **[Control Customization](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/CONTROL_CUSTOMIZATION.md)** — sizing, colors, templating
-- **[Theming & Style Matrix](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
-- **[Accessibility & Semantics](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
-- **[Events & Callbacks](https://github.com/zion-sati/EffinDOM/blob/main/docs/v2/fui-as/EVENTS_AND_CALLBACKS.md)**
+- **[API Reference](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/API_REFERENCE.md)**
+- **[Control Customization](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/CONTROL_CUSTOMIZATION.md)** — sizing, colors, templating
+- **[Theming & Style Matrix](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/THEMING_STYLE_MATRIX.md)**
+- **[Accessibility & Semantics](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/ACCESSIBILITY_AND_SEMANTICS.md)**
+- **[Events & Callbacks](https://github.com/zion-sati/fui-as/blob/main/docs/v2/fui-as/EVENTS_AND_CALLBACKS.md)**
 - **[Live demo source](https://github.com/zion-sati/fui-as-demo)** — a real multi-page MVC app using the full control set

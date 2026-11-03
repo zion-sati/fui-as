@@ -55,6 +55,7 @@ import {
   CALL_SET_BOX_STYLE,
   CALL_SET_SELECTABLE,
   CALL_SET_POSITION,
+  CALL_SET_MARGIN,
   CALL_SET_SELECTION_AREA_BARRIER,
   CALL_SET_SVG,
   CALL_SET_TEXT_SELECTION_RANGE,
@@ -247,7 +248,7 @@ class FixedSliderPresenter extends SliderPresenter {
     super(new FlexBox(), new SliderPresenterMetrics(25.0, 9.0, 0.0));
   }
 
-  layout(_state: SliderVisualState, _length: f32): void {
+  layout(_state: SliderVisualState): void {
     this.root
       .width(25.0, Unit.Pixel)
       .height(25.0, Unit.Pixel);
@@ -1050,22 +1051,29 @@ describe("Common controls", () => {
     const slider = new Slider();
     slider.build();
     const presenterRoot = requireChild<Node>(slider, 0);
-    const presenterRootHandle = presenterRoot.builtHandle;
-    const trackHandle = requireChildHandle(presenterRoot, 0);
-    const thumbHandle = requireChildHandle(presenterRoot, 2);
+    const rail = requireChild<Node>(presenterRoot, 0);
+    const railHandle = rail.builtHandle;
+    const trackHandle = requireChildHandle(rail, 0);
+    const thumbHandle = requireChildHandle(rail, 3);
 
+    // The slider is its 180 px track plus the focus chrome; the presenter's root fills it inside the chrome.
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, slider.builtHandle), 1)).toBe(190.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(30.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, presenterRootHandle), 1)).toBe(180.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, presenterRootHandle), 1)).toBe(20.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, trackHandle), 1)).toBe(162.0);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, presenterRoot.builtHandle)).toBeGreaterThan(-1);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_HEIGHT, presenterRoot.builtHandle)).toBeGreaterThan(-1);
+    // The rail runs between the thumb's centre at each end.
+    const railMargin = lastCallIndexForHandle(CALL_SET_MARGIN, railHandle);
+    expect<f64>(getCallArg(railMargin, 1)).toBe(9.0);
+    expect<f64>(getCallArg(railMargin, 2)).toBe(1.0);
+    expect<f64>(getCallArg(railMargin, 3)).toBe(9.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, railHandle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, trackHandle), 1)).toBe(100.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, trackHandle), 2)).toBe(<f64>Unit.Percent);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(6.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, thumbHandle), 1)).toBe(18.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, thumbHandle), 1)).toBe(18.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(30.0);
-    expect<i32>(findPositionCall(3.0, 3.0)).toBeGreaterThan(-1);
-    expect<i32>(findPositionCall(9.0, 7.0)).toBeGreaterThan(-1);
-    expect<i32>(findPositionCall(0.0, 1.0)).toBeGreaterThan(-1);
+    expect<i32>(findPositionCall(0.0, 6.0)).toBeGreaterThan(-1);
+    expect<i32>(findPositionCall(-9.0, 0.0)).toBeGreaterThan(-1);
 
     slider.dispose();
   });
@@ -1079,53 +1087,50 @@ describe("Common controls", () => {
       .orientation(Orientation.Vertical);
     slider.build();
     const presenterRoot = requireChild<Node>(slider, 0);
-    const presenterRootHandle = presenterRoot.builtHandle;
-    const trackHandle = requireChildHandle(presenterRoot, 0);
-    const fillHandle = requireChildHandle(presenterRoot, 1);
-    const thumbHandle = requireChildHandle(presenterRoot, 2);
+    const rail = requireChild<Node>(presenterRoot, 0);
+    const railHandle = rail.builtHandle;
+    const trackHandle = requireChildHandle(rail, 0);
+    const fillHandle = requireChildHandle(requireChild<Node>(rail, 1), 0);
+    const spacerHandle = requireChildHandle(rail, 2);
+    const thumbHandle = requireChildHandle(rail, 3);
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, slider.builtHandle), 1)).toBe(30.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(190.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, presenterRootHandle), 1)).toBe(20.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, presenterRootHandle), 1)).toBe(180.0);
+    const railMargin = lastCallIndexForHandle(CALL_SET_MARGIN, railHandle);
+    expect<f64>(getCallArg(railMargin, 1)).toBe(1.0);
+    expect<f64>(getCallArg(railMargin, 2)).toBe(9.0);
+    expect<f64>(getCallArg(railMargin, 4)).toBe(9.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, railHandle), 1)).toBe(18.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, trackHandle), 1)).toBe(6.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(162.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(100.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 2)).toBe(<f64>Unit.Percent);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, thumbHandle), 1)).toBe(18.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, thumbHandle), 1)).toBe(18.0);
-    expect<i32>(findPositionCall(7.0, 9.0)).toBeGreaterThan(-1);
-    expect<i32>(findPositionCall(1.0, 81.0)).toBeGreaterThan(-1);
+    expect<i32>(findPositionCall(6.0, 0.0)).toBeGreaterThan(-1);
+    expect<i32>(findPositionCall(0.0, -9.0)).toBeGreaterThan(-1);
 
+    // The fill grows up from the bottom; the spacer above the thumb holds what is left.
     const boundaryValues = [25.0, 26.0, 48.0, 49.0, 75.0, 76.0];
-    const expectedFillLengths = [41.0, 42.0, 78.0, 79.0, 122.0, 123.0];
     for (let i = 0; i < boundaryValues.length; i += 1) {
       EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "Home", 0);
       resetCalls();
       for (let step = 0; step < <i32>boundaryValues[i]; step += 1) {
         EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "ArrowUp", 0);
       }
-      const fillLength = getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1);
-      const fillTop = getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 2);
-      expect<f64>(fillLength).toBe(expectedFillLengths[i]);
-      expect<f64>(fillTop + fillLength).toBe(171.0);
+      const fillPercent = getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1);
+      const spacerPercent = getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, spacerHandle), 1);
+      expect<f64>(Math.abs(fillPercent - boundaryValues[i])).toBeLessThan(0.001);
+      expect<f64>(Math.abs(fillPercent + spacerPercent - 100.0)).toBeLessThan(0.001);
     }
 
     resetCalls();
     EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "End", 0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(162.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(162.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 1)).toBe(7.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 2)).toBe(9.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 1)).toBe(7.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 2)).toBe(9.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(100.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, spacerHandle), 1)).toBe(0.0);
 
     resetCalls();
     EventRouter.dispatchKeyEvent(slider.builtHandle, KeyEventType.Down, "Home", 0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(162.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, fillHandle), 1)).toBe(0.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 1)).toBe(7.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, trackHandle), 2)).toBe(9.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 1)).toBe(7.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_POSITION, fillHandle), 2)).toBe(171.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, spacerHandle), 1)).toBe(100.0);
 
     slider.dispose();
   });
@@ -1138,16 +1143,51 @@ describe("Common controls", () => {
     const slider = new Slider()
       .sizing(new SliderSizing().thumbSize(16.0).trackThickness(4.0));
     slider.build();
-    const presenterRoot = requireChild<Node>(slider, 0);
-    const presenterRootHandle = presenterRoot.builtHandle;
-    const trackHandle = requireChildHandle(presenterRoot, 0);
-    const thumbHandle = requireChildHandle(presenterRoot, 2);
+    const rail = requireChild<Node>(requireChild<Node>(slider, 0), 0);
+    const trackHandle = requireChildHandle(rail, 0);
+    const thumbHandle = requireChildHandle(rail, 3);
 
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(28.0);
-    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, presenterRootHandle), 1)).toBe(18.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, rail.builtHandle), 1)).toBe(16.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, trackHandle), 1)).toBe(4.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_WIDTH, thumbHandle), 1)).toBe(16.0);
     expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, thumbHandle), 1)).toBe(16.0);
+
+    slider.dispose();
+  });
+
+  it("slider fillLength fills its container along its orientation", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const slider = new Slider().length(120.0).fillLength() as Slider;
+    slider.build();
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_WIDTH, slider.builtHandle)).toBeGreaterThan(-1);
+
+    resetCalls();
+    slider.orientation(Orientation.Vertical);
+    expect<i32>(lastCallIndexForHandle(CALL_SET_FILL_HEIGHT, slider.builtHandle)).toBeGreaterThan(-1);
+
+    resetCalls();
+    slider.length(90.0);
+    expect<f64>(getCallArg(lastCallIndexForHandle(CALL_SET_HEIGHT, slider.builtHandle), 1)).toBe(100.0);
+
+    slider.dispose();
+  });
+
+  it("a filling slider maps the pointer over its laid-out length", () => {
+    EventRouter.reset();
+    resetTheme();
+    resetCalls();
+
+    const slider = new Slider().min(0.0).max(100.0).step(5.0).fillLength() as Slider;
+    slider.build();
+    // 100 wide: a 90 px track inside the chrome, 72 px between the thumb's centre at each end.
+    setNodeBounds(slider.builtHandle, 0.0, 0.0, 100.0, 30.0);
+    slider._handlePointerEvent(PointerEventType.Down, 50.0, 15.0, 0);
+    slider._handlePointerEvent(PointerEventType.Up, 50.0, 15.0, 0);
+    expect<f32>(slider.value).toBe(50.0);
 
     slider.dispose();
   });

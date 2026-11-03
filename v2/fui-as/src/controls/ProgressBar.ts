@@ -2,7 +2,7 @@ import { HandlerAction } from "../core/Action";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { Theme, activeTheme } from "../core/Theme";
 import { warn } from "../core/Logger";
-import { FlexDirection, JustifyContent, Orientation } from "../core/ffi";
+import { FlexDirection, JustifyContent, Orientation, Unit } from "../core/ffi";
 import { FlexBox } from "../nodes";
 
 function clamp(value: f32, min: f32, max: f32): f32 {
@@ -29,6 +29,7 @@ export class ProgressBar extends FlexBox {
   private maxValue: f32 = 100.0;
   private currentValue: f32 = 0.0;
   private lengthValue: f32 = 220.0;
+  private fillsLength: bool = false;
   private thicknessValue: f32 = 14.0;
   private orientationValue: Orientation = Orientation.Horizontal;
   private trackColorValue: u32 = 0;
@@ -81,6 +82,14 @@ export class ProgressBar extends FlexBox {
       warn("Layout", "ProgressBar.length() received " + value.toString() + "; clamping to 1.0.");
     }
     this.lengthValue = value > 0.0 ? value : 1.0;
+    this.fillsLength = false;
+    this.syncGeometry();
+    return this;
+  }
+
+  /** Fills the container along the bar's orientation, as `fillWidth` or `fillHeight` does, instead of a fixed `length`. */
+  fillLength(): this {
+    this.fillsLength = true;
     this.syncGeometry();
     return this;
   }
@@ -142,27 +151,32 @@ export class ProgressBar extends FlexBox {
     this.syncGeometry();
   }
 
+  /** Sizes the bar, its fixed length or the length it fills, and its fill as the value's share of the bar inside its border. */
   private syncGeometry(): void {
     const range = this.maxValue - this.minValue;
-    const fraction = range > 0.0 ? clamp((this.currentValue - this.minValue) / range, 0.0, 1.0) : 0.0;
-    const inset = PROGRESS_BORDER_WIDTH * 2.0;
-    const innerLength = this.lengthValue > inset ? this.lengthValue - inset : 0.0;
-    const innerThickness = this.thicknessValue > inset ? this.thicknessValue - inset : 0.0;
-    const fillLength = innerLength * fraction;
+    const percent = range > 0.0 ? clamp((this.currentValue - this.minValue) / range, 0.0, 1.0) * 100.0 : 0.0;
     if (this.orientationValue == Orientation.Vertical) {
       this.flexDirection(FlexDirection.Column);
       this.justifyContent(JustifyContent.End);
       this.width(this.thicknessValue);
-      this.height(this.lengthValue);
-      this.fillNode.width(innerThickness);
-      this.fillNode.height(fillLength);
+      if (this.fillsLength) {
+        this.fillHeight();
+      } else {
+        this.height(this.lengthValue);
+      }
+      this.fillNode.width(100.0, Unit.Percent);
+      this.fillNode.height(percent, Unit.Percent);
     } else {
       this.flexDirection(FlexDirection.Row);
       this.justifyContent(JustifyContent.Start);
-      this.width(this.lengthValue);
       this.height(this.thicknessValue);
-      this.fillNode.width(fillLength);
-      this.fillNode.height(innerThickness);
+      if (this.fillsLength) {
+        this.fillWidth();
+      } else {
+        this.width(this.lengthValue);
+      }
+      this.fillNode.width(percent, Unit.Percent);
+      this.fillNode.height(100.0, Unit.Percent);
     }
     this.semanticValueRange(this.currentValue, this.minValue, this.maxValue);
     this.syncSemanticLabel();

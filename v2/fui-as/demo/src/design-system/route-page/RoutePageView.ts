@@ -1,4 +1,4 @@
-import { Column, FlexBox, Row, ScrollBarVisibility, ScrollBox, ScrollState, SelectionArea, SemanticRole, Text, Theme, Unit, viewportWidthSignal } from "../../../../src/Fui";
+import { Column, FlexBox, FlexWrap, Row, ScrollBarVisibility, ScrollBox, ScrollState, SelectionArea, SemanticRole, Text, Theme, Unit, viewportWidthSignal } from "../../../../src/Fui";
 import { DemoButton, DemoButtonTone, DemoNavLink } from "../controls";
 import { DemoScrollBox, applyDemoScrollBoxTheme } from "../scrollbar";
 import { DemoSurface, DemoSurfaceRecipe } from "../surfaces";
@@ -16,10 +16,6 @@ class NavItem {
 
 function verticalSpacer(height: f32): FlexBox {
   return new FlexBox().fillWidth().height(height, Unit.Pixel);
-}
-
-function horizontalSpacer(width: f32): FlexBox {
-  return new FlexBox().width(width, Unit.Pixel).height(1.0, Unit.Pixel);
 }
 
 function routePageRootPadding(): f32 {
@@ -133,18 +129,16 @@ export class RoutePageView {
         ),
       ) as FlexBox;
 
-    const navBar = Row().fillWidth();
+    // The links wrap rather than run past the page in a narrow window.
+    const navBar = Row().flexWrap(FlexWrap.Wrap).fillWidth() as FlexBox;
     for (let i = 0; i < model.navItems.length; i += 1) {
       const item = unchecked(model.navItems[i]);
-      if (i > 0) {
-        navBar.child(horizontalSpacer(10.0));
-      }
-      navBar.child(this.createNavLink(item.routePath, item.label));
+      navBar.child(this.createNavLink(item.routePath, item.label).margin(0.0, 0.0, 10.0, 8.0));
     }
 
     this.contentColumn = Column(
       navBar,
-      verticalSpacer(24.0),
+      verticalSpacer(16.0),
       this.accentBadge,
       verticalSpacer(16.0),
       this.titleText,

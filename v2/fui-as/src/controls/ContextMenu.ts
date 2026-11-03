@@ -14,6 +14,8 @@ import {
   Unit,
 } from "../core/ffi";
 import { HandlerAction } from "../core/Action";
+import { Callback0, Handler0 } from "../core/BoundCallback";
+import { bind0 } from "../core/bind";
 import { Disposable, disposeAll } from "../core/Disposable";
 import { navigateTo } from "../core/Navigation";
 import { Node, PointerButton, PointerEventArgs, PointerType, VisibilityChangedEventArgs } from "../core/Node";
@@ -236,6 +238,8 @@ export enum ContextMenuAction {
   SelectAllText = 10,
   OpenImage = 11,
   OpenImageInNewTab = 12,
+  /** An application command: the item runs its callback and nothing else. */
+  Command = 13,
 }
 
 export class MenuItem {
@@ -249,6 +253,8 @@ export class MenuItem {
   selectionStart: u32;
   selectionEnd: u32;
   private readonly kindValue: MenuItemKind;
+  private commandCallback: (() => void) | null = null;
+  private commandBinding: Callback0 | null = null;
 
   constructor(
     label: string,
@@ -278,6 +284,31 @@ export class MenuItem {
     this.selectionStart = start;
     this.selectionEnd = end;
     return this;
+  }
+
+  /** An application command, such as Rename or Delete, that runs `invoke` when chosen. */
+  static command(label: string, invoke: () => void, disabled: bool = false): MenuItem {
+    const item = new MenuItem(label, ContextMenuAction.Command, null, MenuItemKind.Action, null, disabled);
+    item.commandCallback = invoke;
+    return item;
+  }
+
+  /** An application command that calls `handler` with `owner` when chosen. */
+  static commandWith<Owner>(label: string, owner: Owner, handler: Handler0<Owner>, disabled: bool = false): MenuItem {
+    const item = new MenuItem(label, ContextMenuAction.Command, null, MenuItemKind.Action, null, disabled);
+    item.commandBinding = bind0<Owner>(owner, handler);
+    return item;
+  }
+
+  _invokeCommand(): void {
+    const callback = this.commandCallback;
+    if (callback !== null) {
+      callback();
+    }
+    const binding = this.commandBinding;
+    if (binding !== null) {
+      binding.invoke();
+    }
   }
 
   static separator(): MenuItem {
@@ -324,6 +355,10 @@ export function runContextMenuAction(item: MenuItem): void {
     if (!actionNeedsLiveSelection) {
       return;
     }
+  }
+  if (item.action == ContextMenuAction.Command) {
+    item._invokeCommand();
+    return;
   }
   if (item.action == ContextMenuAction.CopyCurrentSelection) {
     if (item.payload !== null) {

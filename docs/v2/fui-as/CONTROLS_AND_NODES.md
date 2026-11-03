@@ -20,11 +20,11 @@ For the complete export list, see:
 | `Dropdown` / `DropdownItem` | Non-editable selection popup control | `items(...)`, `selectIndex(...)`, `onChanged(...)`, `colors(...)`, popup sizing/styling (`maxVisibleItems(...)`, `popupWidth(...)`), `fieldTemplate(...)`, `chevronTemplate(...)`, `optionRowTemplate(...)` |
 | `Form` | Enter/Escape default/cancel handling host | default/cancel action ownership for contained controls |
 | `NavLink` | Arbitrary-content route/link host with browser-harness integration | `NavLink(href, newTab?)`, child composition, `hrefTo(...)`, `onNavigate(...)`, interaction-state binding |
-| `ProgressBar` | Determinate horizontal or vertical progress visualization | `value(...)`, `min(...)`, `max(...)`, `length(...)`, `thickness(...)`, `orientation(...)`, `trackColor(...)`, `fillColor(...)` |
+| `ProgressBar` | Determinate horizontal or vertical progress visualization | `value(...)`, `min(...)`, `max(...)`, `length(...)`, `fillLength()`, `thickness(...)`, `orientation(...)`, `trackColor(...)`, `fillColor(...)` |
 | `RadioButton` / `RadioGroup` | Single-choice grouped options | radio `onClick(...)`; group `addOption(...)`, `addOptions(...)`, `selectIndex(...)`, `selectedValue` (getter), `onChanged(...)`; radio `template(...)`, `colors(...)` |
 | `SelectionArea` | Cross-node text selection host | `selectedText`, selection hooks, Shift+Arrow extension for existing selections |
 | `AntiSelectionArea` | Selection barrier island | prevents parent `SelectionArea` from collecting subtree text |
-| `Slider` | Single-value range control | `min(...)`, `max(...)`, `step(...)`, `orientation(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
+| `Slider` | Single-value range control | `min(...)`, `max(...)`, `step(...)`, `length(...)`, `fillLength()`, `orientation(...)`, `onChanged(...)`, `template(...)`, `colors(...)` |
 | `Switch` | On/off toggle control | `check(...)`, `onChanged(...)`, `onClick(...)`, `template(...)`, `colors(...)` |
 | `TabView` / `TabItem` | Headless retained content switching with lazy owned content | `addItem(...)`, `removeItemAt(...)`, `selectIndex(...)`, `onSelectionChanged(...)`; compose buttons, links, text, or custom drawing as selectors |
 | `TextInput` | Single-line editable text | `template(...)`, `colors(...)`, `text(...)`, `placeholder(...)`, `readOnly(...)`, `password(...)`, `maxChars(...)`, change/selection/focus callbacks |
