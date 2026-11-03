@@ -372,6 +372,10 @@ export function setSmoothScrolling(handle: u64, smoothScrolling: bool): void {
   ffi.ui_set_smooth_scrolling(handle, smoothScrolling);
 }
 
+export function setScrollWheelLatching(handle: u64, latching: bool): void {
+  ffi.ui_set_scroll_wheel_latching(handle, latching);
+}
+
 export function setFocusable(handle: u64, flag: bool, tabIndex: i32): void {
   ffi.ui_set_focusable(handle, flag, tabIndex);
 }

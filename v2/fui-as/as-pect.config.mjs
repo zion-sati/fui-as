@@ -66,6 +66,7 @@ const CallOp = Object.freeze({
   SetScrollEnabled: 62,
   SetScrollFriction: 64,
   SetSmoothScrolling: 119,
+  SetScrollWheelLatching: 121,
   SetFocusable: 29,
   RequestFocus: 59,
   SetBoxStyle: 30,
@@ -544,6 +545,9 @@ export default {
         },
         ui_set_smooth_scrolling(handle, smoothScrolling) {
           record(CallOp.SetSmoothScrolling, toNumber(handle), smoothScrolling ? 1 : 0);
+        },
+        ui_set_scroll_wheel_latching(handle, latching) {
+          record(CallOp.SetScrollWheelLatching, toNumber(handle), latching ? 1 : 0);
         },
         ui_set_scroll_content_size(handle, contentWidth, contentHeight) {
           record(CallOp.SetScrollContentSize, toNumber(handle), contentWidth, contentHeight);

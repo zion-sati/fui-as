@@ -75,6 +75,7 @@ export class ScrollView extends Node {
   private pendingProgrammaticOffsetY: f32 = 0.0;
   private hasFriction: bool = false;
   private smoothScrollingValue: bool = true;
+  private wheelLatchingValue: bool = true;
   private _scrollState: ScrollState = new ScrollState();
   private persistScrollValue: bool = true;
   private persistedScrollRestorePending: bool = false;
@@ -286,6 +287,18 @@ export class ScrollView extends Node {
     return this;
   }
 
+  /**
+   * Whether a mouse-wheel run that starts here stays here at the edges until the wheel pauses (true by default), as
+   * browsers latch wheel scrolling. With false the rest of the run scrolls the nearest ancestor that can move.
+   */
+  wheelLatching(flag: bool = true): this {
+    this.wheelLatchingValue = flag;
+    if (this.hasBuiltHandle()) {
+      ui.setScrollWheelLatching(this.handle, flag);
+    }
+    return this;
+  }
+
   persistScroll(flag: bool = true): this {
     this.persistScrollValue = flag;
     if (!flag) {
@@ -405,6 +418,7 @@ export class ScrollView extends Node {
     this.finishBuild();
     ui.setScrollEnabled(this.handle, this.enableScrollX, this.enableScrollY);
     ui.setSmoothScrolling(this.handle, this.smoothScrollingValue);
+    ui.setScrollWheelLatching(this.handle, this.wheelLatchingValue);
     if (this.hasFriction) {
       ui.setScrollFriction(this.handle, this.frictionValue);
     }

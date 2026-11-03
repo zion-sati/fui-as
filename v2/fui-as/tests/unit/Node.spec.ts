@@ -65,6 +65,7 @@ import {
   CALL_SET_SCROLL_OFFSET,
   CALL_SET_SCROLL_CONTENT_SIZE,
   CALL_SET_SMOOTH_SCROLLING,
+  CALL_SET_SCROLL_WHEEL_LATCHING,
   CALL_SET_SEMANTIC_LABEL,
   CALL_SET_SEMANTIC_ROLE,
   CALL_SET_TEXT,
@@ -872,6 +873,29 @@ describe("Node builders", () => {
     smoothIndex = findCall(CALL_SET_SMOOTH_SCROLLING);
     expect<i32>(smoothIndex).toBeGreaterThan(-1);
     expect<f64>(getCallArg(smoothIndex, 1)).toBe(0.0);
+  });
+
+  it("latches wheel runs by default and lets a scroll view or box opt out", () => {
+    resetCalls();
+
+    const scrollView = new ScrollView();
+    scrollView.build();
+    let latchIndex = findCall(CALL_SET_SCROLL_WHEEL_LATCHING);
+    expect<i32>(latchIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(latchIndex, 1)).toBe(1.0);
+
+    resetCalls();
+    scrollView.wheelLatching(false);
+    latchIndex = findCall(CALL_SET_SCROLL_WHEEL_LATCHING);
+    expect<i32>(latchIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(latchIndex, 1)).toBe(0.0);
+
+    resetCalls();
+    const scrollBox = new ScrollBox().wheelLatching(false) as ScrollBox;
+    scrollBox.build();
+    latchIndex = findCall(CALL_SET_SCROLL_WHEEL_LATCHING);
+    expect<i32>(latchIndex).toBeGreaterThan(-1);
+    expect<f64>(getCallArg(latchIndex, 1)).toBe(0.0);
   });
 
   it("keeps raw scroll views hit-testable while ScrollBox root itself stays non-interactive", () => {

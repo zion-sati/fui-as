@@ -7,7 +7,7 @@ import { ScrollBox, ScrollState } from "./Fui";
 - **Constructor:** `new ScrollBox(scrollState = new ScrollState(), viewportOverride = null)`
 - **State/accessors:** `scrollState`, `viewport`, `verticalScrollBar`, `horizontalScrollBar`
 - **Content:** `child(node)`, `children(nodes)`
-- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `scrollOffset`
+- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `scrollOffset`, `smoothScrolling`, `wheelLatching` (see [ScrollView](ScrollView.md))
 - **Chrome:** `verticalScrollbarVisibility`, `horizontalScrollbarVisibility`, `scrollbarGutter`
 - **Lifecycle:** `dispose()`
 

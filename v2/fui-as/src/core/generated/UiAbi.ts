@@ -241,6 +241,9 @@ export declare function ui_set_scroll_friction(handle: u64, friction: f32): void
 @external("effindom_v2_ui", "ui_set_smooth_scrolling")
 export declare function ui_set_smooth_scrolling(handle: u64, smooth_scrolling: bool): void;
 
+@external("effindom_v2_ui", "ui_set_scroll_wheel_latching")
+export declare function ui_set_scroll_wheel_latching(handle: u64, latching: bool): void;
+
 @external("effindom_v2_ui", "ui_set_focusable")
 export declare function ui_set_focusable(handle: u64, focusable: bool, tab_index: i32): void;
 

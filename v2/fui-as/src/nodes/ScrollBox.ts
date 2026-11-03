@@ -144,6 +144,12 @@ export class ScrollBox extends FlexBox {
     return this;
   }
 
+  /** Whether a mouse-wheel run that starts in this box stays in it at the edges until the wheel pauses (true by default). */
+  wheelLatching(flag: bool = true): this {
+    this.viewportValue.wheelLatching(flag);
+    return this;
+  }
+
   persistScroll(flag: bool = true): this {
     this.persistScrollValue = flag;
     if (!flag) {

@@ -7,12 +7,18 @@ import { ScrollState, ScrollView } from "./Fui";
 - **Constructor:** `new ScrollView()`
 - **State:** `bindScrollState(state)`, `scrollState` getter
 - **Sizing/layout:** `width`, `height`, `fillWidth`, `fillHeight`, `fillWidthPercent`, `fillHeightPercent`, `fillSize`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`, `flexBasis`
-- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `smoothScrolling`, `friction`, `scrollOffset`
+- **Scrolling:** `scrollEnabledX`, `scrollEnabledY`, `smoothScrolling`, `wheelLatching`, `friction`, `scrollOffset`
 
 `smoothScrolling()` is enabled by default. Wheel deltas accumulate into one
 smooth target without waiting for a burst to finish. Pass `false` to restore
 immediate wheel-step scrolling. Touch, scrollbar, and explicit programmatic
 scrolling remain direct and take ownership immediately.
+
+`wheelLatching()` is enabled by default: a mouse-wheel run that starts in a
+scroll view stays in it at its edges, as browsers latch wheel scrolling, and
+only a wheel event after a pause (150 ms) scrolls an ancestor. Pass `false` to
+hand the rest of a run to the nearest ancestor that can move. Trackpad gestures
+keep their scroll view until they end, unless it does not latch.
 - **Children/events:** `child`, `children`, `onPointerClick`, `onPointerDoubleClick`, `onPointerTripleClick`, `onPointerEnter`, `onPointerLeave`
 
 ## Sizing guidance

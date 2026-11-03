@@ -277,6 +277,9 @@ that property’s active transition slot.
 
 - `smoothScrolling(flag = true)` controls default wheel-input smoothing; rapid
   wheel events accumulate without debounce
+- `wheelLatching(flag = true)` keeps a mouse-wheel run in the scroll view it
+  started in at its edges until the wheel pauses, as browsers do; `false` hands
+  the rest of the run to the nearest ancestor that can move
 
 - `scrollTo(x, y)` for immediate programmatic jumps
 - `scrollToAnimated(x, y, timing)` for typed smooth-scroll motion
